@@ -1,5 +1,5 @@
-const express = require("express");
-const cors = require("cors");
+import express from "express";
+import cors from "cors";
 
 const app = express();
 
@@ -10,8 +10,7 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "Backend running ✅" });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`Backend running on port ${PORT}`);
 });
-``
