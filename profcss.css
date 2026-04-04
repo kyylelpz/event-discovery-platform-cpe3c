@@ -1,0 +1,166 @@
+:root {
+    --primary: #4facfe;
+    --secondary: #ffffff;
+    --accent: #007bff;
+    --text: #333;
+
+    --card: #ffffff;
+    --input-bg: #ffffff;
+    --border: #ddd;
+}
+
+/* BODY */
+body {
+    font-family: Arial;
+    background: linear-gradient(to right, var(--primary), var(--secondary));
+    margin: 0;
+    color: var(--text);
+}
+
+/* CONTAINER */
+.container {
+    width: 400px;
+    margin: 50px auto;
+    background: var(--card);
+    padding: 25px;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+/* PROFILE IMAGE */
+.profile-wrapper {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+}
+
+.profile-img {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    border: 5px solid var(--primary);
+    object-fit: cover;
+}
+
+.camera-icon {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    padding: 6px;
+    font-size: 14px;
+}
+
+#imageUpload {
+    display: none;
+}
+
+/* INFO */
+.info {
+    text-align: left;
+    margin-top: 20px;
+}
+
+/* BUTTON */
+button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 10px;
+
+    background: var(--primary);
+    color: #fff;
+
+    cursor: pointer;
+    transition: 0.25s;
+}
+
+button:hover {
+    background: var(--accent);
+    transform: translateY(-2px);
+}
+/* SELECT */
+select {
+    width: 100%;
+    padding: 8px;
+    border-radius: 10px;
+    margin-top: 10px;
+    background: var(--input-bg);
+    color: var(--text);
+    border: 2px solid var(--border);
+}
+
+/* MODAL */
+.modal {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    opacity: 0;
+    visibility: hidden;
+    transition: 0.3s;
+}
+
+.modal.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal-content {
+    background: var(--card);
+    color: var(--text);
+    width: 90%;
+    max-width: 400px;
+    padding: 20px;
+    border-radius: 15px;
+    transform: translateY(40px) scale(0.95);
+    opacity: 0;
+    transition: 0.35s;
+}
+
+.modal.show .modal-content {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+}
+
+/* INPUTS */
+.input-group {
+    margin: 10px 0;
+}
+
+.input-group input,
+.input-group textarea {
+    width: 100%;
+    padding: 10px;
+    border-radius: 10px;
+    border: 2px solid var(--border);
+    outline: none;
+    transition: 0.3s;
+    box-sizing: border-box;
+
+    background: var(--input-bg);
+    color: var(--text);
+}
+
+.input-group input:focus,
+.input-group textarea:focus {
+    border-color: var(--primary);
+}
+
+/* PLACEHOLDER */
+::placeholder {
+    color: #888;
+}
+
+/* RESPONSIVE */
+@media (max-width: 480px) {
+    .container {
+        width: 90%;
+    }
+}
