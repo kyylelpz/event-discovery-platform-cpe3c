@@ -604,6 +604,11 @@
   gap: 16px;
 }
 
+.detail-host > div {
+  display: grid;
+  gap: 2px;
+}
+
 .detail-host strong,
 .detail-place-card strong,
 .detail-panel__meta strong,
@@ -647,7 +652,19 @@
 }
 
 .detail-panel__meta > div {
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  align-items: start;
+  gap: 12px;
+}
+
+.detail-panel__meta > div > div {
+  display: grid;
+  gap: 2px;
+}
+
+.detail-panel__meta > div > svg {
+  margin-top: 2px;
 }
 
 .detail-panel__meta span {
@@ -671,6 +688,12 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
+}
+
+.detail-panel__icon-row .icon-box {
+  width: 100%;
+  min-height: 44px;
+  border-radius: var(--radius-sm);
 }
 
 .attendee-strip {
