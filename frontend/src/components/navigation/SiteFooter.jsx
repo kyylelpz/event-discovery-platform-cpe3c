@@ -1,9 +1,24 @@
-function SiteFooter() {
-  const footerLinks = {
-    'Use Eventcinity': ['Create Events', 'Discover Events', 'Connect with People'],
-    'Plan Events': ['Event Planning', 'Community Hosts', 'Location Guides'],
-    Connect: ['Help Center', 'Contact Support', 'Privacy'],
-  }
+import { routes } from '../../utils/routing.js'
+
+const footerLinks = {
+  'Use Eventcinity': [
+    { label: 'Create Events', path: routes.createEvent },
+    { label: 'Discover Events', path: routes.events },
+    { label: 'Connect with People', path: routes.people },
+  ],
+  'Plan Events': [
+    { label: 'Event Planning', path: routes.eventPlanning },
+    { label: 'Community Hosts', path: routes.communityHosts },
+    { label: 'Location Guides', path: routes.locationGuides },
+  ],
+  Connect: [
+    { label: 'Help Center', path: routes.helpCenter },
+    { label: 'Contact Support', path: routes.contactSupport },
+    { label: 'About the Programmers', path: routes.aboutProgrammers },
+  ],
+}
+
+function SiteFooter({ onNavigate }) {
 
   return (
     <footer className="site-footer">
@@ -21,8 +36,14 @@ function SiteFooter() {
             <h3>{title}</h3>
             <ul>
               {links.map((link) => (
-                <li key={link}>
-                  <a href="#">{link}</a>
+                <li key={link.label}>
+                  <button
+                    type="button"
+                    className="footer-link"
+                    onClick={() => onNavigate(link.path)}
+                  >
+                    {link.label}
+                  </button>
                 </li>
               ))}
             </ul>

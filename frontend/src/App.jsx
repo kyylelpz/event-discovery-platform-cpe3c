@@ -13,8 +13,11 @@ import SignInPage from './pages/auth/SignInPage.jsx'
 import CreateEventPage from './pages/events/CreateEventPage.jsx'
 import EventDetailPage from './pages/events/EventDetailPage.jsx'
 import EventDiscoveryPage from './pages/events/EventDiscoveryPage.jsx'
+import AboutProgrammersPage from './pages/info/AboutProgrammersPage.jsx'
+import InfoPage from './pages/info/InfoPage.jsx'
 import PeoplePage from './pages/people/PeoplePage.jsx'
 import ProfilePage from './pages/profile/ProfilePage.jsx'
+import { infoPages } from './data/sitePages.js'
 import { loadEventsByLocation } from './services/eventService.js'
 import { createPosterDataUri, matchesDateFilter } from './utils/formatters.js'
 import { resolveRoute, routes, slugify } from './utils/routing.js'
@@ -254,6 +257,10 @@ function App() {
     )
   } else if (route.key === 'signin') {
     page = <SignInPage onContinue={() => navigate(routes.events)} />
+  } else if (route.key === 'about-programmers') {
+    page = <AboutProgrammersPage />
+  } else if (infoPages[route.key]) {
+    page = <InfoPage {...infoPages[route.key]} />
   } else {
     page = (
       <EventDiscoveryPage

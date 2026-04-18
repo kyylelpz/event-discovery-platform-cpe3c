@@ -1,5 +1,5 @@
 import { routes } from '../../utils/routing.js'
-import BrandLogo from './BrandLogo.jsx'
+import brandLogo from '../../assets/eventcinity-logo.png'
 import { PrimaryButton, SecondaryButton } from '../ui/Button.jsx'
 import {
   CalendarIcon,
@@ -28,7 +28,9 @@ function Navbar({
     <header className="topbar">
       <div className="topbar__desktop">
         <button className="brandmark" type="button" onClick={() => onNavigate(routes.events)}>
-          <BrandLogo />
+          <span className="brandmark__logo-frame" aria-hidden="true">
+            <img className="brandmark__logo" src={brandLogo} alt="" />
+          </span>
           <span className="brandmark__word">Eventcinity</span>
         </button>
 
@@ -115,7 +117,9 @@ function MobileNavbar({
     <details className="topbar__mobile" open={false}>
       <summary>
         <button className="brandmark" type="button" onClick={() => onNavigate(routes.events)}>
-          <BrandLogo />
+          <span className="brandmark__logo-frame" aria-hidden="true">
+            <img className="brandmark__logo" src={brandLogo} alt="" />
+          </span>
           <span className="brandmark__word">Eventcinity</span>
         </button>
         <span className="topbar__mobile-toggle">
