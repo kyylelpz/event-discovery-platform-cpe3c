@@ -158,6 +158,12 @@
   transform: translateY(-1px);
 }
 
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
 .button svg,
 .icon-box svg,
 .icon-badge svg,
@@ -739,16 +745,33 @@
 }
 
 .upload-dropzone {
+  display: grid;
   justify-items: center;
   padding: 40px 24px;
   border: 2px dashed var(--color-border);
   border-radius: var(--radius-md);
   text-align: center;
   cursor: pointer;
+  gap: 10px;
 }
 
 .upload-dropzone input {
   display: none;
+}
+
+.upload-dropzone__preview {
+  width: min(100%, 320px);
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  background: rgba(192, 192, 193, 0.08);
+}
+
+.upload-dropzone__preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .upload-dropzone svg {
@@ -761,6 +784,24 @@
 .upload-dropzone span,
 .upload-dropzone small {
   color: var(--color-muted);
+}
+
+.event-form label em {
+  color: #8f2f2f;
+  font-style: normal;
+}
+
+.field-hint,
+.field-error {
+  display: block;
+}
+
+.field-hint {
+  color: var(--color-muted);
+}
+
+.field-error {
+  color: #8f2f2f;
 }
 
 .profile-card__intro {

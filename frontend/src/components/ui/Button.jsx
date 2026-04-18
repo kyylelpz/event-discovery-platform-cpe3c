@@ -1,9 +1,16 @@
-export function PrimaryButton({ children, onClick, type = 'button', className = '' }) {
+export function PrimaryButton({
+  children,
+  onClick,
+  type = 'button',
+  className = '',
+  disabled = false,
+}) {
   return (
     <button
       className={`button button--primary ${className}`.trim()}
       type={type}
       onClick={onClick}
+      disabled={disabled}
     >
       {children}
     </button>
@@ -16,6 +23,7 @@ export function SecondaryButton({
   type = 'button',
   isActive = false,
   className = '',
+  disabled = false,
 }) {
   return (
     <button
@@ -24,6 +32,7 @@ export function SecondaryButton({
       } ${className}`.trim()}
       type={type}
       onClick={onClick}
+      disabled={disabled}
     >
       {children}
     </button>

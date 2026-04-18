@@ -7,6 +7,7 @@ import {
   LogInIcon,
   MapPinIcon,
   MenuIcon,
+  PlusSquareIcon,
   SearchIcon,
   UserPlusIcon,
 } from '../ui/Icons.jsx'
@@ -67,6 +68,7 @@ function Navbar({
             isActive={isActive(routes.createEvent)}
             onClick={() => onNavigate(routes.createEvent)}
           >
+            <PlusSquareIcon />
             Create
           </SecondaryButton>
           <SecondaryButton
@@ -160,6 +162,7 @@ function MobileNavbar({
             isActive={toggleState === routes.createEvent}
             onClick={() => onNavigate(routes.createEvent)}
           >
+            <PlusSquareIcon />
             Create Event
           </SecondaryButton>
           <SecondaryButton

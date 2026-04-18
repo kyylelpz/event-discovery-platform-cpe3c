@@ -163,6 +163,9 @@ function App() {
 
   const handleCreateEvent = (formData) => {
     const eventId = `${slugify(formData.title)}-${Date.now()}`
+    const locationLabel = formData.venue
+      ? `${formData.venue}, ${formData.province}`
+      : formData.province
 
     const newEvent = {
       id: eventId,
@@ -170,8 +173,8 @@ function App() {
       category: formData.category,
       startDate: formData.date,
       timeLabel: formData.time,
-      location: `${formData.venue}, ${formData.location}`,
-      province: formData.location,
+      location: locationLabel,
+      province: formData.province,
       host: 'Eventcinity Community',
       description: formData.description,
       attendeeCount: 1,
@@ -179,18 +182,20 @@ function App() {
       reactions: 1,
       createdBy: featuredUsers[0].username,
       attendees: [featuredUsers[0].name, 'You'],
-      mapLabel: `${formData.venue}, ${formData.location}`,
+      mapLabel: locationLabel,
       source: 'community',
-      image: createPosterDataUri({
-        title: formData.title,
-        location: `${formData.venue}, ${formData.location}`,
-        category: formData.category,
-      }),
-      imageLabel: 'Community-created event artwork',
+      image:
+        formData.imagePreview ||
+        createPosterDataUri({
+          title: formData.title,
+          location: locationLabel,
+          category: formData.category,
+        }),
+      imageLabel: formData.imageName || 'Community-created event artwork',
     }
 
     setCreatedEvents((currentEvents) => [newEvent, ...currentEvents])
-    setSelectedLocation(formData.location)
+    setSelectedLocation(formData.province)
     setInteractions((currentState) => ({
       hearted: [...new Set([...currentState.hearted, eventId])],
       saved: [...new Set([...currentState.saved, eventId])],
