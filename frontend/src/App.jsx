@@ -10,6 +10,7 @@ import {
 } from './data/mockData.js'
 import MainLayout from './layouts/MainLayout.jsx'
 import SignInPage from './pages/auth/SignInPage.jsx'
+import AboutProgrammersPage from './pages/about/AboutProgrammersPage.jsx'
 import CreateEventPage from './pages/events/CreateEventPage.jsx'
 import EventDetailPage from './pages/events/EventDetailPage.jsx'
 import EventDiscoveryPage from './pages/events/EventDiscoveryPage.jsx'
@@ -254,6 +255,8 @@ function App() {
     )
   } else if (route.key === 'signin') {
     page = <SignInPage onContinue={() => navigate(routes.events)} />
+  } else if (route.key === 'about-programmers') {
+    page = <AboutProgrammersPage />
   } else {
     page = (
       <EventDiscoveryPage
