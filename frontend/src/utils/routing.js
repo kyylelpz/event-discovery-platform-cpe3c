@@ -5,6 +5,12 @@ export const routes = {
   people: '/people',
   profile: (username) => `/profile/${username}`,
   signin: '/signin',
+  eventPlanning: '/event-planning',
+  communityHosts: '/community-hosts',
+  locationGuides: '/location-guides',
+  helpCenter: '/help-center',
+  contactSupport: '/contact-support',
+  aboutProgrammers: '/about-the-programmers',
 }
 
 export const slugify = (value) =>
@@ -40,6 +46,30 @@ export const resolveRoute = (pathname) => {
 
   if (cleanPath === '/signin') {
     return { key: 'signin', params: {} }
+  }
+
+  if (cleanPath === '/event-planning') {
+    return { key: 'event-planning', params: {} }
+  }
+
+  if (cleanPath === '/community-hosts') {
+    return { key: 'community-hosts', params: {} }
+  }
+
+  if (cleanPath === '/location-guides') {
+    return { key: 'location-guides', params: {} }
+  }
+
+  if (cleanPath === '/help-center') {
+    return { key: 'help-center', params: {} }
+  }
+
+  if (cleanPath === '/contact-support') {
+    return { key: 'contact-support', params: {} }
+  }
+
+  if (cleanPath === '/about-the-programmers') {
+    return { key: 'about-programmers', params: {} }
   }
 
   return { key: 'events', params: {} }

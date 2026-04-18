@@ -45,6 +45,16 @@ export function CalendarIcon({ className = '' }) {
   )
 }
 
+export function PlusSquareIcon({ className = '' }) {
+  return createIcon(
+    <>
+      <rect x="3" y="3" width="18" height="18" rx="3" />
+      <path d="M12 8v8M8 12h8" />
+    </>,
+    className,
+  )
+}
+
 export function UserPlusIcon({ className = '' }) {
   return createIcon(
     <>
