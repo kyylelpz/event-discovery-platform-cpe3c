@@ -12,7 +12,7 @@ function ProfilePage({
   ...sharedPageProps
 }) {
   const displayEvents =
-    activeTab === 'Created Events' ? createdEvents : savedEvents
+    activeTab === 'Created Events' ? createdEvents : savedEvents 
 
   return (
     <div className="profile-page">
