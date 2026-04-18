@@ -7,7 +7,7 @@ export const programmerProfiles = [
   },
   {
     name: 'Kylle Lemuel Lopez',
-    role: 'Frontend UI/UX Developer',
+    role: 'Frontend Dashboard Developer',
     summary:
       'Builds and refines the component library and page layouts, ensuring a consistent and intuitive feel across the platform.',
   },

@@ -16,17 +16,20 @@ import EventDetailPage from './pages/events/EventDetailPage.jsx'
 import EventDiscoveryPage from './pages/events/EventDiscoveryPage.jsx'
 import PeoplePage from './pages/people/PeoplePage.jsx'
 import ProfilePage from './pages/profile/ProfilePage.jsx'
+import EventPlanningPage from './pages/info/EventPlanningPage.jsx'
+import CommunityHostsPage from './pages/info/CommunityHostsPage.jsx'
+import LocationGuidesPage from './pages/info/LocationGuidesPage.jsx'
+import HelpCenterPage from './pages/info/HelpCenterPage.jsx'
+import ContactSupportPage from './pages/info/ContactSupportPage.jsx'
 import { loadEventsByLocation } from './services/eventService.js'
 import { createPosterDataUri, matchesDateFilter } from './utils/formatters.js'
 import { resolveRoute, routes, slugify } from './utils/routing.js'
 
 const mergeEvents = (...eventGroups) => {
   const merged = new Map()
-
   eventGroups.flat().forEach((event) => {
     merged.set(event.id, event)
   })
-
   return [...merged.values()]
 }
 
@@ -48,9 +51,7 @@ function App() {
     const handlePopState = () => {
       setPathname(window.location.pathname)
     }
-
     window.addEventListener('popstate', handlePopState)
-
     return () => {
       window.removeEventListener('popstate', handlePopState)
     }
@@ -58,32 +59,22 @@ function App() {
 
   useEffect(() => {
     let isActive = true
-
     const syncEvents = async () => {
       setIsLoadingEvents(true)
       const { events, mode } = await loadEventsByLocation(selectedLocation)
-
-      if (!isActive) {
-        return
-      }
-
+      if (!isActive) return
       setRemoteEvents(events)
       setFeedMode(mode)
       setIsLoadingEvents(false)
     }
-
     syncEvents()
-
     return () => {
       isActive = false
     }
   }, [selectedLocation])
 
   const navigate = (nextPath) => {
-    if (nextPath === pathname) {
-      return
-    }
-
+    if (nextPath === pathname) return
     window.history.pushState({}, '', nextPath)
     startTransition(() => {
       setPathname(nextPath)
@@ -125,7 +116,9 @@ function App() {
   })
 
   const featuredEvent =
-    filteredEvents.find((event) => event.isFeatured) || filteredEvents[0] || allEvents[0]
+    filteredEvents.find((event) => event.isFeatured) ||
+    filteredEvents[0] ||
+    allEvents[0]
   const currentEvent = allEvents.find((event) => event.id === route.params?.eventId)
   const activeProfile =
     featuredUsers.find((user) => user.username === route.params?.username) ||
@@ -149,7 +142,6 @@ function App() {
   const toggleInteraction = (key, eventId) => {
     setInteractions((currentState) => {
       const hasEvent = currentState[key].includes(eventId)
-
       return {
         ...currentState,
         [key]: hasEvent
@@ -161,7 +153,6 @@ function App() {
 
   const handleCreateEvent = (formData) => {
     const eventId = `${slugify(formData.title)}-${Date.now()}`
-
     const newEvent = {
       id: eventId,
       title: formData.title,
@@ -186,7 +177,6 @@ function App() {
       }),
       imageLabel: 'Community-created event artwork',
     }
-
     setCreatedEvents((currentEvents) => [newEvent, ...currentEvents])
     setSelectedLocation(formData.location)
     setInteractions((currentState) => ({
@@ -194,7 +184,6 @@ function App() {
       saved: [...new Set([...currentState.saved, eventId])],
       attending: [...new Set([...currentState.attending, eventId])],
     }))
-
     navigate(routes.eventDetail(eventId))
   }
 
@@ -257,6 +246,16 @@ function App() {
     page = <SignInPage onContinue={() => navigate(routes.events)} />
   } else if (route.key === 'about-programmers') {
     page = <AboutProgrammersPage />
+  } else if (route.key === 'event-planning') {
+    page = <EventPlanningPage />
+  } else if (route.key === 'community-hosts') {
+    page = <CommunityHostsPage />
+  } else if (route.key === 'location-guides') {
+    page = <LocationGuidesPage />
+  } else if (route.key === 'help-center') {
+    page = <HelpCenterPage />
+  } else if (route.key === 'contact-support') {
+    page = <ContactSupportPage />
   } else {
     page = (
       <EventDiscoveryPage

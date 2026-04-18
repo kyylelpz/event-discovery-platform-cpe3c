@@ -1,25 +1,22 @@
-import { routes } from '../../utils/routing.js'
-
 const footerLinks = {
   'Use Eventcinity': [
-    { label: 'Create Events', path: routes.createEvent },
-    { label: 'Discover Events', path: routes.events },
-    { label: 'Connect with People', path: routes.people },
+    { label: 'Create Events', path: '/events/create' },
+    { label: 'Discover Events', path: '/events' },
+    { label: 'Connect with People', path: '/people' },
   ],
   'Plan Events': [
-    { label: 'Event Planning', path: routes.eventPlanning },
-    { label: 'Community Hosts', path: routes.communityHosts },
-    { label: 'Location Guides', path: routes.locationGuides },
+    { label: 'Event Planning', path: '/event-planning' },
+    { label: 'Community Hosts', path: '/community-hosts' },
+    { label: 'Location Guides', path: '/location-guides' },
   ],
   Connect: [
-    { label: 'Help Center', path: routes.helpCenter },
-    { label: 'Contact Support', path: routes.contactSupport },
-    { label: 'About the Programmers', path: routes.aboutProgrammers },
+    { label: 'Help Center', path: '/help-center' },
+    { label: 'Contact Support', path: '/contact-support' },
+    { label: 'About the Programmers', path: '/about-the-programmers' },
   ],
 }
 
 function SiteFooter({ onNavigate }) {
-
   return (
     <footer className="site-footer">
       <div className="footer-grid">
@@ -40,7 +37,10 @@ function SiteFooter({ onNavigate }) {
                   <button
                     type="button"
                     className="footer-link"
-                    onClick={() => onNavigate(link.path)}
+                    onClick={() => {
+                      console.log('navigating to:', link.path)
+                      onNavigate(link.path)
+                    }}
                   >
                     {link.label}
                   </button>
