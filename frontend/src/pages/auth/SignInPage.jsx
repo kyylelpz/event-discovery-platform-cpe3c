@@ -266,7 +266,7 @@ function SignInPage({ onContinue }) {
 
   const isSignUp = mode === 'signup'
 
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
     e.preventDefault()
     setError(null)
 
@@ -282,14 +282,32 @@ function SignInPage({ onContinue }) {
 
     setIsLoading(true)
     try {
+      const endpoint = isSignUp 
+        ? 'http://localhost:3000/register' 
+        : 'http://localhost:3000/login';
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Something went wrong with the server.');
+      }
+
+      console.log("🎉 The backend replied:", data);
+
       await onContinue({ email, password, mode })
+      
     } catch (err) {
       setError(err.message || 'Something went wrong. Try again.')
     } finally {
       setIsLoading(false)
     }
   }
-
   const switchMode = (next) => {
     setMode(next)
     setError(null)
@@ -317,7 +335,7 @@ function SignInPage({ onContinue }) {
             </button>
             <button className={`auth-tab ${mode === 'signup' ? 'active' : ''}`} onClick={() => switchMode('signup')} type="button">
               Sign up
-            </button>
+            </button> 
           </div>
 
           <form className="signin-form" onSubmit={handleSubmit} noValidate>
