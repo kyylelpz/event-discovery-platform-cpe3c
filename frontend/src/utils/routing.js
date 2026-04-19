@@ -21,6 +21,8 @@ export const slugify = (value) =>
     .replace(/^-+|-+$/g, '')
 
 export const resolveRoute = (pathname) => {
+  console.log('resolveRoute called with:', pathname)
+
   const cleanPath = pathname === '/' ? '/events' : pathname.replace(/\/$/, '') || '/events'
   const parts = cleanPath.split('/').filter(Boolean)
 
