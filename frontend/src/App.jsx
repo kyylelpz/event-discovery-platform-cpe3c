@@ -1,4 +1,4 @@
-import { startTransition, useDeferredValue, useEffect, useState } from 'react'
+import { useDeferredValue, useEffect, useState } from 'react'
 import './App.css'
 import {
   categoryOptions,
@@ -74,11 +74,9 @@ function App() {
   }, [selectedLocation])
 
   const navigate = (nextPath) => {
-    if (nextPath === pathname) return
+    if (!nextPath || nextPath === pathname) return
     window.history.pushState({}, '', nextPath)
-    startTransition(() => {
-      setPathname(nextPath)
-    })
+    setPathname(nextPath)
   }
 
   const route = resolveRoute(pathname)
