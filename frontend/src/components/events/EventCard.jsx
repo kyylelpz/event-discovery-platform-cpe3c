@@ -22,18 +22,23 @@ function EventCard({
 
   return (
     <article className="event-card">
-      <button className="event-card__media" type="button" onClick={() => onOpenEvent(event.id)}>
-        <img src={event.image} alt={event.imageLabel} loading="lazy" />
-        <div className="event-card__actions-overlay">
-          <button
-            type="button"
-            className="icon-badge"
-            onClick={(eventObject) => {
-              eventObject.stopPropagation()
-              onToggleHeart(event.id)
-            }}
-            aria-label="Heart event"
-          >
+            <div 
+              className="event-card__media" 
+              onClick={() => onOpenEvent(event.id)}
+              style={{ cursor: 'pointer' }} 
+            >
+              <img src={event.image} alt={event.imageLabel} loading="lazy" />
+              
+              <div className="event-card__actions-overlay">
+                <button
+                  type="button"
+                  className="icon-badge"
+                  onClick={(eventObject) => {
+                    eventObject.stopPropagation(); 
+                    onToggleHeart(event.id);
+                  }}
+                  aria-label="Heart event"
+                >
             <HeartIcon className={isHearted ? 'icon-accent icon-filled' : ''} filled={isHearted} />
           </button>
           <button
@@ -51,7 +56,9 @@ function EventCard({
         <div className="event-card__category">
           <CategoryTag>{event.category}</CategoryTag>
         </div>
-      </button>
+      </div>
+    
+
 
       <div className="event-card__content">
         <button className="event-card__title" type="button" onClick={() => onOpenEvent(event.id)}>
