@@ -1,7 +1,4 @@
 import express from "express";
-import axios from "axios";
-import protect from "../middleware/protect.js";
-import SavedEvent from "../models/SavedEvent.js";
 import { getJson } from "serpapi";
 import protect from "../middleware/protect.js";
 import SavedEvent from "../models/SavedEvent.js";
@@ -57,7 +54,7 @@ router.post("/save", protect, async (req, res) => {
   }
 });
 
-// GET /api/events/saved  (protected) (for bookmarked events)
+// GET /api/events/saved  (protected)
 router.get("/saved", protect, async (req, res) => {
   try {
     const saved = await SavedEvent.find({ userId: req.user._id }).sort(
