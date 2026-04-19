@@ -2,34 +2,29 @@ import express from "express";
 import axios from "axios";
 import protect from "../middleware/protect.js";
 import SavedEvent from "../models/SavedEvent.js";
+import { getJson } from "serpapi";
+import protect from "../middleware/protect.js";
+import SavedEvent from "../models/SavedEvent.js";
 
 const router = express.Router();
 
-// ─── Fetch Events from RapidAPI ───────────────────────
-const fetchFromRapidAPI = async (location) => {
-  const response = await axios.get(
-    "https://real-time-events-search.p.rapidapi.com/search-events",
-    {
-      headers: {
-        "X-RapidAPI-Key": process.env.RAPIDAPI_KEY,
-        "X-RapidAPI-Host": "real-time-events-search.p.rapidapi.com",
-      },
-      params: {
-        query: `events in ${location} Philippines`,
-        date: "any",
-        is_virtual: "false",
-        start: "0",
-      },
-    },
-  );
-  return response.data.data || [];
+// ─── Fetch Events from SerpApi ───────────────────────
+const fetchFromSerpApi = async (location) => {
+  const results = await getJson({
+    engine: "google_events",
+    q: `events in ${location} Philippines`,
+    hl: "en",
+    gl: "ph",
+    api_key: process.env.SERPAPI_KEY,
+  });
+  return results.events_results || [];
 };
 
 // GET /api/events?location=Manila
 router.get("/", async (req, res) => {
   try {
     const location = req.query.location || "Manila";
-    const events = await fetchFromRapidAPI(location);
+    const events = await fetchFromSerpApi(location);
     res.json({ success: true, data: events });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -62,7 +57,7 @@ router.post("/save", protect, async (req, res) => {
   }
 });
 
-// GET /api/events/saved  (protected)
+// GET /api/events/saved  (protected) (for bookmarked events)
 router.get("/saved", protect, async (req, res) => {
   try {
     const saved = await SavedEvent.find({ userId: req.user._id }).sort(
