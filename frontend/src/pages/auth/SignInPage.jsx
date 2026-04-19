@@ -283,8 +283,8 @@ const handleSubmit = async (e) => {
     setIsLoading(true)
     try {
       const endpoint = isSignUp 
-        ? 'http://localhost:3000/register' 
-        : 'http://localhost:3000/login';
+        ? 'http://localhost:5000/api/auth/register' 
+        : 'http://localhost:5000/api/auth/login';
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -407,7 +407,7 @@ const handleSubmit = async (e) => {
 
             <div className="divider">or</div>
 
-            <button type="button" className="google-btn" onClick={() => console.log('Google sign-in')}>
+            <button type="button" className="google-btn" onClick={() => window.location.href = 'http://localhost:5000/api/auth/google'}>
               <GoogleIcon />
               Continue with Google
             </button>

@@ -36,8 +36,7 @@ passport.use(
   ),
 );
 
-// ─── Routes ───────────────────────────────────────────
-// 1. Initiate Google login
+// ─── Google Routes ────────────────────────────────────
 router.get(
   "/google",
   passport.authenticate("google", {
@@ -46,7 +45,6 @@ router.get(
   }),
 );
 
-// 2. Google callback
 router.get(
   "/google/callback",
   passport.authenticate("google", {
@@ -67,15 +65,75 @@ router.get(
   },
 );
 
-// 3. Get current user
 router.get("/me", protect, (req, res) => {
   res.json({ user: req.user });
 });
 
-// 4. Logout
 router.post("/logout", (req, res) => {
   res.clearCookie("token");
   res.json({ message: "Logged out successfully" });
 });
 
+
+// ─── Email & Password Routes 
+
+router.post('/register', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const existingUser = await User.findOne({ email: email });
+        
+        if (existingUser) {
+            return res.status(400).json({ message: "That email is already registered!" });
+        }
+
+        const defaultName = email.split('@')[0]; 
+        const newUser = new User({ 
+            email: email, 
+            password: password, 
+            name: defaultName 
+        });
+
+        await newUser.save(); 
+        res.status(201).json({ message: "Account created successfully!" });
+
+    } catch (error) {
+        console.error("Database Error:", error);
+        res.status(500).json({ message: "Server error while saving." });
+    }
+});
+router.post('/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const user = await User.findOne({ email: email });
+
+        if (!user) {
+            return res.status(404).json({ message: "Account not found. Please sign up first!" });
+        }
+        if (user.password !== password) {
+            return res.status(401).json({ message: "Incorrect password. Please try again." });
+        }
+
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+        
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+
+        res.status(200).json({ 
+            message: "Login successful! Welcome back.",
+            user: { email: user.email }
+        });
+
+    } catch (error) {
+        console.error("Database Error during login:", error);
+        res.status(500).json({ message: "Server error during login." });
+    }
+});
+
+router.get("/me", protect, (req, res) => {
+  res.json({ user: req.user });
+});
 export default router;
