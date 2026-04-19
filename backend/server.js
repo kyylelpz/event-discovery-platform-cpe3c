@@ -1,14 +1,14 @@
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-require('dotenv').config();
+
+
+console.log("Is MONGO_URI loaded?", process.env.MONGO_URI);
+console.log("What does the whole process.env look like?", process.env);
+// --------------------------
 
 const app = express();
-
-
-app.use(cors()); 
-app.use(express.json()); 
-
 // Database Connection
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("Database Connected Successfully"))
