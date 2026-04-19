@@ -18,7 +18,7 @@ export const programmerProfiles = [
       'Designs and manages the data layer, connecting the app to structured storage and keeping event and user data reliable.',
   },
   {
-    name: 'Lance Cabrera',
+    name: 'Lance Angelo Bernal',
     role: 'Backend Developer',
     summary:
       'Architects the server-side logic and business rules that power Eventcinity behind the scenes.',
