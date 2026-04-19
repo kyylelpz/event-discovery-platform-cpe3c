@@ -8,7 +8,7 @@ const app = express();
 
 app.use(cors()); 
 app.use(express.json());
-// -------------------------------------------------
+
 
 console.log("Is MONGO_URI loaded?", process.env.MONGO_URI);
 
