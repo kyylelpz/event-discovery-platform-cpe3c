@@ -254,7 +254,7 @@ const GoogleIcon = () => (
   </svg>
 )
 
-function SignInPage({ onContinue }) {
+function SignInPage({ onAuthSuccess }) {
   const [mode, setMode] = useState('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -300,7 +300,12 @@ const handleSubmit = async (e) => {
 
       console.log("🎉 The backend replied:", data);
 
-      await onContinue({ email, password, mode })
+      const userType = isSignUp ? 'new' : 'returning';
+
+      if(onAuthSuccess){
+        await onAuthSuccess(data, userType);
+      } 
+     
       
     } catch (err) {
       setError(err.message || 'Something went wrong. Try again.')
