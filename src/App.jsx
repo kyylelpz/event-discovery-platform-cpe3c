@@ -26,8 +26,9 @@ import ContactSupportPage from './pages/info/ContactSupportPage.jsx'
 import { loadEventsByLocation } from './services/eventService.js'
 import { getSession, saveInterests, signOut } from './services/authService.js'
 import { createPosterDataUri, matchesDateFilter } from './utils/formatters.js'
-import { resolveRoute, routes, slugify } from './utils/routing.js'
+import { resolveRoute, routes } from './utils/routing.js'
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000'
 
 const mergeEvents = (...eventGroups) => {
   const merged = new Map()
@@ -162,20 +163,30 @@ function App() {
 
   const handleCreateEvent = async (formData) => {
     try {
-      setIsLoadingEvents(true); // Optional: show a loader
+      setIsLoadingEvents(true)
 
-      // 1. Send to your Node.js Backend
-      const response = await axios.post('/api/events/create', formData, {
+      const payload = new FormData()
+      payload.append('title', formData.title)
+      payload.append('description', formData.description)
+      payload.append('date', formData.date)
+      payload.append('time', formData.time)
+      payload.append('venue', formData.venue)
+      payload.append('province', formData.province)
+      payload.append('category', formData.category)
+      if (formData.imageFile) {
+        payload.append('image', formData.imageFile)
+      }
+
+      const response = await axios.post(`${API_BASE_URL}/api/events/create`, payload, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        withCredentials: true, // Crucial for 'protect' middleware
-      });
+        withCredentials: true,
+      })
 
       if (response.data.success) {
-        const dbEvent = response.data.data;
+        const dbEvent = response.data.data
 
-        // 2. Format the backend data to match your frontend 'newEvent' structure
         const newEvent = {
           id: dbEvent.eventId,
           title: dbEvent.title,
@@ -183,29 +194,33 @@ function App() {
           startDate: dbEvent.date,
           timeLabel: dbEvent.time || '',
           location: dbEvent.location,
-          province: dbEvent.location, // Assuming province is stored here
+          province: formData.province,
           host: currentUser?.name || 'Community Host',
           description: dbEvent.description || '',
           attendeeCount: 1,
           savedCount: 1,
           reactions: 1,
-          image: dbEvent.imageUrl, // This is the Cloudinary URL from Atlas!
+          image:
+            dbEvent.imageUrl ||
+            formData.imagePreview ||
+            createPosterDataUri({
+              title: dbEvent.title,
+              location: dbEvent.location || formData.province,
+              category: dbEvent.category || 'Community',
+            }),
           source: 'community',
-        };
+        }
 
-        // 3. Update local state so the event appears immediately
-        setCreatedEvents((prev) => [newEvent, ...prev]);
-        
-        // 4. Navigate to the new event detail page
-        navigate(routes.eventDetail(newEvent.id));
+        setCreatedEvents((prev) => [newEvent, ...prev])
+        navigate(routes.eventDetail(newEvent.id))
       }
     } catch (err) {
-      console.error("Upload failed:", err.response?.data || err.message);
-      alert("Failed to create event. Check console for details.");
+      console.error('Upload failed:', err.response?.data || err.message)
+      alert('Failed to create event. Check console for details.')
     } finally {
-      setIsLoadingEvents(false);
+      setIsLoadingEvents(false)
     }
-  };
+  }
 
 
   const navProps = {

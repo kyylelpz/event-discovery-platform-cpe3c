@@ -10,6 +10,7 @@ const initialForm = {
   venue: '',
   province: '',
   category: '',
+  imageFile: null,
   imagePreview: '',
   imageName: '',
 }
@@ -111,6 +112,7 @@ function CreateEventPage({ categories, locations, onCreateEvent }) {
     const file = event.target.files?.[0]
 
     if (!file) {
+      updateField('imageFile', null)
       updateField('imagePreview', '')
       updateField('imageName', '')
       return
@@ -122,6 +124,7 @@ function CreateEventPage({ categories, locations, onCreateEvent }) {
       setFormValues((currentValues) => {
         const nextValues = {
           ...currentValues,
+          imageFile: file,
           imagePreview: String(reader.result),
           imageName: file.name,
         }
