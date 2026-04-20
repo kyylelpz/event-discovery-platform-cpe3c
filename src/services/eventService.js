@@ -1,7 +1,7 @@
 import { seedEvents } from '../data/mockData.js'
 import { createPosterDataUri } from '../utils/formatters.js'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000'
 
 const normalizeRemoteEvent = (event, fallbackLocation) => ({
   id:
@@ -60,12 +60,18 @@ export const loadEventsByLocation = async (location) => {
 
     const payload = await response.json()
 
-    if (!Array.isArray(payload.events) || payload.events.length === 0) {
+    const events = Array.isArray(payload.events)
+      ? payload.events
+      : Array.isArray(payload.data)
+        ? payload.data
+        : []
+
+    if (events.length === 0) {
       throw new Error('Empty event payload')
     }
 
     return {
-      events: payload.events.map((event) => normalizeRemoteEvent(event, location)),
+      events: events.map((event) => normalizeRemoteEvent(event, location)),
       mode: 'live',
     }
   } catch {

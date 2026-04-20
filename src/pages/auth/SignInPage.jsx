@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import { PrimaryButton } from '../../components/ui/Button.jsx'
+import { setSession } from '../../services/authService.js'
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000'
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap');
@@ -266,7 +269,7 @@ function SignInPage({ onAuthSuccess }) {
 
   const isSignUp = mode === 'signup'
 
-const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError(null)
 
@@ -282,37 +285,42 @@ const handleSubmit = async (e) => {
 
     setIsLoading(true)
     try {
-      const endpoint = isSignUp 
-        ? 'http://localhost:5000/api/auth/register' 
-        : 'http://localhost:5000/api/auth/login';
+      const endpoint = isSignUp
+        ? `${API_BASE_URL}/api/auth/register`
+        : `${API_BASE_URL}/api/auth/login`
 
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
+      })
 
-      const data = await response.json();
+      const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.message || 'Something went wrong with the server.');
+        throw new Error(data.message || 'Something went wrong with the server.')
       }
 
-      console.log("🎉 The backend replied:", data);
+      const session = {
+        email,
+        name: data.user?.name || email.split('@')[0],
+        interests: [],
+      }
+      setSession(session)
 
-      const userType = isSignUp ? 'new' : 'returning';
+      const userType = isSignUp ? 'new' : 'returning'
 
-      if(onAuthSuccess){
-        await onAuthSuccess(data, userType);
-      } 
-     
-      
+      if (onAuthSuccess) {
+        await onAuthSuccess(session, userType)
+      }
     } catch (err) {
       setError(err.message || 'Something went wrong. Try again.')
     } finally {
       setIsLoading(false)
     }
   }
+
   const switchMode = (next) => {
     setMode(next)
     setError(null)
@@ -330,7 +338,7 @@ const handleSubmit = async (e) => {
             <p>
               {isSignUp
                 ? 'Join to discover and save events near you.'
-                : 'Pick up where you left off — your saved events are waiting.'}
+                : 'Pick up where you left off. Your saved events are waiting.'}
             </p>
           </header>
 
@@ -340,7 +348,7 @@ const handleSubmit = async (e) => {
             </button>
             <button className={`auth-tab ${mode === 'signup' ? 'active' : ''}`} onClick={() => switchMode('signup')} type="button">
               Sign up
-            </button> 
+            </button>
           </div>
 
           <form className="signin-form" onSubmit={handleSubmit} noValidate>
@@ -350,7 +358,7 @@ const handleSubmit = async (e) => {
               <label htmlFor="email">Email</label>
               <input
                 id="email"
-                type="email" 
+                type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -375,11 +383,11 @@ const handleSubmit = async (e) => {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="........"
                   autoComplete={isSignUp ? 'new-password' : 'current-password'}
                   className="has-toggle"
                 />
-                <button type="button" className="show-password-btn" onClick={() => setShowPassword(v => !v)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                <button type="button" className="show-password-btn" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
                   <EyeIcon open={showPassword} />
                 </button>
               </div>
@@ -394,11 +402,11 @@ const handleSubmit = async (e) => {
                     type={showConfirm ? 'text' : 'password'}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder="........"
                     autoComplete="new-password"
                     className="has-toggle"
                   />
-                  <button type="button" className="show-password-btn" onClick={() => setShowConfirm(v => !v)} aria-label={showConfirm ? 'Hide password' : 'Show password'}>
+                  <button type="button" className="show-password-btn" onClick={() => setShowConfirm((value) => !value)} aria-label={showConfirm ? 'Hide password' : 'Show password'}>
                     <EyeIcon open={showConfirm} />
                   </button>
                 </div>
@@ -413,7 +421,7 @@ const handleSubmit = async (e) => {
 
             <div className="divider">or</div>
 
-            <button type="button" className="google-btn" onClick={() => window.location.href = 'http://localhost:5000/api/auth/google'}>
+            <button type="button" className="google-btn" onClick={() => window.location.href = `${API_BASE_URL}/api/auth/google`}>
               <GoogleIcon />
               Continue with Google
             </button>

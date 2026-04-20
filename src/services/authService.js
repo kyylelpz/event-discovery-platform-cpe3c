@@ -16,6 +16,10 @@ const saveUsers = (users) => {
   localStorage.setItem(USERS_KEY, JSON.stringify(users))
 }
 
+export const setSession = (session) => {
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+}
+
 export const signUp = ({ email, password, name }) => {
   const users = getUsers()
   if (users[email]) {
