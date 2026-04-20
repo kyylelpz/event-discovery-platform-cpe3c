@@ -51,11 +51,23 @@ function App() {
     const handlePopState = () => {
       setPathname(window.location.pathname)
     }
+
+    const previousScrollRestoration = window.history.scrollRestoration
+    window.history.scrollRestoration = 'manual'
+
     window.addEventListener('popstate', handlePopState)
     return () => {
+      window.history.scrollRestoration = previousScrollRestoration
       window.removeEventListener('popstate', handlePopState)
     }
   }, [])
+
+  useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+    })
+  }, [pathname])
 
   useEffect(() => {
     let isActive = true
