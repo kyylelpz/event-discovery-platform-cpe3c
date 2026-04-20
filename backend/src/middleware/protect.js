@@ -1,24 +1,9 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
-import { AUTH_COOKIE_NAME } from "../utils/auth.js";
-
-const getTokenFromRequest = (req) => {
-  const cookieToken = req.cookies?.[AUTH_COOKIE_NAME];
-  if (cookieToken) {
-    return cookieToken;
-  }
-
-  const authorizationHeader = req.headers.authorization || "";
-  if (authorizationHeader.startsWith("Bearer ")) {
-    return authorizationHeader.slice(7).trim();
-  }
-
-  return "";
-};
 
 const protect = async (req, res, next) => {
   try {
-    const token = getTokenFromRequest(req);
+    const token = req.cookies.token;
 
     if (!token) {
       return res
