@@ -8,6 +8,7 @@ import {
   luzonLocations,
   seedEvents,
 } from './data/mockData.js'
+import axios from 'axios';
 import MainLayout from './layouts/MainLayout.jsx'
 import SignInPage from './pages/auth/SignInPage.jsx'
 import InterestsPage from './pages/auth/InterestsPage.jsx'
@@ -26,6 +27,7 @@ import { loadEventsByLocation } from './services/eventService.js'
 import { getSession, saveInterests, signOut } from './services/authService.js'
 import { createPosterDataUri, matchesDateFilter } from './utils/formatters.js'
 import { resolveRoute, routes, slugify } from './utils/routing.js'
+
 
 const mergeEvents = (...eventGroups) => {
   const merged = new Map()
@@ -158,41 +160,53 @@ function App() {
     })
   }
 
-  const handleCreateEvent = (formData) => {
-    const eventId = `${slugify(formData.title)}-${Date.now()}`
-    const newEvent = {
-      id: eventId,
-      title: formData.title,
-      category: formData.category,
-      startDate: formData.date,
-      timeLabel: formData.time,
-      location: `${formData.venue}, ${formData.location}`,
-      province: formData.location,
-      host: currentUser?.name || 'Eventcinity Community',
-      description: formData.description,
-      attendeeCount: 1,
-      savedCount: 1,
-      reactions: 1,
-      createdBy: featuredUsers[0].username,
-      attendees: [featuredUsers[0].name, 'You'],
-      mapLabel: `${formData.venue}, ${formData.location}`,
-      source: 'community',
-      image: createPosterDataUri({
-        title: formData.title,
-        location: `${formData.venue}, ${formData.location}`,
-        category: formData.category,
-      }),
-      imageLabel: 'Community-created event artwork',
+  const handleCreateEvent = async (formData) => {
+    try {
+      setIsLoadingEvents(true); // Optional: show a loader
+
+      // 1. Send to your Node.js Backend
+      const response = await axios.post('/api/events/create', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        withCredentials: true, // Crucial for 'protect' middleware
+      });
+
+      if (response.data.success) {
+        const dbEvent = response.data.data;
+
+        // 2. Format the backend data to match your frontend 'newEvent' structure
+        const newEvent = {
+          id: dbEvent.eventId,
+          title: dbEvent.title,
+          category: dbEvent.category || 'Community',
+          startDate: dbEvent.date,
+          timeLabel: dbEvent.time || '',
+          location: dbEvent.location,
+          province: dbEvent.location, // Assuming province is stored here
+          host: currentUser?.name || 'Community Host',
+          description: dbEvent.description || '',
+          attendeeCount: 1,
+          savedCount: 1,
+          reactions: 1,
+          image: dbEvent.imageUrl, // This is the Cloudinary URL from Atlas!
+          source: 'community',
+        };
+
+        // 3. Update local state so the event appears immediately
+        setCreatedEvents((prev) => [newEvent, ...prev]);
+        
+        // 4. Navigate to the new event detail page
+        navigate(routes.eventDetail(newEvent.id));
+      }
+    } catch (err) {
+      console.error("Upload failed:", err.response?.data || err.message);
+      alert("Failed to create event. Check console for details.");
+    } finally {
+      setIsLoadingEvents(false);
     }
-    setCreatedEvents((prev) => [newEvent, ...prev])
-    setSelectedLocation(formData.location)
-    setInteractions((prev) => ({
-      hearted: [...new Set([...prev.hearted, eventId])],
-      saved: [...new Set([...prev.saved, eventId])],
-      attending: [...new Set([...prev.attending, eventId])],
-    }))
-    navigate(routes.eventDetail(eventId))
-  }
+  };
+
 
   const navProps = {
     currentPath: pathname === '/' ? routes.events : pathname,

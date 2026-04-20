@@ -5,6 +5,46 @@ import SavedEvent from "../models/SavedEvent.js";
 
 const router = express.Router();
 
+// ─── NEW: Create Custom Event with Image Upload ───────
+// Uses 'upload.single("image")' to intercept the file from the form
+router.post("/create", protect, upload.single("image"), async (req, res) => {
+  try {
+    let imageUrl = "";
+    let cloudinaryId = "";
+
+    // 2. If a file exists, stream it to Cloudinary
+    if (req.file) {
+      const result = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: "user_events" },
+          (error, result) => {
+            if (result) resolve(result);
+            else reject(error);
+          }
+        );
+        stream.end(req.file.buffer);
+      });
+      imageUrl = result.secure_url;
+      cloudinaryId = result.public_id;
+    }
+
+    // 3. Save to MongoDB Atlas
+    const newEvent = await SavedEvent.create({
+      userId: req.user._id,
+      title: req.body.title,
+      location: req.body.location,
+      date: req.body.date,
+      eventUrl: req.body.eventUrl || "",
+      imageUrl: imageUrl, // The Cloudinary URL
+      eventId: cloudinaryId || `custom-${Date.now()}` // Fallback ID
+    });
+
+    res.status(201).json({ success: true, data: newEvent });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // ─── Fetch Events from SerpApi ───────────────────────
 const fetchFromSerpApi = async (location) => {
   const results = await getJson({
