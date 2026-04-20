@@ -1,7 +1,6 @@
 import { seedEvents } from '../data/mockData.js'
+import { API_BASE_URL } from './apiBase.js'
 import { createPosterDataUri } from '../utils/formatters.js'
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000'
 
 const normalizeRemoteEvent = (event, fallbackLocation) => ({
   id:
@@ -79,7 +78,8 @@ export const loadEventsByLocation = async (location) => {
       events: events.map((event) => normalizeRemoteEvent(event, location)),
       mode: 'live',
     }
-  } catch {
+  } catch (error) {
+    console.warn('Falling back to mock events:', error)
     return {
       events:
         location === 'All Luzon'
