@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-
+import { eventDB } from "../routes/db.js";
 const EventSchema = new mongoose.Schema({
 
     title: { type: String, required: true },
@@ -13,4 +13,4 @@ const EventSchema = new mongoose.Schema({
     tickets_info: { type: String } 
 }, { timestamps: true }); 
 
-module.exports = mongoose.model('Event', EventSchema);
+export default eventDB.model("Event", eventSchema);

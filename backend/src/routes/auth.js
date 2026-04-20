@@ -9,7 +9,6 @@ import protect from "../middleware/protect.js";
 dotenv.config();
 const router = express.Router();
 
-// ─── Passport Google Strategy ─────────────────────────
 passport.use(
   new GoogleStrategy(
     {
@@ -19,30 +18,41 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
+        const email = profile.emails[0].value;
         let user = await User.findOne({ googleId: profile.id });
+
+        if (!user) {
+          user = await User.findOne({ email: email });
+          if (user) {
+            user.googleId = profile.id;
+            if (!user.avatar) user.avatar = profile.photos[0].value;
+            await user.save();
+          }
+        }
+
         if (!user) {
           user = await User.create({
             googleId: profile.id,
             name: profile.displayName,
-            email: profile.emails[0].value,
+            email: email,
             avatar: profile.photos[0].value,
           });
         }
+
         return done(null, user);
       } catch (err) {
         return done(err, null);
       }
-    },
-  ),
+    }
+  )
 );
 
-// ─── Google Routes ────────────────────────────────────
 router.get(
   "/google",
   passport.authenticate("google", {
     scope: ["profile", "email"],
     session: false,
-  }),
+  })
 );
 
 router.get(
@@ -62,20 +72,8 @@ router.get(
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
     res.redirect(`${process.env.CLIENT_URL}/dashboard`);
-  },
+  }
 );
-
-router.get("/me", protect, (req, res) => {
-  res.json({ user: req.user });
-});
-
-router.post("/logout", (req, res) => {
-  res.clearCookie("token");
-  res.json({ message: "Logged out successfully" });
-});
-
-
-// ─── Email & Password Routes 
 
 router.post('/register', async (req, res) => {
     try {
@@ -90,9 +88,9 @@ router.post('/register', async (req, res) => {
         const newUser = new User({ 
             email: email, 
             password: password, 
-            name: defaultName 
+            name: defaultName,
+            provider: "local"
         });
-
         await newUser.save(); 
         res.status(201).json({ message: "Account created successfully!" });
 
@@ -101,6 +99,7 @@ router.post('/register', async (req, res) => {
         res.status(500).json({ message: "Server error while saving." });
     }
 });
+
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -136,4 +135,5 @@ router.post('/login', async (req, res) => {
 router.get("/me", protect, (req, res) => {
   res.json({ user: req.user });
 });
+
 export default router;
