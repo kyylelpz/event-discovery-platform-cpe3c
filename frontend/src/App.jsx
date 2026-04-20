@@ -10,6 +10,7 @@ import {
 } from './data/mockData.js'
 import MainLayout from './layouts/MainLayout.jsx'
 import SignInPage from './pages/auth/SignInPage.jsx'
+import InterestsPage from './pages/auth/InterestsPage.jsx'
 import AboutProgrammersPage from './pages/about/AboutProgrammersPage.jsx'
 import CreateEventPage from './pages/events/CreateEventPage.jsx'
 import EventDetailPage from './pages/events/EventDetailPage.jsx'
@@ -22,19 +23,21 @@ import LocationGuidesPage from './pages/info/LocationGuidesPage.jsx'
 import HelpCenterPage from './pages/info/HelpCenterPage.jsx'
 import ContactSupportPage from './pages/info/ContactSupportPage.jsx'
 import { loadEventsByLocation } from './services/eventService.js'
+import { getSession, saveInterests, signOut } from './services/authService.js'
 import { createPosterDataUri, matchesDateFilter } from './utils/formatters.js'
 import { resolveRoute, routes, slugify } from './utils/routing.js'
 
 const mergeEvents = (...eventGroups) => {
   const merged = new Map()
-  eventGroups.flat().forEach((event) => {
-    merged.set(event.id, event)
-  })
+  eventGroups.flat().forEach((event) => merged.set(event.id, event))
   return [...merged.values()]
 }
 
 function App() {
   const [pathname, setPathname] = useState(() => window.location.pathname)
+  const [currentUser, setCurrentUser] = useState(() => getSession())
+  const [showInterests, setShowInterests] = useState(false)
+
   const [selectedLocation, setSelectedLocation] = useState('Metro Manila')
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All Events')
@@ -48,13 +51,9 @@ function App() {
   const deferredSearchTerm = useDeferredValue(searchTerm)
 
   useEffect(() => {
-    const handlePopState = () => {
-      setPathname(window.location.pathname)
-    }
+    const handlePopState = () => setPathname(window.location.pathname)
     window.addEventListener('popstate', handlePopState)
-    return () => {
-      window.removeEventListener('popstate', handlePopState)
-    }
+    return () => window.removeEventListener('popstate', handlePopState)
   }, [])
 
   useEffect(() => {
@@ -68,9 +67,7 @@ function App() {
       setIsLoadingEvents(false)
     }
     syncEvents()
-    return () => {
-      isActive = false
-    }
+    return () => { isActive = false }
   }, [selectedLocation])
 
   const navigate = (nextPath) => {
@@ -79,38 +76,56 @@ function App() {
     setPathname(nextPath)
   }
 
+  // Called after sign in or sign up
+  const handleAuthSuccess = (session, type) => {
+    setCurrentUser(session)
+    if (type === 'new') {
+      setShowInterests(true) // new user → show interests picker
+    } else {
+      navigate(routes.events) // returning user → go to homepage
+    }
+  }
+
+  // Called after interests are picked
+  const handleInterestsDone = (interests) => {
+    if (currentUser) {
+      saveInterests(currentUser.email, interests)
+      setCurrentUser((prev) => ({ ...prev, interests }))
+    }
+    setShowInterests(false)
+    navigate(routes.events)
+  }
+
+  const handleSignOut = () => {
+    signOut()
+    setCurrentUser(null)
+    navigate(routes.events)
+  }
+
   const route = resolveRoute(pathname)
   const allEvents = mergeEvents(createdEvents, remoteEvents)
   const normalizedSearch = deferredSearchTerm.trim().toLowerCase()
+
+  // If user has interests, filter by them on the default category
+  const userInterests = currentUser?.interests || []
 
   const filteredEvents = allEvents.filter((event) => {
     const locationMatches =
       selectedLocation === 'All Luzon' || event.province === selectedLocation
     const categoryMatches =
-      selectedCategory === 'All Events' || event.category === selectedCategory
+      selectedCategory === 'All Events'
+        ? userInterests.length === 0 || userInterests.includes(event.category)
+        : event.category === selectedCategory
     const dateMatches = matchesDateFilter(event.startDate, selectedDateFilter)
 
-    if (!normalizedSearch) {
-      return locationMatches && categoryMatches && dateMatches
-    }
+    if (!normalizedSearch) return locationMatches && categoryMatches && dateMatches
 
     const searchableText = [
-      event.title,
-      event.location,
-      event.province,
-      event.host,
-      event.category,
-      event.description,
-    ]
-      .join(' ')
-      .toLowerCase()
+      event.title, event.location, event.province,
+      event.host, event.category, event.description,
+    ].join(' ').toLowerCase()
 
-    return (
-      locationMatches &&
-      categoryMatches &&
-      dateMatches &&
-      searchableText.includes(normalizedSearch)
-    )
+    return locationMatches && categoryMatches && dateMatches && searchableText.includes(normalizedSearch)
   })
 
   const featuredEvent =
@@ -122,18 +137,12 @@ function App() {
     featuredUsers.find((user) => user.username === route.params?.username) ||
     featuredUsers[0]
 
-  const createdByProfile = allEvents.filter(
-    (event) => event.createdBy === activeProfile.username,
-  )
-  const savedByUser = allEvents.filter((event) =>
-    interactions.saved.includes(event.id),
-  )
+  const createdByProfile = allEvents.filter((e) => e.createdBy === activeProfile.username)
+  const savedByUser = allEvents.filter((e) => interactions.saved.includes(e.id))
   const relatedEvents = currentEvent
-    ? allEvents.filter(
-        (event) =>
-          event.id !== currentEvent.id &&
-          (event.category === currentEvent.category ||
-            event.province === currentEvent.province),
+    ? allEvents.filter((e) =>
+        e.id !== currentEvent.id &&
+        (e.category === currentEvent.category || e.province === currentEvent.province)
       )
     : []
 
@@ -159,7 +168,7 @@ function App() {
       timeLabel: formData.time,
       location: `${formData.venue}, ${formData.location}`,
       province: formData.location,
-      host: 'Eventcinity Community',
+      host: currentUser?.name || 'Eventcinity Community',
       description: formData.description,
       attendeeCount: 1,
       savedCount: 1,
@@ -175,12 +184,12 @@ function App() {
       }),
       imageLabel: 'Community-created event artwork',
     }
-    setCreatedEvents((currentEvents) => [newEvent, ...currentEvents])
+    setCreatedEvents((prev) => [newEvent, ...prev])
     setSelectedLocation(formData.location)
-    setInteractions((currentState) => ({
-      hearted: [...new Set([...currentState.hearted, eventId])],
-      saved: [...new Set([...currentState.saved, eventId])],
-      attending: [...new Set([...currentState.attending, eventId])],
+    setInteractions((prev) => ({
+      hearted: [...new Set([...prev.hearted, eventId])],
+      saved: [...new Set([...prev.saved, eventId])],
+      attending: [...new Set([...prev.attending, eventId])],
     }))
     navigate(routes.eventDetail(eventId))
   }
@@ -193,6 +202,8 @@ function App() {
     locations: luzonLocations,
     selectedLocation,
     onLocationChange: setSelectedLocation,
+    currentUser,
+    onSignOut: handleSignOut,
   }
 
   const sharedPageProps = {
@@ -201,6 +212,11 @@ function App() {
     onToggleSave: (eventId) => toggleInteraction('saved', eventId),
     onToggleAttend: (eventId) => toggleInteraction('attending', eventId),
     onOpenEvent: (eventId) => navigate(routes.eventDetail(eventId)),
+  }
+
+  // Show interests page right after signup
+  if (showInterests && currentUser) {
+    return <InterestsPage user={currentUser} onDone={handleInterestsDone} />
   }
 
   let page
@@ -241,7 +257,7 @@ function App() {
       />
     )
   } else if (route.key === 'signin') {
-    page = <SignInPage onContinue={() => navigate(routes.events)} />
+    page = <SignInPage onAuthSuccess={handleAuthSuccess} />
   } else if (route.key === 'about-programmers') {
     page = <AboutProgrammersPage />
   } else if (route.key === 'event-planning') {
@@ -270,6 +286,7 @@ function App() {
         feedMode={feedMode}
         totalEvents={allEvents.length}
         onNavigate={navigate}
+        currentUser={currentUser}
         {...sharedPageProps}
       />
     )
