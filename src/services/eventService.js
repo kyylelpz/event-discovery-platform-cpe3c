@@ -5,18 +5,21 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000
 
 const normalizeRemoteEvent = (event, fallbackLocation) => ({
   id:
+    event.eventId ||
     event.id ||
+    event._id ||
     `${(event.name || event.title || 'event').toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
   title: event.name || event.title || 'Untitled Event',
   category: event.category || event.segment || 'Community',
   startDate: event.startDate || event.start_time || event.date || '2026-05-01',
-  timeLabel: event.timeLabel || event.start_time || 'Time to be announced',
+  timeLabel: event.timeLabel || event.time || event.start_time || 'Time to be announced',
   location:
     event.location ||
-    event.venue?.name ||
     event.address ||
+    event.venue ||
+    event.venue?.name ||
     `${fallbackLocation}, Philippines`,
-  province: fallbackLocation,
+  province: event.province || fallbackLocation,
   host: event.host || event.organizer || 'Eventcinity Partner',
   description:
     event.description ||
@@ -28,10 +31,12 @@ const normalizeRemoteEvent = (event, fallbackLocation) => ({
   mapLabel:
     event.mapLabel ||
     event.location ||
+    event.address ||
+    event.venue ||
     event.venue?.name ||
     `${fallbackLocation}, Philippines`,
   createdBy: 'lia-tan',
-  source: 'live',
+  source: event.source || 'live',
   image:
     event.image ||
     event.imageUrl ||
