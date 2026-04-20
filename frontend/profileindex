@@ -2,74 +2,210 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Profile Page</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profile</title>
 <link rel="stylesheet" href="profcss.css">
 </head>
 <body>
 
 <div class="container">
 
-    <h2>My Profile</h2>
+    <!-- HEADER -->
+    <div class="profile-header">
+        <div class="profile-wrapper" onclick="openFile()">
+            <img id="profilePic" src="https://via.placeholder.com/150" class="profile-img">
+            <div class="camera-icon">📷</div>
+        </div>
 
-    <!-- PROFILE PIC -->
-    <div class="profile-wrapper" onclick="openFile()">
-        <img id="profilePic" src="https://via.placeholder.com/120" class="profile-img">
-        <div class="camera-icon">📷</div>
+        <div class="profile-main">
+            <h2 id="username">Username</h2>
+            <p id="email">email@email.com</p>
+        </div>
     </div>
+
     <input type="file" id="imageUpload" accept="image/*">
 
     <!-- INFO -->
-    <div class="info">
-        <p><b>Username:</b> <span id="username"></span></p>
-        <p><b>Email:</b> <span id="email"></span></p>
-        <p><b>Phone:</b> <span id="phone"></span></p>
-        <p><b>Bio:</b> <span id="bio"></span></p>
+    <div class="info-grid">
+        <div class="info-card">
+            <h3>Phone</h3>
+            <p id="phone"></p>
+        </div>
+
+        <div class="info-card">
+            <h3>Bio</h3>
+            <p id="bio"></p>
+        </div>
     </div>
 
-    <select onchange="changeTheme(this.value)">
-    <option value="">Choose Theme</option>
-    <option value="light">Light Mode</option>
-    <option value="dark">Dark Mode</option>
-</select>
+    <!-- LIKED EVENTS -->
+    <div class="section-block">
+        <h3>Liked Events</h3>
+        <div id="likedEventsContainer" class="events-grid"></div>
+    </div>
 
-    <!-- EDIT BUTTON -->
-    <button onclick="openModal()">Edit Profile</button>
+    <!-- INTERESTS -->
+    <div class="section-block">
+        <h3>Interests</h3>
+        <div id="interestsContainer" class="events-grid"></div>
+    </div>
+
+    <!-- FAVORITE EVENTS -->
+    <div class="section-block">
+        <h3>Favorite Events</h3>
+        <div id="favoriteEventsContainer" class="events-grid"></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="section-block settings-block" id="settingsBlock">
+        <h3>Settings</h3>
+        <p class="section-description">Manage your personal information and account security.</p>
+
+        <div class="settings-list">
+            <div class="settings-item" onclick="showSection('editSection')">
+                <div>
+                    <h4>Edit Profile</h4>
+                    <p>Update your username, email, phone number, and bio.</p>
+                </div>
+                <span class="arrow">></span>
+            </div>
+
+            <div class="settings-item" onclick="showSection('passwordSection')">
+                <div>
+                    <h4>Change Password</h4>
+                    <p>Secure your account by updating your password.</p>
+                </div>
+                <span class="arrow">></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT PROFILE SECTION -->
+    <div id="editSection" class="page-section hidden">
+        <button class="back-btn" onclick="goBack()">← Back</button>
+        <h3>Edit Profile</h3>
+
+        <div class="form-card">
+            <div class="input-group">
+                <label for="newUsername">Username</label>
+                <input type="text" id="newUsername">
+            </div>
+
+            <div class="input-group">
+                <label for="newEmail">Email</label>
+                <input type="email" id="newEmail">
+            </div>
+
+            <div class="input-group">
+                <label for="newPhone">Phone</label>
+                <input type="text" id="newPhone" placeholder="+639XXXXXXXXX">
+            </div>
+
+            <div class="input-group">
+                <label for="newBio">Bio</label>
+                <textarea id="newBio"></textarea>
+            </div>
+
+            <div class="modal-actions">
+                <button onclick="updateProfile()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PASSWORD SECTION -->
+    <div id="passwordSection" class="page-section hidden">
+        <button class="back-btn" onclick="goBack()">← Back</button>
+        <h3>Change Password</h3>
+
+        <div class="form-card">
+            <div class="settings-section">
+                <h4>Password</h4>
+
+                <div class="input-group">
+                    <label for="currentPassword">Current Password</label>
+                    <input type="password" id="currentPassword" placeholder="Enter current password">
+                </div>
+
+                <div class="forgot-password-wrap">
+                    <button type="button" class="link-btn" onclick="openForgotFlow()">Forgot password?</button>
+                </div>
+
+                <div class="input-group">
+                    <label for="newPassword">New Password</label>
+                    <input type="password" id="newPassword" placeholder="Enter new password">
+                </div>
+
+                <div class="password-rules">
+                    Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.
+                </div>
+
+                <div class="modal-actions">
+                    <button onclick="changePassword()">Change Password</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
 </div>
 
-<!-- MODAL -->
-<div class="modal" id="editModal">
-    <div class="modal-content">
-
-        <h3>Edit Profile</h3>
-
-        <div class="input-group">
-            <input type="text" id="newUsername" placeholder="Username">
-        </div>
+<!-- EMAIL POPUP -->
+<div id="emailModal" class="modal">
+    <div class="modal-content small">
+        <h3>Reset Password</h3>
 
         <div class="input-group">
-            <input type="email" id="newEmail" placeholder="Email">
+            <label for="resetEmail">Email</label>
+            <input id="resetEmail" type="email" placeholder="Enter your email">
+            <p class="helper-text">
+                We’ll send a reset code to your registered email. Enter the same email linked to your account.
+            </p>
         </div>
+
+        <div class="modal-actions">
+            <button type="button" onclick="sendResetCode()">Send Code</button>
+            <button type="button" onclick="closeEmailModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- CODE POPUP -->
+<div id="codeModal" class="modal">
+    <div class="modal-content small">
+        <h3>Enter Code</h3>
 
         <div class="input-group">
-            <input type="password" id="newPassword" placeholder="Password">
+            <label for="resetCodeInput">Reset Code</label>
+            <input id="resetCodeInput" type="text" placeholder="Enter reset code">
         </div>
+
+        <div class="modal-actions">
+            <button type="button" onclick="verifyCode()">Verify Code</button>
+            <button type="button" onclick="closeCodeModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- NEW PASSWORD POPUP -->
+<div id="newPassModal" class="modal">
+    <div class="modal-content small">
+        <h3>New Password</h3>
 
         <div class="input-group">
-            <input type="text" id="newPhone" placeholder="Phone">
+            <label for="newPassInput">New Password</label>
+            <input id="newPassInput" type="password" placeholder="Enter new password">
         </div>
 
-        <div class="input-group">
-            <textarea id="newBio" placeholder="Bio"></textarea>
+        <div class="password-rules">
+            Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.
         </div>
 
-        <button onclick="updateProfile()">Save Changes</button>
-        <button onclick="closeModal()">Cancel</button>
-
+        <div class="modal-actions">
+            <button type="button" onclick="resetPassword()">Save New Password</button>
+            <button type="button" onclick="closeNewPassModal()">Cancel</button>
+        </div>
     </div>
 </div>
 
 <script src="profjs.js"></script>
-
 </body>
 </html>
