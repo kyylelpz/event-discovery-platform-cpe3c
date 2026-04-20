@@ -1,5 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { PrimaryButton } from '../../components/ui/Button.jsx'
+
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000').replace(
+  /\/$/,
+  '',
+)
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap');
@@ -151,6 +156,12 @@ const styles = `
     background: #fff;
   }
 
+  .field-hint {
+    font-size: 0.78rem;
+    color: #7a7068;
+    line-height: 1.5;
+  }
+
   .show-password-btn {
     position: absolute;
     right: 0.75rem;
@@ -231,31 +242,36 @@ const styles = `
   .auth-footer button:hover { text-decoration: underline; }
 `
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const PASSWORD_REGEX =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,72}$/
+
 const EyeIcon = ({ open }) =>
   open ? (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-      <circle cx="12" cy="12" r="3"/>
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
     </svg>
   ) : (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
-      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
-      <line x1="1" y1="1" x2="23" y2="23"/>
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+      <line x1="1" y1="1" x2="23" y2="23" />
     </svg>
   )
 
 const GoogleIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24">
-    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
-    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
+    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
   </svg>
 )
 
 function SignInPage({ onContinue }) {
   const [mode, setMode] = useState('signin')
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -266,51 +282,87 @@ function SignInPage({ onContinue }) {
 
   const isSignUp = mode === 'signup'
 
-const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError(null)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const authError = params.get('authError')
 
-    if (!email.trim() || !password.trim()) {
-      setError('Fill in both fields to continue')
-      return
+    if (authError === 'google') {
+      setError('Google sign-in was not completed. Please try again.')
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
+
+  const validateForm = () => {
+    if (isSignUp && name.trim() && name.trim().length < 2) {
+      return 'Name must be at least 2 characters.'
+    }
+
+    if (!EMAIL_REGEX.test(email.trim())) {
+      return 'Please enter a valid email address.'
+    }
+
+    if (!password) {
+      return 'Password is required.'
+    }
+
+    if (isSignUp && !PASSWORD_REGEX.test(password)) {
+      return 'Password must be 8-72 characters and include uppercase, lowercase, number, and symbol.'
     }
 
     if (isSignUp && password !== confirmPassword) {
-      setError('Passwords do not match')
+      return 'Passwords do not match.'
+    }
+
+    return ''
+  }
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+    setError(null)
+
+    const validationError = validateForm()
+    if (validationError) {
+      setError(validationError)
       return
     }
 
     setIsLoading(true)
-    try {
-      const endpoint = isSignUp 
-        ? 'http://localhost:5000/api/auth/register' 
-        : 'http://localhost:5000/api/auth/login';
 
-      const response = await fetch(endpoint, {
+    try {
+      const endpoint = isSignUp ? '/api/auth/register' : '/api/auth/login'
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
+        credentials: 'include',
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+          ...(isSignUp && name.trim() ? { name: name.trim() } : {}),
+        }),
+      })
 
-      const data = await response.json();
+      const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.message || 'Something went wrong with the server.');
+        throw new Error(data.message || 'Something went wrong with the server.')
       }
 
-      console.log("🎉 The backend replied:", data);
-
-      await onContinue({ email, password, mode })
-      
-    } catch (err) {
-      setError(err.message || 'Something went wrong. Try again.')
+      await onContinue({ user: data.user, mode })
+    } catch (requestError) {
+      setError(requestError.message || 'Something went wrong. Try again.')
     } finally {
       setIsLoading(false)
     }
   }
+
+  const handleGoogleAuth = () => {
+    window.location.assign(`${API_BASE_URL}/api/auth/google?mode=${isSignUp ? 'signup' : 'signin'}`)
+  }
+
   const switchMode = (next) => {
     setMode(next)
     setError(null)
+    setName('')
     setPassword('')
     setConfirmPassword('')
   }
@@ -325,7 +377,7 @@ const handleSubmit = async (e) => {
             <p>
               {isSignUp
                 ? 'Join to discover and save events near you.'
-                : 'Pick up where you left off — your saved events are waiting.'}
+                : 'Pick up where you left off. Your saved events are waiting.'}
             </p>
           </header>
 
@@ -335,11 +387,25 @@ const handleSubmit = async (e) => {
             </button>
             <button className={`auth-tab ${mode === 'signup' ? 'active' : ''}`} onClick={() => switchMode('signup')} type="button">
               Sign up
-            </button> 
+            </button>
           </div>
 
           <form className="signin-form" onSubmit={handleSubmit} noValidate>
-            {error && <div className="signin-error" role="alert">{error}</div>}
+            {error ? <div className="signin-error" role="alert">{error}</div> : null}
+
+            {isSignUp ? (
+              <div className="field-group">
+                <label htmlFor="name">Display Name</label>
+                <input
+                  id="name"
+                  type="text"
+                  value={name}
+                  onChange={(nextEvent) => setName(nextEvent.target.value)}
+                  placeholder="Your name"
+                  autoComplete="name"
+                />
+              </div>
+            ) : null}
 
             <div className="field-group">
               <label htmlFor="email">Email</label>
@@ -347,7 +413,7 @@ const handleSubmit = async (e) => {
                 id="email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(nextEvent) => setEmail(nextEvent.target.value)}
                 placeholder="you@example.com"
                 autoComplete="email"
                 autoFocus
@@ -357,29 +423,34 @@ const handleSubmit = async (e) => {
             <div className="field-group">
               <div className="field-label-row">
                 <label htmlFor="password">Password</label>
-                {!isSignUp && (
-                  <button type="button" className="forgot-link" onClick={() => alert('Forgot password flow here')}>
+                {!isSignUp ? (
+                  <button type="button" className="forgot-link" onClick={() => setError('Forgot password is not implemented yet.')}>
                     Forgot password?
                   </button>
-                )}
+                ) : null}
               </div>
               <div className="input-wrapper">
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(nextEvent) => setPassword(nextEvent.target.value)}
                   placeholder="••••••••"
                   autoComplete={isSignUp ? 'new-password' : 'current-password'}
                   className="has-toggle"
                 />
-                <button type="button" className="show-password-btn" onClick={() => setShowPassword(v => !v)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                <button type="button" className="show-password-btn" onClick={() => setShowPassword((currentValue) => !currentValue)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
                   <EyeIcon open={showPassword} />
                 </button>
               </div>
+              {isSignUp ? (
+                <small className="field-hint">
+                  Use 8-72 characters with uppercase, lowercase, number, and symbol.
+                </small>
+              ) : null}
             </div>
 
-            {isSignUp && (
+            {isSignUp ? (
               <div className="field-group">
                 <label htmlFor="confirmPassword">Confirm Password</label>
                 <div className="input-wrapper">
@@ -387,27 +458,31 @@ const handleSubmit = async (e) => {
                     id="confirmPassword"
                     type={showConfirm ? 'text' : 'password'}
                     value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    onChange={(nextEvent) => setConfirmPassword(nextEvent.target.value)}
                     placeholder="••••••••"
                     autoComplete="new-password"
                     className="has-toggle"
                   />
-                  <button type="button" className="show-password-btn" onClick={() => setShowConfirm(v => !v)} aria-label={showConfirm ? 'Hide password' : 'Show password'}>
+                  <button type="button" className="show-password-btn" onClick={() => setShowConfirm((currentValue) => !currentValue)} aria-label={showConfirm ? 'Hide password' : 'Show password'}>
                     <EyeIcon open={showConfirm} />
                   </button>
                 </div>
               </div>
-            )}
+            ) : null}
 
             <PrimaryButton type="submit" disabled={isLoading}>
               {isLoading
-                ? (isSignUp ? 'Creating account...' : 'Signing in...')
-                : (isSignUp ? 'Create account' : 'Continue')}
+                ? isSignUp
+                  ? 'Creating account...'
+                  : 'Signing in...'
+                : isSignUp
+                  ? 'Create account'
+                  : 'Continue'}
             </PrimaryButton>
 
             <div className="divider">or</div>
 
-            <button type="button" className="google-btn" onClick={() => window.location.href = 'http://localhost:5000/api/auth/google'}>
+            <button type="button" className="google-btn" onClick={handleGoogleAuth}>
               <GoogleIcon />
               Continue with Google
             </button>
