@@ -23,7 +23,7 @@ function SiteFooter({ onNavigate }) {
         <div className="footer-brand">
           <h2>Eventcinity</h2>
           <p>
-            Discover and create unforgettable experiences across Luzon with a
+            Discover and create unforgettable experiences across the Philippines with a
             calmer, more editorial event browsing flow.
           </p>
         </div>

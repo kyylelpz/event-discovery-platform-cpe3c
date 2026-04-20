@@ -4,7 +4,7 @@ function CommunityHostsPage() {
       <section className="info-page__hero">
         <h1>Community Hosts</h1>
         <p>
-          Meet the organizers and collectives who bring Luzon's event scene to
+          Meet the organizers and collectives who bring the Philippines' event scene to
           life — and learn how to become one yourself.
         </p>
       </section>
@@ -23,7 +23,7 @@ function CommunityHostsPage() {
           <p>
             Anyone can create an event on Eventcinity. Sign in, hit "Create
             Event," fill in your details, and publish. Your event goes live
-            immediately for attendees across Luzon to discover.
+            immediately for attendees across the Philippines to discover.
           </p>
         </article>
         <article className="info-card">

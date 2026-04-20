@@ -4,7 +4,7 @@ function EventPlanningPage() {
       <section className="info-page__hero">
         <h1>Event Planning</h1>
         <p>
-          Everything you need to plan a memorable event in Luzon — from venue
+          Everything you need to plan a memorable event in the Philippines — from venue
           scouting to day-of coordination.
         </p>
       </section>
@@ -46,7 +46,7 @@ function EventPlanningPage() {
           <h2>Promote effectively</h2>
           <p>
             Use Eventcinity to publish your event and reach attendees across
-            Luzon. Share early, share often, and keep your listing updated as
+            the Philippines. Share early, share often, and keep your listing updated as
             details are confirmed.
           </p>
         </article>

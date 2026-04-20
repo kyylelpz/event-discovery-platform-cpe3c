@@ -2,6 +2,11 @@ import { seedEvents } from '../data/mockData.js'
 import { API_BASE_URL } from './apiBase.js'
 import { createPosterDataUri } from '../utils/formatters.js'
 
+const getFallbackLocationLabel = (fallbackLocation) =>
+  fallbackLocation === 'All Philippines'
+    ? 'Philippines'
+    : `${fallbackLocation}, Philippines`
+
 const normalizeRemoteEvent = (event, fallbackLocation) => ({
   id:
     event.eventId ||
@@ -17,8 +22,8 @@ const normalizeRemoteEvent = (event, fallbackLocation) => ({
     event.address ||
     event.venue ||
     event.venue?.name ||
-    `${fallbackLocation}, Philippines`,
-  province: event.province || fallbackLocation,
+    getFallbackLocationLabel(fallbackLocation),
+  province: event.province || (fallbackLocation === 'All Philippines' ? '' : fallbackLocation),
   host: event.host || event.organizer || 'Eventcinity Partner',
   description:
     event.description ||
@@ -33,7 +38,7 @@ const normalizeRemoteEvent = (event, fallbackLocation) => ({
     event.address ||
     event.venue ||
     event.venue?.name ||
-    `${fallbackLocation}, Philippines`,
+    getFallbackLocationLabel(fallbackLocation),
   createdBy: 'lia-tan',
   source: event.source || 'live',
   image:
@@ -46,7 +51,7 @@ const normalizeRemoteEvent = (event, fallbackLocation) => ({
         event.location ||
         event.venue?.name ||
         event.address ||
-        `${fallbackLocation}, Philippines`,
+        getFallbackLocationLabel(fallbackLocation),
       category: event.category || event.segment || 'Community',
     }),
   imageLabel: 'Imported event artwork',
@@ -70,8 +75,8 @@ export const loadEventsByLocation = async (location) => {
         ? payload.data
         : []
 
-    if (events.length === 0) {
-      throw new Error('Empty event payload')
+    if (!Array.isArray(events)) {
+      throw new Error('Malformed event payload')
     }
 
     return {
@@ -82,7 +87,7 @@ export const loadEventsByLocation = async (location) => {
     console.warn('Falling back to mock events:', error)
     return {
       events:
-        location === 'All Luzon'
+        location === 'All Philippines'
           ? seedEvents
           : seedEvents.filter((event) => event.province === location),
       mode: 'mock',
