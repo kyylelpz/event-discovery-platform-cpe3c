@@ -269,7 +269,7 @@ const GoogleIcon = () => (
   </svg>
 )
 
-function SignInPage({ onContinue }) {
+function SignInPage({ onAuthSuccess }) {
   const [mode, setMode] = useState('signin')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -350,6 +350,17 @@ function SignInPage({ onContinue }) {
       await onContinue({ user: data.user, mode })
     } catch (requestError) {
       setError(requestError.message || 'Something went wrong. Try again.')
+      console.log("🎉 The backend replied:", data);
+
+      const userType = isSignUp ? 'new' : 'returning';
+
+      if(onAuthSuccess){
+        await onAuthSuccess(data, userType);
+      } 
+     
+      
+    } catch (err) {
+      setError(err.message || 'Something went wrong. Try again.')
     } finally {
       setIsLoading(false)
     }
@@ -411,7 +422,8 @@ function SignInPage({ onContinue }) {
               <label htmlFor="email">Email</label>
               <input
                 id="email"
-                type="email"
+                type="email" 
+                required
                 value={email}
                 onChange={(nextEvent) => setEmail(nextEvent.target.value)}
                 placeholder="you@example.com"

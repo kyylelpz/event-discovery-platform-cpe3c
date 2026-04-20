@@ -96,6 +96,44 @@ const sendAuthSuccess = (res, user, statusCode, message) => {
   });
 };
 
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: process.env.GOOGLE_CALLBACK_URL,
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        const email = profile.emails[0].value;
+        let user = await User.findOne({ googleId: profile.id });
+
+        if (!user) {
+          user = await User.findOne({ email: email });
+          if (user) {
+            user.googleId = profile.id;
+            if (!user.avatar) user.avatar = profile.photos[0].value;
+            await user.save();
+          }
+        }
+
+        if (!user) {
+          user = await User.create({
+            googleId: profile.id,
+            name: profile.displayName,
+            email: email,
+            avatar: profile.photos[0].value,
+          });
+        }
+
+        return done(null, user);
+      } catch (err) {
+        return done(err, null);
+      }
+    }
+  )
+);
+
 router.get(
   "/google",
   ensureGoogleAuthConfigured,
@@ -103,7 +141,7 @@ router.get(
     scope: ["profile", "email"],
     prompt: "select_account",
     session: false,
-  }),
+  })
 );
 
 router.get(
@@ -171,10 +209,47 @@ router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body ?? {};
     const validationMessage = validateLoginPayload({ email, password });
+    const token = jwt.sign({ id: req.user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+    res.redirect(`${process.env.CLIENT_URL}/dashboard`);
+  }
+);
+
+router.post('/register', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const existingUser = await User.findOne({ email: email });
+        
+        if (existingUser) {
+            return res.status(400).json({ message: "That email is already registered!" });
+        }
+
+        const defaultName = email.split('@')[0]; 
+        const newUser = new User({ 
+            email: email, 
+            password: password, 
+            name: defaultName,
+            provider: "local"
+        });
+        await newUser.save(); 
+        res.status(201).json({ message: "Account created successfully!" });
 
     if (validationMessage) {
       return res.status(400).json({ message: validationMessage });
     }
+});
+
+router.post('/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const user = await User.findOne({ email: email });
 
     const normalizedEmail = normalizeEmail(email);
     const user = await User.findOne({ email: normalizedEmail }).select(
@@ -225,4 +300,5 @@ router.post("/logout", (_req, res) => {
   res.json({ message: "Logged out successfully." });
 });
 
+export default router;
 export default router;
