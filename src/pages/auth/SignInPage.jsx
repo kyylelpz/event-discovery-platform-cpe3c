@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { PrimaryButton } from '../../components/ui/Button.jsx'
+import { API_BASE_URL } from '../../services/apiBase.js'
 import { setSession } from '../../services/authService.js'
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000'
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap');

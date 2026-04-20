@@ -23,12 +23,11 @@ import CommunityHostsPage from './pages/info/CommunityHostsPage.jsx'
 import LocationGuidesPage from './pages/info/LocationGuidesPage.jsx'
 import HelpCenterPage from './pages/info/HelpCenterPage.jsx'
 import ContactSupportPage from './pages/info/ContactSupportPage.jsx'
+import { API_BASE_URL } from './services/apiBase.js'
 import { loadEventsByLocation } from './services/eventService.js'
 import { getSession, saveInterests, signOut } from './services/authService.js'
 import { createPosterDataUri, matchesDateFilter } from './utils/formatters.js'
 import { resolveRoute, routes } from './utils/routing.js'
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000'
 
 const mergeEvents = (...eventGroups) => {
   const merged = new Map()
