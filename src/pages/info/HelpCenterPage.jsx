@@ -13,7 +13,7 @@ const faqs = [
   },
   {
     q: 'How does location filtering work?',
-    a: 'Use the location selector in the top navigation to browse events by province. Choose "All Luzon" to see everything, or narrow down to Metro Manila, Pampanga, Laguna, and more.',
+    a: 'Use the location selector in the top navigation to browse events by province. Choose "All Philippines" to see everything, or narrow down to Metro Manila, Cebu, Davao del Sur, Laguna, and more.',
   },
   {
     q: 'What categories are available?',

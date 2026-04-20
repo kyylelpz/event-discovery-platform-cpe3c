@@ -162,7 +162,7 @@ function ContactSupportPage() {
           <div className="contact-channels">
             <span>📧 <a href="mailto:support@eventcinity.ph">support@eventcinity.ph</a></span>
             <span>🕐 Response time: within 1–2 business days</span>
-            <span>📍 Based in Luzon, Philippines</span>
+            <span>📍 Based in the Philippines</span>
           </div>
         </article>
 

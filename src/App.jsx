@@ -5,7 +5,7 @@ import {
   dateFilterOptions,
   featuredUsers,
   initialInteractions,
-  luzonLocations,
+  locationOptions,
   seedEvents,
 } from './data/mockData.js'
 import axios from 'axios';
@@ -40,7 +40,7 @@ function App() {
   const [currentUser, setCurrentUser] = useState(() => getSession())
   const [showInterests, setShowInterests] = useState(false)
 
-  const [selectedLocation, setSelectedLocation] = useState('Metro Manila')
+  const [selectedLocation, setSelectedLocation] = useState('All Philippines')
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All Events')
   const [selectedDateFilter, setSelectedDateFilter] = useState('Any time')
@@ -113,7 +113,7 @@ function App() {
 
   const filteredEvents = allEvents.filter((event) => {
     const locationMatches =
-      selectedLocation === 'All Luzon' || event.province === selectedLocation
+      selectedLocation === 'All Philippines' || event.province === selectedLocation
     const categoryMatches =
       selectedCategory === 'All Events'
         ? userInterests.length === 0 || userInterests.includes(event.category)
@@ -227,7 +227,7 @@ function App() {
     onNavigate: navigate,
     searchTerm,
     onSearchChange: setSearchTerm,
-    locations: luzonLocations,
+    locations: locationOptions,
     selectedLocation,
     onLocationChange: setSelectedLocation,
     currentUser,
@@ -253,7 +253,7 @@ function App() {
     page = (
       <CreateEventPage
         categories={categoryOptions.filter((item) => item !== 'All Events')}
-        locations={luzonLocations.filter((item) => item !== 'All Luzon')}
+        locations={locationOptions.filter((item) => item !== 'All Philippines')}
         onCreateEvent={handleCreateEvent}
       />
     )

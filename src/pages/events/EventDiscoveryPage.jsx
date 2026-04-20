@@ -35,8 +35,8 @@ function EventDiscoveryPage({
           <div>
             <h2>{selectedCategory === 'All Events' ? 'Upcoming Events' : selectedCategory}</h2>
             <p>
-              {selectedLocation === 'All Luzon'
-                ? 'Events across Luzon'
+              {selectedLocation === 'All Philippines'
+                ? 'Events across the Philippines'
                 : `Events in ${selectedLocation}`}
             </p>
           </div>
@@ -68,7 +68,7 @@ function EventDiscoveryPage({
         <EventList
           events={events}
           emptyTitle="No events match this filter set yet"
-          emptyCopy="Try another Luzon province, widen your date range, or clear the search term."
+          emptyCopy="Try another province in the Philippines, widen your date range, or clear the search term."
           {...sharedPageProps}
         />
       </section>

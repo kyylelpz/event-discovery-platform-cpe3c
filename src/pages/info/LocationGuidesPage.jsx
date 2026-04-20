@@ -43,7 +43,7 @@ function LocationGuidesPage() {
       <section className="info-page__hero">
         <h1>Location Guides</h1>
         <p>
-          Explore the best provinces and cities across Luzon for hosting and
+          Explore the best provinces and cities across the Philippines for hosting and
           discovering events — each with its own character, venues, and vibe.
         </p>
       </section>
