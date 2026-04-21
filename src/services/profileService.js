@@ -40,6 +40,12 @@ const parseResponseData = async (response) => {
 }
 
 const getDefaultName = (email) => normalizeEmail(email).split('@')[0] || 'Eventcinity user'
+const PROFILE_PATHS = ['/api/profile/me', '/api/profile', '/api/auth/me']
+let preferredProfilePath = PROFILE_PATHS[0]
+
+const isRecoverableProfileError = (error) =>
+  error?.name === 'TypeError' ||
+  [404, 405, 502, 503, 504].includes(error?.status)
 
 const requestProfile = async (path, fallbackSession = {}, headers = {}) => {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -111,23 +117,29 @@ export const normalizeProfile = (rawProfile, fallbackSession = {}) => {
 }
 
 export const fetchCurrentUserProfile = async (fallbackSession = {}) => {
-  try {
-    return await requestProfile('/api/profile/me', fallbackSession)
-  } catch (error) {
-    if (error?.status !== 404) {
-      throw error
+  if (preferredProfilePath === 'local') {
+    return normalizeProfile({}, fallbackSession)
+  }
+
+  const candidatePaths = [
+    preferredProfilePath,
+    ...PROFILE_PATHS.filter((path) => path !== preferredProfilePath),
+  ]
+
+  for (const path of candidatePaths) {
+    try {
+      const profile = await requestProfile(path, fallbackSession)
+      preferredProfilePath = path
+      return profile
+    } catch (error) {
+      if (!isRecoverableProfileError(error)) {
+        throw error
+      }
     }
   }
 
-  try {
-    return await requestProfile('/api/profile', fallbackSession)
-  } catch (error) {
-    if (error?.status !== 404) {
-      throw error
-    }
-  }
-
-  return requestProfile('/api/auth/me', fallbackSession)
+  preferredProfilePath = 'local'
+  return normalizeProfile({}, fallbackSession)
 }
 
 export const formatMemberSince = (createdAt) => {

@@ -1,6 +1,9 @@
 import { API_BASE_URL } from './apiBase.js'
-import { getAuthRequestHeaders } from './authService.js'
+import { getAuthRequestHeaders, getSession } from './authService.js'
 import { buildGoogleMapsSearchUrl, createPosterDataUri } from '../utils/formatters.js'
+
+const INTERACTION_STORAGE_KEY = 'eventcinity_interactions'
+let interactionApiMode = 'unknown'
 
 const normalizeIdList = (values) =>
   Array.from(
@@ -94,6 +97,60 @@ export const buildEmptyInteractionState = () => ({
   attendingEvents: [],
 })
 
+const buildInteractionSummary = (records = []) =>
+  records.reduce(
+    (summary, record) => {
+      if (record.hearted) {
+        summary.hearted.push(record.eventId)
+      }
+
+      if (record.saved) {
+        summary.saved.push(record.eventId)
+      }
+
+      if (record.attending) {
+        summary.attending.push(record.eventId)
+      }
+
+      return summary
+    },
+    {
+      hearted: [],
+      saved: [],
+      attending: [],
+    },
+  )
+
+const getInteractionOwnerKey = () => {
+  const session = getSession()
+
+  if (session?.id) {
+    return `id:${session.id}`
+  }
+
+  if (session?.email) {
+    return `email:${String(session.email).trim().toLowerCase()}`
+  }
+
+  return ''
+}
+
+const readInteractionStorage = () => {
+  try {
+    return JSON.parse(localStorage.getItem(INTERACTION_STORAGE_KEY) || '{}')
+  } catch {
+    return {}
+  }
+}
+
+const writeInteractionStorage = (value) => {
+  try {
+    localStorage.setItem(INTERACTION_STORAGE_KEY, JSON.stringify(value))
+  } catch (error) {
+    console.warn('Unable to cache interaction state locally:', error)
+  }
+}
+
 const normalizeInteractionState = (payload = {}) => {
   const records = Array.isArray(payload.records) ? payload.records : []
   const normalizedRecords = records
@@ -102,7 +159,10 @@ const normalizeInteractionState = (payload = {}) => {
       eventId: String(record.eventId || record.id || '').trim(),
     }))
     .filter((record) => record.eventId)
-  const interactions = payload.interactions || {}
+  const interactions =
+    payload.interactions && typeof payload.interactions === 'object'
+      ? payload.interactions
+      : buildInteractionSummary(normalizedRecords)
 
   return {
     interactions: {
@@ -123,6 +183,85 @@ const normalizeInteractionState = (payload = {}) => {
   }
 }
 
+const readLocalInteractionState = () => {
+  const ownerKey = getInteractionOwnerKey()
+
+  if (!ownerKey) {
+    return buildEmptyInteractionState()
+  }
+
+  const storage = readInteractionStorage()
+  return normalizeInteractionState(storage[ownerKey] || {})
+}
+
+const persistLocalInteractionState = (state) => {
+  const ownerKey = getInteractionOwnerKey()
+
+  if (!ownerKey) {
+    return state
+  }
+
+  const storage = readInteractionStorage()
+  storage[ownerKey] = {
+    interactions: state.interactions,
+    records: state.records,
+  }
+  writeInteractionStorage(storage)
+  return state
+}
+
+const isRecoverableInteractionError = (error) =>
+  error?.name === 'TypeError' ||
+  [401, 403, 404, 405, 502, 503, 504].includes(error?.status)
+
+const buildLocalInteractionState = (event, nextState) => {
+  const currentState = readLocalInteractionState()
+  const eventId = String(event?.id || '').trim()
+
+  if (!eventId) {
+    return currentState
+  }
+
+  const nextFlags = {
+    hearted: Boolean(nextState?.hearted),
+    saved: Boolean(nextState?.saved),
+    attending: Boolean(nextState?.attending),
+  }
+  const hasActiveInteraction = Object.values(nextFlags).some(Boolean)
+  const existingRecords = Array.isArray(currentState.records) ? currentState.records : []
+  const remainingRecords = existingRecords.filter((record) => record.eventId !== eventId)
+
+  if (!hasActiveInteraction) {
+    return persistLocalInteractionState(
+      normalizeInteractionState({
+        records: remainingRecords,
+      }),
+    )
+  }
+
+  return persistLocalInteractionState(
+    normalizeInteractionState({
+      records: [
+        {
+          eventId,
+          ...nextFlags,
+          title: event.title || '',
+          location: event.location || '',
+          date: event.startDate || event.rawDate || '',
+          time: event.timeLabel || '',
+          category: event.category || '',
+          description: event.description || '',
+          imageUrl: event.image || event.imageUrl || '',
+          eventUrl: event.eventUrl || '',
+          province: event.province || '',
+          host: event.host || '',
+        },
+        ...remainingRecords,
+      ],
+    }),
+  )
+}
+
 const requestInteractionState = async (path = '', options = {}) => {
   const response = await fetch(`${API_BASE_URL}/api/interactions${path}`, {
     credentials: 'include',
@@ -140,10 +279,30 @@ const requestInteractionState = async (path = '', options = {}) => {
     throw error
   }
 
-  return normalizeInteractionState(data.data || data)
+  return persistLocalInteractionState(normalizeInteractionState(data.data || data))
 }
 
-export const fetchInteractionState = async () => requestInteractionState()
+export const fetchInteractionState = async () => {
+  if (interactionApiMode === 'missing') {
+    return readLocalInteractionState()
+  }
+
+  try {
+    const state = await requestInteractionState()
+    interactionApiMode = 'available'
+    return state
+  } catch (error) {
+    if (!isRecoverableInteractionError(error)) {
+      throw error
+    }
+
+    if ([404, 405].includes(error?.status)) {
+      interactionApiMode = 'missing'
+    }
+
+    return readLocalInteractionState()
+  }
+}
 
 export const updateInteractionState = async (event, nextState) => {
   const eventId = String(event?.id || '').trim()
@@ -152,23 +311,41 @@ export const updateInteractionState = async (event, nextState) => {
     throw new Error('Event id is required to save the interaction state.')
   }
 
-  return requestInteractionState(`/${encodeURIComponent(eventId)}`, {
-    method: 'PUT',
-    body: JSON.stringify({
-      eventId,
-      hearted: Boolean(nextState?.hearted),
-      saved: Boolean(nextState?.saved),
-      attending: Boolean(nextState?.attending),
-      title: event.title,
-      location: event.location,
-      date: event.startDate || event.rawDate || '',
-      time: event.timeLabel || '',
-      category: event.category,
-      description: event.description,
-      imageUrl: event.image || event.imageUrl || '',
-      eventUrl: event.eventUrl || '',
-      province: event.province || '',
-      host: event.host || '',
-    }),
-  })
+  try {
+    if (interactionApiMode === 'missing') {
+      return buildLocalInteractionState(event, nextState)
+    }
+
+    const state = await requestInteractionState(`/${encodeURIComponent(eventId)}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        eventId,
+        hearted: Boolean(nextState?.hearted),
+        saved: Boolean(nextState?.saved),
+        attending: Boolean(nextState?.attending),
+        title: event.title,
+        location: event.location,
+        date: event.startDate || event.rawDate || '',
+        time: event.timeLabel || '',
+        category: event.category,
+        description: event.description,
+        imageUrl: event.image || event.imageUrl || '',
+        eventUrl: event.eventUrl || '',
+        province: event.province || '',
+        host: event.host || '',
+      }),
+    })
+    interactionApiMode = 'available'
+    return state
+  } catch (error) {
+    if (!isRecoverableInteractionError(error)) {
+      throw error
+    }
+
+    if ([404, 405].includes(error?.status)) {
+      interactionApiMode = 'missing'
+    }
+
+    return buildLocalInteractionState(event, nextState)
+  }
 }
