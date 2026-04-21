@@ -61,6 +61,39 @@ export const parseEventDate = (dateValue) => {
   return Number.isNaN(parsedValue.getTime()) ? null : parsedValue
 }
 
+export const getEventDateRange = (event) => {
+  const startDate = parseEventDate(event?.startDate)
+  const rawEndDate =
+    event?.endDate ||
+    event?.endTime ||
+    event?.end_time ||
+    event?.endLocal ||
+    event?.end_local
+  const parsedEndDate = parseEventDate(rawEndDate)
+
+  if (!startDate) {
+    return { startDate: null, endDate: null }
+  }
+
+  if (!parsedEndDate) {
+    return {
+      startDate: startOfDay(startDate),
+      endDate: startOfDay(startDate),
+    }
+  }
+
+  const normalizedStartDate = startOfDay(startDate)
+  const normalizedEndDate = startOfDay(parsedEndDate)
+
+  return {
+    startDate: normalizedStartDate,
+    endDate:
+      normalizedEndDate.getTime() >= normalizedStartDate.getTime()
+        ? normalizedEndDate
+        : normalizedStartDate,
+  }
+}
+
 export const formatEventDate = (dateValue) => {
   const parsedDate = parseEventDate(dateValue)
   return parsedDate ? eventDateFormatter.format(parsedDate) : String(dateValue || 'Date to be announced')
@@ -138,6 +171,43 @@ export const isSameCalendarDate = (leftValue, rightValue) => {
     leftDate.getMonth() === rightDate.getMonth() &&
     leftDate.getDate() === rightDate.getDate()
   )
+}
+
+export const eventOccursOnDate = (event, targetDateValue) => {
+  const targetDate = parseEventDate(targetDateValue)
+  const { startDate, endDate } = getEventDateRange(event)
+
+  if (!targetDate || !startDate || !endDate) {
+    return false
+  }
+
+  const normalizedTargetDate = startOfDay(targetDate)
+
+  return (
+    normalizedTargetDate.getTime() >= startDate.getTime() &&
+    normalizedTargetDate.getTime() <= endDate.getTime()
+  )
+}
+
+export const getEventDateKeys = (event) => {
+  const { startDate, endDate } = getEventDateRange(event)
+
+  if (!startDate || !endDate) {
+    return []
+  }
+
+  const dateKeys = []
+  const cursor = new Date(startDate)
+
+  while (cursor.getTime() <= endDate.getTime()) {
+    const year = cursor.getFullYear()
+    const month = `${cursor.getMonth() + 1}`.padStart(2, '0')
+    const day = `${cursor.getDate()}`.padStart(2, '0')
+    dateKeys.push(`${year}-${month}-${day}`)
+    cursor.setDate(cursor.getDate() + 1)
+  }
+
+  return dateKeys
 }
 
 export const getOptimizedImageUrl = (imageUrl, width = 1600) => {

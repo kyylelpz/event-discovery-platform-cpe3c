@@ -28,7 +28,8 @@ import { loadEventsByLocation } from './services/eventService.js'
 import { getSession, saveInterests, signOut } from './services/authService.js'
 import {
   createPosterDataUri,
-  isSameCalendarDate,
+  eventOccursOnDate,
+  getEventDateKeys,
   matchesDateFilter,
   parseEventDate,
 } from './utils/formatters.js'
@@ -40,20 +41,6 @@ const mergeEvents = (...eventGroups) => {
   const merged = new Map()
   eventGroups.flat().forEach((event) => merged.set(event.id, event))
   return [...merged.values()]
-}
-
-const toDateKey = (dateValue) => {
-  const parsedDate = parseEventDate(dateValue)
-
-  if (!parsedDate) {
-    return null
-  }
-
-  const year = parsedDate.getFullYear()
-  const month = `${parsedDate.getMonth() + 1}`.padStart(2, '0')
-  const day = `${parsedDate.getDate()}`.padStart(2, '0')
-
-  return `${year}-${month}-${day}`
 }
 
 function App() {
@@ -166,20 +153,17 @@ function App() {
   const isCalendarDateMode = Boolean(selectedCalendarDate)
   const availableDateCounts = useMemo(() => {
     return allEvents.reduce((counts, event) => {
-      const dateKey = toDateKey(event.startDate)
+      getEventDateKeys(event).forEach((dateKey) => {
+        counts[dateKey] = (counts[dateKey] || 0) + 1
+      })
 
-      if (!dateKey) {
-        return counts
-      }
-
-      counts[dateKey] = (counts[dateKey] || 0) + 1
       return counts
     }, {})
   }, [allEvents])
 
   const filteredEvents = allEvents.filter((event) => {
     if (isCalendarDateMode) {
-      return isSameCalendarDate(event.startDate, selectedCalendarDate)
+      return eventOccursOnDate(event, selectedCalendarDate)
     }
 
     const locationMatches =
