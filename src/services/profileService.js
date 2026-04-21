@@ -42,8 +42,32 @@ const parseResponseData = async (response) => {
 
 const getDefaultName = (email) => normalizeEmail(email).split('@')[0] || 'Eventcinity user'
 
+const requestProfile = async (path, fallbackSession = {}, headers = {}) => {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'GET',
+    credentials: 'include',
+    headers: {
+      Accept: 'application/json',
+      ...headers,
+    },
+  })
+
+  const data = await parseResponseData(response)
+
+  if (!response.ok) {
+    const error = new Error(data.message || 'Unable to load the signed-in user profile.')
+    error.status = response.status
+    throw error
+  }
+
+  const rawProfile = data.user || data.data?.user || data.data || data
+  return normalizeProfile(rawProfile, fallbackSession)
+}
+
 export const normalizeProfile = (rawProfile, fallbackSession = {}) => {
   const email = normalizeEmail(rawProfile?.email || fallbackSession.email)
+  const fallbackInterests = normalizeInterests(fallbackSession.interests)
+  const remoteInterests = normalizeInterests(rawProfile?.interests)
 
   return {
     email,
@@ -51,7 +75,7 @@ export const normalizeProfile = (rawProfile, fallbackSession = {}) => {
       String(rawProfile?.name || rawProfile?.username || fallbackSession.name || '').trim() ||
       getDefaultName(email),
     username: String(rawProfile?.username || fallbackSession.username || '').trim(),
-    interests: normalizeInterests(rawProfile?.interests || fallbackSession.interests),
+    interests: remoteInterests.length > 0 ? remoteInterests : fallbackInterests,
     phone: String(rawProfile?.phone || fallbackSession.phone || '').trim(),
     bio: String(rawProfile?.bio || fallbackSession.bio || '').trim(),
     profilePic: String(
@@ -67,25 +91,17 @@ export const normalizeProfile = (rawProfile, fallbackSession = {}) => {
 }
 
 export const fetchCurrentUserProfile = async (fallbackSession = {}) => {
-  const response = await fetch(`${API_BASE_URL}/api/profile`, {
-    method: 'GET',
-    credentials: 'include',
-    headers: {
-      Accept: 'application/json',
+  try {
+    return await requestProfile('/api/profile', fallbackSession, {
       'x-api-key': PROFILE_API_KEY,
-    },
-  })
-
-  const data = await parseResponseData(response)
-
-  if (!response.ok) {
-    const error = new Error(data.message || 'Unable to load the signed-in user profile.')
-    error.status = response.status
-    throw error
+    })
+  } catch (error) {
+    if (error?.status !== 404) {
+      throw error
+    }
   }
 
-  const rawProfile = data.user || data.data?.user || data.data || data
-  return normalizeProfile(rawProfile, fallbackSession)
+  return requestProfile('/api/auth/me', fallbackSession)
 }
 
 export const formatMemberSince = (createdAt) => {

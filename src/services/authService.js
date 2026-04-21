@@ -349,13 +349,26 @@ const migrateLegacyPasswordIfNeeded = async (email, user, password) => {
 const createSessionFromAuthPayload = (data, email, fallbackName, authProvider) => {
   const user = data?.user || data?.data?.user || data?.data || {}
   const localMirror = getUsers()[normalizeEmail(email)] || {}
+  const resolvedInterests =
+    (Array.isArray(user.interests) ? user.interests : null) || localMirror.interests || []
+  const needsInterestsSelection =
+    typeof user.needsInterestsSelection === 'boolean'
+      ? user.needsInterestsSelection
+      : typeof localMirror.needsInterestsSelection === 'boolean'
+        ? localMirror.needsInterestsSelection
+        : resolvedInterests.length === 0
+  const hasCompletedOnboarding =
+    typeof user.hasCompletedOnboarding === 'boolean'
+      ? user.hasCompletedOnboarding
+      : typeof localMirror.hasCompletedOnboarding === 'boolean'
+        ? localMirror.hasCompletedOnboarding
+        : !needsInterestsSelection
 
   return buildSession({
     email: user.email || localMirror.email || email,
     name: user.name || localMirror.name || fallbackName || getDefaultName(email),
     username: user.username || localMirror.username || '',
-    interests:
-      (Array.isArray(user.interests) ? user.interests : null) || localMirror.interests || [],
+    interests: resolvedInterests,
     authProvider,
     location: user.location || localMirror.location || '',
     phone: user.phone || localMirror.phone || '',
@@ -367,14 +380,8 @@ const createSessionFromAuthPayload = (data, email, fallbackName, authProvider) =
       localMirror.profilePic ||
       '',
     createdAt: user.createdAt || localMirror.createdAt || '',
-    needsInterestsSelection:
-      typeof user.needsInterestsSelection === 'boolean'
-        ? user.needsInterestsSelection
-        : Boolean(localMirror.needsInterestsSelection),
-    hasCompletedOnboarding:
-      typeof user.hasCompletedOnboarding === 'boolean'
-        ? user.hasCompletedOnboarding
-        : localMirror.hasCompletedOnboarding,
+    needsInterestsSelection,
+    hasCompletedOnboarding,
   })
 }
 
