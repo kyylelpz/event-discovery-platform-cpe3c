@@ -25,6 +25,7 @@ import { API_BASE_URL } from './services/apiBase.js'
 import { loadEventsByLocation } from './services/eventService.js'
 import {
   clearSession,
+  getAuthRequestHeaders,
   getKnownUsers,
   getSession,
   isHostedAuthEnvironment,
@@ -699,9 +700,9 @@ function App() {
       }
 
       const response = await axios.post(`${API_BASE_URL}/api/events/create`, payload, {
-        headers: {
+        headers: getAuthRequestHeaders({
           'Content-Type': 'multipart/form-data',
-        },
+        }),
         withCredentials: true,
       })
 

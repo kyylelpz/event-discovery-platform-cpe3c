@@ -25,9 +25,10 @@ function EventDetailPage({
   onToggleAttend,
   onOpenEvent,
 }) {
-  const isSaved = interactions.saved.includes(event.id)
-  const isAttending = interactions.attending.includes(event.id)
-  const isHearted = interactions.hearted.includes(event.id)
+  const eventId = String(event?.id || '').trim()
+  const isSaved = interactions.saved.includes(eventId)
+  const isAttending = interactions.attending.includes(eventId)
+  const isHearted = interactions.hearted.includes(eventId)
   const scheduleLabel = formatEventSchedule(event)
   const detailImage = getResponsiveImageProps(event.image)
   const locationHref = event.mapUrl

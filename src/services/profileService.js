@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './apiBase.js'
+import { getAuthRequestHeaders } from './authService.js'
 
 const PROFILE_API_KEY = 'eventcinityAPIprofileBRO'
 
@@ -46,10 +47,10 @@ const requestProfile = async (path, fallbackSession = {}, headers = {}) => {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: 'GET',
     credentials: 'include',
-    headers: {
+    headers: getAuthRequestHeaders({
       Accept: 'application/json',
       ...headers,
-    },
+    }),
   })
 
   const data = await parseResponseData(response)

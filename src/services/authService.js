@@ -59,6 +59,7 @@ const buildSession = ({
   name,
   username = '',
   interests = [],
+  token = '',
   authProvider = 'local',
   location = '',
   phone = '',
@@ -73,6 +74,7 @@ const buildSession = ({
   name: String(name || '').trim() || getDefaultName(email),
   username: String(username || getDefaultUsername(email)).trim(),
   interests: normalizeInterests(interests),
+  token: String(token || '').trim(),
   authProvider,
   location: String(location || '').trim(),
   phone: String(phone || '').trim(),
@@ -93,6 +95,7 @@ const sanitizeStoredUser = (user = {}) =>
     name: user.name,
     username: user.username,
     interests: user.interests,
+    token: user.token,
     authProvider: user.authProvider || 'local',
     location: user.location,
     phone: user.phone,
@@ -129,10 +132,10 @@ const isRecoverableRemoteAuthError = (error) =>
 const updateRemoteProfile = async (updates) => {
   const response = await fetch(`${API_BASE_URL}/api/profile`, {
     method: 'PUT',
-    headers: {
+    headers: getAuthRequestHeaders({
       'Content-Type': 'application/json',
       'x-api-key': 'eventcinityAPIprofileBRO',
-    },
+    }),
     credentials: 'include',
     body: JSON.stringify(updates),
   })
@@ -355,6 +358,7 @@ const migrateLegacyPasswordIfNeeded = async (email, user, password) => {
 
 const createSessionFromAuthPayload = (data, email, fallbackName, authProvider) => {
   const user = data?.user || data?.data?.user || data?.data || {}
+  const token = String(data?.token || data?.data?.token || '').trim()
   const localMirror = getUsers()[normalizeEmail(email)] || {}
   const resolvedInterests =
     (Array.isArray(user.interests) ? user.interests : null) || localMirror.interests || []
@@ -382,6 +386,7 @@ const createSessionFromAuthPayload = (data, email, fallbackName, authProvider) =
     name: user.name || localMirror.name || fallbackName || getDefaultName(email),
     username: user.username || localMirror.username || '',
     interests: resolvedInterests,
+    token,
     authProvider,
     location: user.location || localMirror.location || '',
     phone: user.phone || localMirror.phone || '',
@@ -463,6 +468,20 @@ export const setSession = (session) => {
     localStorage.setItem(SESSION_KEY, JSON.stringify(normalizedSession))
   } catch (error) {
     console.warn('Unable to persist the active session locally:', error)
+  }
+}
+
+export const getAuthRequestHeaders = (headers = {}) => {
+  const session = getSession()
+  const token = String(session?.token || '').trim()
+
+  if (!token) {
+    return headers
+  }
+
+  return {
+    ...headers,
+    Authorization: `Bearer ${token}`,
   }
 }
 
@@ -612,10 +631,12 @@ export const signIn = async ({ email, password }) => {
 }
 
 export const signOut = () => {
+  const authHeaders = getAuthRequestHeaders()
   localStorage.removeItem(SESSION_KEY)
 
   void fetch(`${API_BASE_URL}/api/auth/logout`, {
     method: 'POST',
+    headers: authHeaders,
     credentials: 'include',
   }).catch(() => {})
 }
