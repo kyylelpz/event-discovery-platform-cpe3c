@@ -131,6 +131,7 @@ function App() {
   const [isSearchFocused, setIsSearchFocused] = useState(false)
   const deferredSearchTerm = useDeferredValue(searchTerm)
   const previousRouteKeyRef = useRef(null)
+  const recentAuthSuccessAtRef = useRef(0)
 
   useEffect(() => {
     const syncPathname = () => {
@@ -195,7 +196,21 @@ function App() {
           return
         }
 
-        if ([401, 403, 404].includes(error?.status)) {
+        if ([401, 403].includes(error?.status)) {
+          const recentlyAuthenticated =
+            Date.now() - recentAuthSuccessAtRef.current < 30_000
+          const shouldPreserveFreshSession =
+            recentlyAuthenticated || Boolean(currentUser?.needsInterestsSelection)
+
+          if (shouldPreserveFreshSession) {
+            const fallbackSession = { ...currentUser, authProvider: 'local' }
+            setCurrentUser(fallbackSession)
+            setSession(fallbackSession)
+            setShowInterests(Boolean(fallbackSession.needsInterestsSelection))
+            void syncStoredUser(fallbackSession)
+            return
+          }
+
           if (isHostedAuthEnvironment()) {
             clearSession()
             setCurrentUser(null)
@@ -207,6 +222,14 @@ function App() {
           setCurrentUser(fallbackSession)
           setSession(fallbackSession)
           void syncStoredUser(fallbackSession)
+          return
+        }
+
+        if (error?.status === 404) {
+          console.warn(
+            'Profile sync endpoint was not found. Preserving the current session from auth response.',
+            error,
+          )
           return
         }
 
@@ -266,7 +289,9 @@ function App() {
           }
         : session
 
+    recentAuthSuccessAtRef.current = Date.now()
     setCurrentUser(nextUser)
+    setSession(nextUser)
     if (type === 'new' || nextUser.needsInterestsSelection) {
       setShowInterests(true) // new user → show interests picker
       navigate(routes.events)
@@ -297,6 +322,7 @@ function App() {
   }
 
   const handleSignOut = () => {
+    recentAuthSuccessAtRef.current = 0
     signOut()
     setCurrentUser(null)
     setShowInterests(false)
