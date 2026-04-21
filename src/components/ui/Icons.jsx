@@ -105,6 +105,24 @@ export function ArrowRightIcon({ className = '' }) {
   )
 }
 
+export function ChevronLeftIcon({ className = '' }) {
+  return createIcon(
+    <>
+      <path d="m15 18-6-6 6-6" />
+    </>,
+    className,
+  )
+}
+
+export function ChevronRightIcon({ className = '' }) {
+  return createIcon(
+    <>
+      <path d="m9 6 6 6-6 6" />
+    </>,
+    className,
+  )
+}
+
 export function LayoutGridIcon({ className = '' }) {
   return createIcon(
     <>
