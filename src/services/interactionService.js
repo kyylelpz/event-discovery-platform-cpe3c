@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './apiBase.js'
+import { getAuthRequestHeaders } from './authService.js'
 import { buildGoogleMapsSearchUrl, createPosterDataUri } from '../utils/formatters.js'
 
 const normalizeIdList = (values) =>
@@ -125,10 +126,10 @@ const normalizeInteractionState = (payload = {}) => {
 const requestInteractionState = async (path = '', options = {}) => {
   const response = await fetch(`${API_BASE_URL}/api/interactions${path}`, {
     credentials: 'include',
-    headers: {
+    headers: getAuthRequestHeaders({
       'Content-Type': 'application/json',
       ...(options.headers || {}),
-    },
+    }),
     ...options,
   })
   const data = await readResponseData(response)
