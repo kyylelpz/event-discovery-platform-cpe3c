@@ -26,6 +26,7 @@ import { API_BASE_URL } from './services/apiBase.js'
 import { loadEventsByLocation } from './services/eventService.js'
 import { getSession, saveInterests, signOut } from './services/authService.js'
 import {
+  buildGoogleMapsSearchUrl,
   createPosterDataUri,
   eventOccursOnDate,
   formatDateKey,
@@ -362,6 +363,12 @@ function App() {
 
       if (response.data.success) {
         const dbEvent = response.data.data
+        const fallbackImage = createPosterDataUri({
+          title: dbEvent.title,
+          location: dbEvent.location || formData.province,
+          category: dbEvent.category || 'Community',
+        })
+        const mapLabel = dbEvent.location || formData.venue || formData.province
 
         const newEvent = {
           id: dbEvent.eventId,
@@ -379,11 +386,10 @@ function App() {
           image:
             dbEvent.imageUrl ||
             formData.imagePreview ||
-            createPosterDataUri({
-              title: dbEvent.title,
-              location: dbEvent.location || formData.province,
-              category: dbEvent.category || 'Community',
-            }),
+            fallbackImage,
+          fallbackImage,
+          mapLabel,
+          mapUrl: buildGoogleMapsSearchUrl(mapLabel),
           source: 'community',
         }
 

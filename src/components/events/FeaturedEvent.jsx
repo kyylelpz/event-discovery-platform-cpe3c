@@ -10,6 +10,16 @@ function FeaturedEvent({ event, onViewDetails }) {
 
   const scheduleLabel = formatEventSchedule(event)
   const featuredImage = getResponsiveImageProps(event.image, [960, 1440, 2200])
+  const locationHref = event.mapUrl
+  const handleImageError = (eventObject) => {
+    if (!event.fallbackImage || eventObject.currentTarget.dataset.fallbackApplied === 'true') {
+      return
+    }
+
+    eventObject.currentTarget.dataset.fallbackApplied = 'true'
+    eventObject.currentTarget.src = event.fallbackImage
+    eventObject.currentTarget.srcset = ''
+  }
 
   return (
     <section className="featured-event">
@@ -28,7 +38,18 @@ function FeaturedEvent({ event, onViewDetails }) {
           </div>
           <div>
             <MapPinIcon />
-            <span>{event.location}</span>
+            {locationHref ? (
+              <a
+                className="featured-event__location-link"
+                href={locationHref}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {event.location}
+              </a>
+            ) : (
+              <span>{event.location}</span>
+            )}
           </div>
         </div>
 
@@ -49,6 +70,7 @@ function FeaturedEvent({ event, onViewDetails }) {
           loading="eager"
           decoding="async"
           fetchPriority="high"
+          onError={handleImageError}
         />
       </div>
     </section>

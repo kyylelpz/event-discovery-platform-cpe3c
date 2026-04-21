@@ -25,6 +25,16 @@ function EventDetailPage({
   const isHearted = interactions.hearted.includes(event.id)
   const scheduleLabel = formatEventSchedule(event)
   const detailImage = getResponsiveImageProps(event.image, [960, 1600, 2400])
+  const locationHref = event.mapUrl
+  const handleImageError = (eventObject) => {
+    if (!event.fallbackImage || eventObject.currentTarget.dataset.fallbackApplied === 'true') {
+      return
+    }
+
+    eventObject.currentTarget.dataset.fallbackApplied = 'true'
+    eventObject.currentTarget.src = event.fallbackImage
+    eventObject.currentTarget.srcset = ''
+  }
 
   return (
     <div className="page-stack page-stack--detail">
@@ -39,6 +49,7 @@ function EventDetailPage({
             loading="eager"
             decoding="async"
             fetchPriority="high"
+            onError={handleImageError}
           />
           <div className="detail-hero__overlay">
             <CategoryTag>{event.category}</CategoryTag>
@@ -65,13 +76,28 @@ function EventDetailPage({
 
             <article className="detail-section">
               <h3>Location</h3>
-              <div className="detail-place-card">
-                <MapPinIcon />
-                <div>
-                  <strong>{event.location}</strong>
-                  <p>View on map</p>
+              {locationHref ? (
+                <a
+                  className="detail-place-card detail-place-card--interactive"
+                  href={locationHref}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <MapPinIcon />
+                  <div>
+                    <strong>{event.location}</strong>
+                    <p>Open in Google Maps</p>
+                  </div>
+                </a>
+              ) : (
+                <div className="detail-place-card">
+                  <MapPinIcon />
+                  <div>
+                    <strong>{event.location}</strong>
+                    <p>Location details available</p>
+                  </div>
                 </div>
-              </div>
+              )}
             </article>
           </div>
 
@@ -89,7 +115,18 @@ function EventDetailPage({
                   <MapPinIcon />
                   <div>
                     <p>Venue</p>
-                    <strong>{event.location}</strong>
+                    {locationHref ? (
+                      <a
+                        className="detail-location-link"
+                        href={locationHref}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {event.location}
+                      </a>
+                    ) : (
+                      <strong>{event.location}</strong>
+                    )}
                   </div>
                 </div>
               </div>
