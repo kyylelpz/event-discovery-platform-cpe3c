@@ -293,13 +293,13 @@ function App() {
     setCurrentUser(nextUser)
     setSession(nextUser)
     if (type === 'new' || nextUser.needsInterestsSelection) {
-      setShowInterests(true) // new user → show interests picker
+      setShowInterests(true)
       navigate(routes.events)
       return
-    } else {
-      setShowInterests(false)
-      navigate(routes.events) // returning user → go to homepage
     }
+
+    setShowInterests(false)
+    navigate(getUserProfilePath(nextUser))
   }
 
   // Called after interests are picked

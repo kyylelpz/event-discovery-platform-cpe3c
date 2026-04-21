@@ -68,6 +68,19 @@ export const normalizeProfile = (rawProfile, fallbackSession = {}) => {
   const email = normalizeEmail(rawProfile?.email || fallbackSession.email)
   const fallbackInterests = normalizeInterests(fallbackSession.interests)
   const remoteInterests = normalizeInterests(rawProfile?.interests)
+  const interests = remoteInterests.length > 0 ? remoteInterests : fallbackInterests
+  const needsInterestsSelection =
+    typeof rawProfile?.needsInterestsSelection === 'boolean'
+      ? rawProfile.needsInterestsSelection
+      : typeof fallbackSession.needsInterestsSelection === 'boolean'
+        ? fallbackSession.needsInterestsSelection
+        : interests.length === 0
+  const hasCompletedOnboarding =
+    typeof rawProfile?.hasCompletedOnboarding === 'boolean'
+      ? rawProfile.hasCompletedOnboarding
+      : typeof fallbackSession.hasCompletedOnboarding === 'boolean'
+        ? fallbackSession.hasCompletedOnboarding
+        : !needsInterestsSelection
 
   return {
     email,
@@ -75,7 +88,7 @@ export const normalizeProfile = (rawProfile, fallbackSession = {}) => {
       String(rawProfile?.name || rawProfile?.username || fallbackSession.name || '').trim() ||
       getDefaultName(email),
     username: String(rawProfile?.username || fallbackSession.username || '').trim(),
-    interests: remoteInterests.length > 0 ? remoteInterests : fallbackInterests,
+    interests,
     phone: String(rawProfile?.phone || fallbackSession.phone || '').trim(),
     bio: String(rawProfile?.bio || fallbackSession.bio || '').trim(),
     profilePic: String(
@@ -87,6 +100,8 @@ export const normalizeProfile = (rawProfile, fallbackSession = {}) => {
     ).trim(),
     createdAt: String(rawProfile?.createdAt || fallbackSession.createdAt || '').trim(),
     authProvider: rawProfile?.authProvider || fallbackSession.authProvider || 'remote',
+    needsInterestsSelection,
+    hasCompletedOnboarding,
   }
 }
 
