@@ -24,7 +24,15 @@ import HelpCenterPage from './pages/info/HelpCenterPage.jsx'
 import ContactSupportPage from './pages/info/ContactSupportPage.jsx'
 import { API_BASE_URL } from './services/apiBase.js'
 import { loadEventsByLocation } from './services/eventService.js'
-import { getSession, saveInterests, signOut } from './services/authService.js'
+import {
+  clearSession,
+  getSession,
+  isHostedAuthEnvironment,
+  saveInterests,
+  setSession,
+  signOut,
+} from './services/authService.js'
+import { fetchCurrentUserProfile } from './services/profileService.js'
 import {
   buildGoogleMapsSearchUrl,
   createPosterDataUri,
@@ -96,6 +104,54 @@ function App() {
     return () => { isActive = false }
   }, [selectedLocation])
 
+  useEffect(() => {
+    if (!currentUser?.email) {
+      return undefined
+    }
+
+    const shouldSyncRemoteProfile =
+      currentUser.authProvider === 'remote' || isHostedAuthEnvironment()
+
+    if (!shouldSyncRemoteProfile) {
+      return undefined
+    }
+
+    let isActive = true
+
+    const syncCurrentUserProfile = async () => {
+      try {
+        const profile = await fetchCurrentUserProfile(currentUser)
+
+        if (!isActive) {
+          return
+        }
+
+        const nextSession = { ...currentUser, ...profile }
+        setCurrentUser(nextSession)
+        setSession(nextSession)
+      } catch (error) {
+        if (!isActive) {
+          return
+        }
+
+        if ([401, 403, 404].includes(error?.status)) {
+          clearSession()
+          setCurrentUser(null)
+          setShowInterests(false)
+          return
+        }
+
+        console.warn('Unable to sync current user profile:', error)
+      }
+    }
+
+    void syncCurrentUserProfile()
+
+    return () => {
+      isActive = false
+    }
+  }, [currentUser?.email, currentUser?.authProvider])
+
   const navigate = (nextPath) => {
     const normalizedPath = normalizeRoutePath(nextPath)
 
@@ -142,9 +198,9 @@ function App() {
   }
 
   // Called after interests are picked
-  const handleInterestsDone = (interests) => {
+  const handleInterestsDone = async (interests) => {
     if (currentUser) {
-      saveInterests(currentUser.email, interests)
+      await saveInterests(currentUser.email, interests)
       setCurrentUser((prev) => ({ ...prev, interests }))
     }
     setShowInterests(false)

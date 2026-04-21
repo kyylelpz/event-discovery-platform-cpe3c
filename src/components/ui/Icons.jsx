@@ -86,6 +86,17 @@ export function MenuIcon({ className = '' }) {
   )
 }
 
+export function MoreVerticalIcon({ className = '' }) {
+  return createIcon(
+    <>
+      <circle cx="12" cy="5" r="1.4" />
+      <circle cx="12" cy="12" r="1.4" />
+      <circle cx="12" cy="19" r="1.4" />
+    </>,
+    className,
+  )
+}
+
 export function CloseIcon({ className = '' }) {
   return createIcon(
     <>
