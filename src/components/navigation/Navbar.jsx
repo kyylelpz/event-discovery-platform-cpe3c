@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { routes } from '../../utils/routing.js'
 import brandLogo from '../../assets/eventcinity-logo.png'
 import { PrimaryButton, SecondaryButton } from '../ui/Button.jsx'
+import UserAvatar from '../ui/UserAvatar.jsx'
 import {
   CalendarIcon,
   CloseIcon,
@@ -40,6 +41,8 @@ function Navbar({
   selectedCalendarDate,
   onCalendarDateChange,
   onCalendarDateClear,
+  currentUser,
+  onSignOut,
 }) {
   const isActive = (target) =>
     currentPath === target || currentPath.startsWith(`${target}/`)
@@ -104,13 +107,30 @@ function Navbar({
             <UserPlusIcon />
             <span>Connect</span>
           </SecondaryButton>
-          <SecondaryButton
-            isActive={isActive(routes.signin)}
-            onClick={() => onNavigate(routes.signin)}
-          >
-            <LogInIcon />
-            <span>Sign In</span>
-          </SecondaryButton>
+
+          {currentUser ? (
+            <>
+              <div className="topbar__account" aria-label={`Signed in as ${currentUser.name}`}>
+                <UserAvatar name={currentUser.name} size="sm" />
+                <div className="topbar__account-copy">
+                  <strong>{currentUser.name}</strong>
+                  <span>{currentUser.email}</span>
+                </div>
+              </div>
+
+              <SecondaryButton onClick={onSignOut}>
+                Sign Out
+              </SecondaryButton>
+            </>
+          ) : (
+            <SecondaryButton
+              isActive={isActive(routes.signin)}
+              onClick={() => onNavigate(routes.signin)}
+            >
+              <LogInIcon />
+              <span>Sign In</span>
+            </SecondaryButton>
+          )}
         </nav>
       </div>
 
@@ -132,6 +152,8 @@ function Navbar({
         selectedCalendarDate={selectedCalendarDate}
         onCalendarDateChange={onCalendarDateChange}
         onCalendarDateClear={onCalendarDateClear}
+        currentUser={currentUser}
+        onSignOut={onSignOut}
       />
     </header>
   )
@@ -155,6 +177,8 @@ function MobileNavbar({
   selectedCalendarDate,
   onCalendarDateChange,
   onCalendarDateClear,
+  currentUser,
+  onSignOut,
 }) {
   const isActive = (target) =>
     currentPath === target || currentPath.startsWith(`${target}/`)
@@ -212,6 +236,20 @@ function MobileNavbar({
         />
 
         <div className="topbar__mobile-links">
+          {currentUser ? (
+            <div className="topbar__mobile-user" aria-label={`Signed in as ${currentUser.name}`}>
+              <div className="topbar__account">
+                <UserAvatar name={currentUser.name} size="sm" />
+                <div className="topbar__account-copy">
+                  <strong>{currentUser.name}</strong>
+                  <span>{currentUser.email}</span>
+                </div>
+              </div>
+
+              <SecondaryButton onClick={onSignOut}>Sign Out</SecondaryButton>
+            </div>
+          ) : null}
+
           <SecondaryButton
             isActive={toggleState === routes.createEvent}
             onClick={() => onNavigate(routes.createEvent)}
@@ -225,12 +263,14 @@ function MobileNavbar({
           >
             Connect with People
           </SecondaryButton>
-          <SecondaryButton
-            isActive={toggleState === routes.signin}
-            onClick={() => onNavigate(routes.signin)}
-          >
-            Sign In
-          </SecondaryButton>
+          {!currentUser ? (
+            <SecondaryButton
+              isActive={toggleState === routes.signin}
+              onClick={() => onNavigate(routes.signin)}
+            >
+              Sign In
+            </SecondaryButton>
+          ) : null}
         </div>
       </div>
     </details>
