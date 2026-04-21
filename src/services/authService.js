@@ -41,7 +41,11 @@ const getUsers = () => {
 }
 
 const saveUsers = (users) => {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users))
+  try {
+    localStorage.setItem(USERS_KEY, JSON.stringify(users))
+  } catch (error) {
+    console.warn('Unable to cache users locally:', error)
+  }
 }
 
 const buildSession = ({
@@ -165,14 +169,21 @@ const derivePasswordHash = async (password, saltBytes, iterations = PASSWORD_ITE
 }
 
 const createPasswordRecord = async (password) => {
-  const cryptoModule = getCryptoModule()
-  const saltBytes = cryptoModule.getRandomValues(new Uint8Array(16))
+  try {
+    const cryptoModule = getCryptoModule()
+    const saltBytes = cryptoModule.getRandomValues(new Uint8Array(16))
 
-  return {
-    passwordHash: await derivePasswordHash(password, saltBytes),
-    passwordSalt: toBase64(saltBytes),
-    passwordIterations: PASSWORD_ITERATIONS,
-    passwordDigest: 'SHA-256',
+    return {
+      passwordHash: await derivePasswordHash(password, saltBytes),
+      passwordSalt: toBase64(saltBytes),
+      passwordIterations: PASSWORD_ITERATIONS,
+      passwordDigest: 'SHA-256',
+    }
+  } catch (error) {
+    console.warn('Secure password hashing is unavailable; using legacy local password storage.', error)
+    return {
+      password: String(password || ''),
+    }
   }
 }
 
@@ -213,7 +224,9 @@ const upsertLocalUser = async ({
     ...passwordRecord,
   }
 
-  delete nextUser.password
+  if (passwordRecord.passwordHash) {
+    delete nextUser.password
+  }
 
   users[normalizedEmail] = nextUser
   saveUsers(users)
@@ -251,6 +264,30 @@ const createSessionFromAuthPayload = (data, email, fallbackName, authProvider) =
   })
 }
 
+const syncLocalAuthMirror = async ({
+  email,
+  password,
+  name,
+  interests,
+  authProvider,
+}) => {
+  if (!canUseLocalAuthFallback()) {
+    return
+  }
+
+  try {
+    await upsertLocalUser({
+      email,
+      password,
+      name,
+      interests,
+      authProvider,
+    })
+  } catch (error) {
+    console.warn('Unable to cache the signed-in user locally:', error)
+  }
+}
+
 export const getSignupEmailError = (email) => {
   const normalizedEmail = normalizeEmail(email)
 
@@ -266,7 +303,11 @@ export const getSignupEmailError = (email) => {
 }
 
 export const setSession = (session) => {
-  localStorage.setItem(SESSION_KEY, JSON.stringify(buildSession(session)))
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(buildSession(session)))
+  } catch (error) {
+    console.warn('Unable to persist the active session locally:', error)
+  }
 }
 
 export const signUp = async ({ email, password, name }) => {
@@ -292,15 +333,13 @@ export const signUp = async ({ email, password, name }) => {
 
     const session = createSessionFromAuthPayload(data, normalizedEmail, fallbackName, 'remote')
     setSession(session)
-    if (canUseLocalAuthFallback()) {
-      await upsertLocalUser({
-        email: normalizedEmail,
-        password,
-        name: session.name,
-        interests: session.interests,
-        authProvider: 'remote',
-      })
-    }
+    await syncLocalAuthMirror({
+      email: normalizedEmail,
+      password,
+      name: session.name,
+      interests: session.interests,
+      authProvider: 'remote',
+    })
     return session
   } catch (error) {
     if (!isRecoverableRemoteAuthError(error) || !canUseLocalAuthFallback()) {
@@ -350,15 +389,13 @@ export const signIn = async ({ email, password }) => {
       'remote',
     )
     setSession(session)
-    if (canUseLocalAuthFallback()) {
-      await upsertLocalUser({
-        email: normalizedEmail,
-        password,
-        name: session.name,
-        interests: session.interests,
-        authProvider: 'remote',
-      })
-    }
+    await syncLocalAuthMirror({
+      email: normalizedEmail,
+      password,
+      name: session.name,
+      interests: session.interests,
+      authProvider: 'remote',
+    })
     return session
   } catch (error) {
     if (!isRecoverableRemoteAuthError(error) || !canUseLocalAuthFallback()) {
@@ -395,7 +432,11 @@ export const signOut = () => {
 }
 
 export const clearSession = () => {
-  localStorage.removeItem(SESSION_KEY)
+  try {
+    localStorage.removeItem(SESSION_KEY)
+  } catch (error) {
+    console.warn('Unable to clear the active session locally:', error)
+  }
 }
 
 export const getSession = () => {
