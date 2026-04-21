@@ -163,6 +163,17 @@ const mergeCommunityUsers = (...userGroups) => {
   return [...merged.values()]
 }
 
+const compareCommunityUsers = (leftUser, rightUser) => {
+  const createdDifference =
+    Number(rightUser.createdEventsCount || 0) - Number(leftUser.createdEventsCount || 0)
+
+  if (createdDifference !== 0) {
+    return createdDifference
+  }
+
+  return String(leftUser.name || '').localeCompare(String(rightUser.name || ''))
+}
+
 function App() {
   const [pathname, setPathname] = useState(() => normalizeRoutePath(window.location.pathname))
   const [currentUser, setCurrentUser] = useState(() => getSession())
@@ -475,7 +486,7 @@ function App() {
         .filter(Boolean)
     : []
   const currentUserInterests = normalizeInterestList(currentUserInterestLabels)
-  const communityPeople = useMemo(
+  const communityDirectory = useMemo(
     () =>
       mergeCommunityUsers(currentUser ? [currentUser] : [], communityUsers).map(
         (user) => {
@@ -499,8 +510,20 @@ function App() {
             isPrivateProfile: true,
           }
         },
-      ),
+      ).sort(compareCommunityUsers),
     [communityUsers, currentUser, currentUserEmail],
+  )
+  const connectPeople = useMemo(
+    () =>
+      communityDirectory.filter((user) => {
+        const isCurrentUserEntry =
+          (currentUser?.id && user.id === currentUser.id) ||
+          (currentUser?.username && user.username === currentUser.username) ||
+          (currentUserEmail && user.email === currentUserEmail)
+
+        return !isCurrentUserEntry
+      }),
+    [communityDirectory, currentUser?.id, currentUser?.username, currentUserEmail],
   )
 
   const selectedCalendarDate =
@@ -686,7 +709,7 @@ function App() {
     }
 
     const fallbackProfile =
-      communityPeople.find((user) => user.username === requestedUsername) || null
+      communityDirectory.find((user) => user.username === requestedUsername) || null
 
     if (fallbackProfile) {
       setActivePublicProfile(fallbackProfile)
@@ -723,7 +746,7 @@ function App() {
     return () => {
       isActive = false
     }
-  }, [route.key, route.params?.username, isViewingCurrentUserProfile, communityPeople])
+  }, [route.key, route.params?.username, isViewingCurrentUserProfile, communityDirectory])
 
   useEffect(() => {
     if (route.key !== 'profile') {
@@ -989,7 +1012,7 @@ function App() {
   } else if (route.key === 'people') {
     page = (
       <PeoplePage
-        people={communityPeople}
+        people={connectPeople}
         onOpenProfile={(username) => navigate(routes.profile(username))}
       />
     )
