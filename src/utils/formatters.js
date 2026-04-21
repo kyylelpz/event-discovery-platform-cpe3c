@@ -572,30 +572,21 @@ export const buildGoogleMapsEmbedUrl = (query) => {
   return `https://www.google.com/maps?q=${encodeURIComponent(normalizedQuery)}&z=15&output=embed`
 }
 
-export const getResponsiveImageProps = (imageUrl, widths = [1600]) => {
-  if (!imageUrl || typeof imageUrl !== 'string' || /^data:/i.test(String(imageUrl))) {
+export const getResponsiveImageProps = (imageUrl, _widths = [1600]) => {
+  if (!imageUrl || typeof imageUrl !== 'string') {
     return {
-      src: getOptimizedImageUrl(imageUrl),
+      src: '',
       srcSet: undefined,
     }
   }
 
-  const sortedWidths = Array.from(
-    new Set(widths.filter((value) => Number.isFinite(value) && value > 0)),
-  ).sort((left, right) => left - right)
-
-  if (!sortedWidths.length) {
-    return {
-      src: getOptimizedImageUrl(imageUrl),
-      srcSet: undefined,
-    }
-  }
+  const normalizedUrl = normalizeImageProtocol(imageUrl.trim())
 
   return {
-    src: getOptimizedImageUrl(imageUrl, sortedWidths[sortedWidths.length - 1]),
-    srcSet: sortedWidths
-      .map((currentWidth) => `${getOptimizedImageUrl(imageUrl, currentWidth)} ${currentWidth}w`)
-      .join(', '),
+    // Preserve the original remote asset. Some providers reject rewritten widths and
+    // then the UI falls back to the generated poster instead of the source image.
+    src: normalizedUrl,
+    srcSet: undefined,
   }
 }
 

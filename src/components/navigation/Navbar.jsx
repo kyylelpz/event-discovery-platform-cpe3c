@@ -86,7 +86,6 @@ function Navbar({
             selectedDate={selectedCalendarDate}
             onDateChange={onCalendarDateChange}
             onClear={onCalendarDateClear}
-            onNavigateHome={() => onNavigate(routes.events)}
           />
         </div>
 
@@ -209,7 +208,6 @@ function MobileNavbar({
           selectedDate={selectedCalendarDate}
           onDateChange={onCalendarDateChange}
           onClear={onCalendarDateClear}
-          onNavigateHome={() => onNavigate(routes.events)}
           fullWidth
         />
 
@@ -244,7 +242,6 @@ function FindEventsDatePicker({
   selectedDate,
   onDateChange,
   onClear,
-  onNavigateHome,
   fullWidth = false,
 }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -293,7 +290,6 @@ function FindEventsDatePicker({
     >
       <PrimaryButton
         onClick={() => {
-          onNavigateHome()
           setIsOpen((currentValue) => !currentValue)
         }}
       >
@@ -355,7 +351,6 @@ function FindEventsDatePicker({
                     isSelected ? 'find-events-picker__day--selected' : ''
                   }`}
                   onClick={() => {
-                    onNavigateHome()
                     onDateChange(day)
                     setIsOpen(false)
                   }}
@@ -374,7 +369,6 @@ function FindEventsDatePicker({
               type="button"
               className="find-events-picker__link"
               onClick={() => {
-                onNavigateHome()
                 onDateChange(new Date())
                 setIsOpen(false)
               }}

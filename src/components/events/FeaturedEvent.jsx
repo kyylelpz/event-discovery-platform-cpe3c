@@ -70,6 +70,7 @@ function FeaturedEvent({ event, onViewDetails }) {
           loading="eager"
           decoding="async"
           fetchPriority="high"
+          referrerPolicy="no-referrer"
           onError={handleImageError}
         />
       </div>
