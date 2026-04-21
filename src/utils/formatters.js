@@ -75,15 +75,72 @@ export const parseEventDate = (dateValue) => {
   return Number.isNaN(parsedValue.getTime()) ? null : parsedValue
 }
 
+const extractRangeDatesFromText = (textValue) => {
+  if (!textValue) {
+    return { startDate: null, endDate: null }
+  }
+
+  const normalizedText = String(textValue)
+    .replace(/[|]/g, ' ')
+    .replace(/[–—]/g, ' - ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  const rangeMatch = normalizedText.match(
+    /([A-Za-z]{3,9},?\s+[A-Za-z]{3,9}\s+\d{1,2}(?:,\s*\d{4})?(?:,\s*\d{1,2}:\d{2}\s*[AP]M)?)\s*-\s*([A-Za-z]{3,9},?\s+[A-Za-z]{3,9}\s+\d{1,2}(?:,\s*\d{4})?(?:,\s*\d{1,2}:\d{2}\s*[AP]M)?)/i,
+  )
+
+  if (rangeMatch) {
+    const startDate = parseEventDate(rangeMatch[1])
+    const endDate = parseEventDate(rangeMatch[2])
+    return { startDate, endDate }
+  }
+
+  const dateMatches = normalizedText.match(
+    /([A-Za-z]{3,9},?\s+[A-Za-z]{3,9}\s+\d{1,2}(?:,\s*\d{4})?)/gi,
+  )
+
+  if (dateMatches?.length) {
+    const parsedDates = dateMatches.map((item) => parseEventDate(item)).filter(Boolean)
+
+    if (parsedDates.length) {
+      return {
+        startDate: parsedDates[0],
+        endDate: parsedDates[parsedDates.length - 1],
+      }
+    }
+  }
+
+  return { startDate: null, endDate: null }
+}
+
+const deriveRangeFromEventText = (event) => {
+  const candidateRanges = [
+    extractRangeDatesFromText(event?.rawDate),
+    extractRangeDatesFromText(event?.timeLabel),
+    extractRangeDatesFromText(event?.dateText),
+  ]
+
+  return (
+    candidateRanges.find((candidate) => candidate.startDate || candidate.endDate) || {
+      startDate: null,
+      endDate: null,
+    }
+  )
+}
+
 export const getEventDateRange = (event) => {
-  const startDate = parseEventDate(event?.startDate)
+  const directStartDate = parseEventDate(event?.startDate)
   const rawEndDate =
     event?.endDate ||
     event?.endTime ||
     event?.end_time ||
     event?.endLocal ||
     event?.end_local
-  const parsedEndDate = parseEventDate(rawEndDate)
+  const directEndDate = parseEventDate(rawEndDate)
+  const derivedRange = deriveRangeFromEventText(event)
+  const startDate = directStartDate || derivedRange.startDate
+  const parsedEndDate = directEndDate || derivedRange.endDate
 
   if (!startDate) {
     return { startDate: null, endDate: null }
