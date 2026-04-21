@@ -18,12 +18,25 @@ const pickValue = (...values) => {
 
 const pickText = (...values) => {
   for (const value of values) {
+    if (Array.isArray(value)) {
+      const arrayText = value
+        .map((item) => pickText(item))
+        .filter(Boolean)
+        .join(', ')
+        .trim()
+
+      if (arrayText) {
+        return arrayText
+      }
+    }
+
     if (typeof value === 'string' && value.trim()) {
       return value.trim()
     }
 
     if (value && typeof value === 'object') {
       const nestedText = pickText(
+        value.rawPayload,
         value.start,
         value.end,
         value.local,
@@ -63,6 +76,8 @@ const normalizeRemoteEvent = (event, fallbackLocation) => {
     event.startDate,
     event.start_time,
     event.start,
+    event.rawPayload?.date?.start_date,
+    event.rawPayload?.date?.start,
     event.date?.start_date,
     event.date?.start,
     event.date?.local,
@@ -79,6 +94,8 @@ const normalizeRemoteEvent = (event, fallbackLocation) => {
     event.end,
     event.end_local,
     event.endLocal,
+    event.rawPayload?.date?.end_date,
+    event.rawPayload?.date?.end,
     event.date?.end_date,
     event.date?.end,
     event.when?.end_date,
@@ -91,6 +108,9 @@ const normalizeRemoteEvent = (event, fallbackLocation) => {
     event.rawDate,
     event.dateText,
     event.date_range,
+    event.rawPayload?.date?.when,
+    event.rawPayload?.date?.text,
+    event.rawPayload?.date,
     event.event_dates?.text,
     event.event_dates,
     event.when,
@@ -115,6 +135,7 @@ const normalizeRemoteEvent = (event, fallbackLocation) => {
         event.timeLabel,
         event.time,
         event.start_time,
+        event.rawPayload?.date?.when,
         event.when?.text,
         event.schedule?.text,
         event.schedule,
@@ -123,8 +144,10 @@ const normalizeRemoteEvent = (event, fallbackLocation) => {
       pickText(
         event.location,
         event.address,
+        event.rawPayload?.address,
         event.venue,
         event.venue?.name,
+        event.rawPayload?.venue?.name,
         event.venue?.address,
         event.formatted_address,
       ) || getFallbackLocationLabel(fallbackLocation),
@@ -133,6 +156,7 @@ const normalizeRemoteEvent = (event, fallbackLocation) => {
     description:
       pickText(
         event.description,
+        event.rawPayload?.description,
         event.summary,
         event.snippet,
         event.details,
@@ -148,8 +172,10 @@ const normalizeRemoteEvent = (event, fallbackLocation) => {
         event.mapLabel,
         event.location,
         event.address,
+        event.rawPayload?.address,
         event.venue,
         event.venue?.name,
+        event.rawPayload?.venue?.name,
         event.venue?.address,
       ) || getFallbackLocationLabel(fallbackLocation),
     createdBy: 'lia-tan',
@@ -157,11 +183,19 @@ const normalizeRemoteEvent = (event, fallbackLocation) => {
     image:
       event.image ||
       event.imageUrl ||
+      event.rawPayload?.image ||
+      event.rawPayload?.thumbnail ||
       event.logo?.url ||
       createPosterDataUri({
         title,
         location:
-          pickText(event.location, event.venue?.name, event.address) ||
+          pickText(
+            event.location,
+            event.rawPayload?.venue?.name,
+            event.venue?.name,
+            event.address,
+            event.rawPayload?.address,
+          ) ||
           getFallbackLocationLabel(fallbackLocation),
         category,
       }),
