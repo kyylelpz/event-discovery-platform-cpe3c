@@ -8,7 +8,7 @@ import {
   locationOptions,
   seedEvents,
 } from './data/mockData.js'
-import axios from 'axios';
+import axios from 'axios'
 import MainLayout from './layouts/MainLayout.jsx'
 import SignInPage from './pages/auth/SignInPage.jsx'
 import InterestsPage from './pages/auth/InterestsPage.jsx'
@@ -28,6 +28,8 @@ import { loadEventsByLocation } from './services/eventService.js'
 import { getSession, saveInterests, signOut } from './services/authService.js'
 import { createPosterDataUri, matchesDateFilter } from './utils/formatters.js'
 import { resolveRoute, routes } from './utils/routing.js'
+
+const EVENTS_PER_PAGE = 15
 
 const mergeEvents = (...eventGroups) => {
   const merged = new Map()
@@ -50,6 +52,7 @@ function App() {
   const [activeProfileTab, setActiveProfileTab] = useState('Created Events')
   const [isLoadingEvents, setIsLoadingEvents] = useState(false)
   const [feedMode, setFeedMode] = useState('mock')
+  const [currentEventsPage, setCurrentEventsPage] = useState(1)
   const deferredSearchTerm = useDeferredValue(searchTerm)
 
   useEffect(() => {
@@ -57,6 +60,10 @@ function App() {
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [pathname])
 
   useEffect(() => {
     let isActive = true
@@ -76,6 +83,26 @@ function App() {
     if (!nextPath || nextPath === pathname) return
     window.history.pushState({}, '', nextPath)
     setPathname(nextPath)
+  }
+
+  const handleSearchChange = (value) => {
+    setCurrentEventsPage(1)
+    setSearchTerm(value)
+  }
+
+  const handleLocationChange = (value) => {
+    setCurrentEventsPage(1)
+    setSelectedLocation(value)
+  }
+
+  const handleCategoryChange = (value) => {
+    setCurrentEventsPage(1)
+    setSelectedCategory(value)
+  }
+
+  const handleDateFilterChange = (value) => {
+    setCurrentEventsPage(1)
+    setSelectedDateFilter(value)
   }
 
   // Called after sign in or sign up
@@ -108,7 +135,6 @@ function App() {
   const allEvents = mergeEvents(createdEvents, remoteEvents)
   const normalizedSearch = deferredSearchTerm.trim().toLowerCase()
 
-  // If user has interests, filter by them on the default category
   const userInterests = currentUser?.interests || []
 
   const filteredEvents = allEvents.filter((event) => {
@@ -129,6 +155,13 @@ function App() {
 
     return locationMatches && categoryMatches && dateMatches && searchableText.includes(normalizedSearch)
   })
+
+  const totalEventPages = Math.max(1, Math.ceil(filteredEvents.length / EVENTS_PER_PAGE))
+  const activeEventPage = Math.min(currentEventsPage, totalEventPages)
+  const paginatedEvents = filteredEvents.slice(
+    (activeEventPage - 1) * EVENTS_PER_PAGE,
+    activeEventPage * EVENTS_PER_PAGE,
+  )
 
   const featuredEvent =
     filteredEvents.find((event) => event.isFeatured) ||
@@ -226,10 +259,10 @@ function App() {
     currentPath: pathname === '/' ? routes.events : pathname,
     onNavigate: navigate,
     searchTerm,
-    onSearchChange: setSearchTerm,
+    onSearchChange: handleSearchChange,
     locations: locationOptions,
     selectedLocation,
-    onLocationChange: setSelectedLocation,
+    onLocationChange: handleLocationChange,
     currentUser,
     onSignOut: handleSignOut,
   }
@@ -302,13 +335,17 @@ function App() {
     page = (
       <EventDiscoveryPage
         featuredEvent={featuredEvent}
-        events={filteredEvents}
+        events={paginatedEvents}
+        filteredCount={filteredEvents.length}
+        currentPage={activeEventPage}
+        totalPages={totalEventPages}
+        onPageChange={setCurrentEventsPage}
         categoryOptions={categoryOptions}
         dateFilterOptions={dateFilterOptions}
         selectedCategory={selectedCategory}
         selectedDateFilter={selectedDateFilter}
-        onCategoryChange={setSelectedCategory}
-        onDateFilterChange={setSelectedDateFilter}
+        onCategoryChange={handleCategoryChange}
+        onDateFilterChange={handleDateFilterChange}
         selectedLocation={selectedLocation}
         isLoadingEvents={isLoadingEvents}
         feedMode={feedMode}

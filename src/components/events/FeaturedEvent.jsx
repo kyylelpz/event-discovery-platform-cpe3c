@@ -8,6 +8,10 @@ function FeaturedEvent({ event, onViewDetails }) {
     return null
   }
 
+  const scheduleLabel = event.timeLabel
+    ? `${formatEventDate(event.startDate)} | ${event.timeLabel}`
+    : formatEventDate(event.startDate)
+
   return (
     <section className="featured-event">
       <div className="featured-event__content">
@@ -21,9 +25,7 @@ function FeaturedEvent({ event, onViewDetails }) {
         <div className="featured-event__meta">
           <div>
             <CalendarIcon />
-            <span>
-              {formatEventDate(event.startDate)} • {event.timeLabel}
-            </span>
+            <span>{scheduleLabel}</span>
           </div>
           <div>
             <MapPinIcon />
@@ -36,7 +38,6 @@ function FeaturedEvent({ event, onViewDetails }) {
             <span>View Event Details</span>
             <ArrowRightIcon />
           </PrimaryButton>
-          <p>Join {event.attendeeCount.toLocaleString()} others already attending.</p>
         </div>
       </div>
 

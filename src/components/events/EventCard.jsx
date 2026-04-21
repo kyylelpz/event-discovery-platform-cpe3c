@@ -19,27 +19,33 @@ function EventCard({
   const isHearted = interactions.hearted.includes(event.id)
   const isSaved = interactions.saved.includes(event.id)
   const isAttending = interactions.attending.includes(event.id)
+  const scheduleLabel = event.timeLabel
+    ? `${formatEventDate(event.startDate)} | ${event.timeLabel}`
+    : formatEventDate(event.startDate)
 
   return (
     <article className="event-card">
-            <div 
-              className="event-card__media" 
-              onClick={() => onOpenEvent(event.id)}
-              style={{ cursor: 'pointer' }} 
-            >
-              <img src={event.image} alt={event.imageLabel} loading="lazy" />
-              
-              <div className="event-card__actions-overlay">
-                <button
-                  type="button"
-                  className="icon-badge"
-                  onClick={(eventObject) => {
-                    eventObject.stopPropagation(); 
-                    onToggleHeart(event.id);
-                  }}
-                  aria-label="Heart event"
-                >
-            <HeartIcon className={isHearted ? 'icon-accent icon-filled' : ''} filled={isHearted} />
+      <div
+        className="event-card__media"
+        onClick={() => onOpenEvent(event.id)}
+        style={{ cursor: 'pointer' }}
+      >
+        <img src={event.image} alt={event.imageLabel} loading="lazy" />
+
+        <div className="event-card__actions-overlay">
+          <button
+            type="button"
+            className="icon-badge"
+            onClick={(eventObject) => {
+              eventObject.stopPropagation()
+              onToggleHeart(event.id)
+            }}
+            aria-label="Heart event"
+          >
+            <HeartIcon
+              className={isHearted ? 'icon-accent icon-filled' : ''}
+              filled={isHearted}
+            />
           </button>
           <button
             type="button"
@@ -50,27 +56,31 @@ function EventCard({
             }}
             aria-label="Save event"
           >
-            <BookmarkIcon className={isSaved ? 'icon-accent icon-filled' : ''} filled={isSaved} />
+            <BookmarkIcon
+              className={isSaved ? 'icon-accent icon-filled' : ''}
+              filled={isSaved}
+            />
           </button>
         </div>
+
         <div className="event-card__category">
           <CategoryTag>{event.category}</CategoryTag>
         </div>
       </div>
-    
-
 
       <div className="event-card__content">
-        <button className="event-card__title" type="button" onClick={() => onOpenEvent(event.id)}>
+        <button
+          className="event-card__title"
+          type="button"
+          onClick={() => onOpenEvent(event.id)}
+        >
           {event.title}
         </button>
 
         <div className="event-card__meta">
           <p>
             <CalendarIcon />
-            <span>
-              {formatEventDate(event.startDate)} • {event.timeLabel}
-            </span>
+            <span>{scheduleLabel}</span>
           </p>
           <p>
             <MapPinIcon />
@@ -79,7 +89,6 @@ function EventCard({
         </div>
 
         <div className="event-card__footer">
-          <span>{event.attendeeCount.toLocaleString()} attending</span>
           <button
             type="button"
             className={`attend-chip ${isAttending ? 'attend-chip--active' : ''}`}
