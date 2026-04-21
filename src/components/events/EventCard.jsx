@@ -6,7 +6,7 @@ import {
   HeartIcon,
   MapPinIcon,
 } from '../ui/Icons.jsx'
-import { formatEventDate, getOptimizedImageUrl } from '../../utils/formatters.js'
+import { formatEventSchedule, getOptimizedImageUrl } from '../../utils/formatters.js'
 
 function EventCard({
   event,
@@ -19,9 +19,7 @@ function EventCard({
   const isHearted = interactions.hearted.includes(event.id)
   const isSaved = interactions.saved.includes(event.id)
   const isAttending = interactions.attending.includes(event.id)
-  const scheduleLabel = event.timeLabel
-    ? `${formatEventDate(event.startDate)} | ${event.timeLabel}`
-    : formatEventDate(event.startDate)
+  const scheduleLabel = formatEventSchedule(event)
 
   return (
     <article className="event-card">

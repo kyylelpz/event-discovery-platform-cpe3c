@@ -170,6 +170,43 @@ export const formatEventDate = (dateValue) => {
   return parsedDate ? eventDateFormatter.format(parsedDate) : String(dateValue || 'Date to be announced')
 }
 
+export const formatEventSchedule = (event) => {
+  if (!event) {
+    return 'Date to be announced'
+  }
+
+  const rawDate = typeof event.rawDate === 'string' ? event.rawDate.trim() : ''
+  if (rawDate) {
+    return rawDate
+  }
+
+  const startDate = parseEventDate(event.startDate)
+  const endDate = parseEventDate(event.endDate)
+  const timeLabel = typeof event.timeLabel === 'string' ? event.timeLabel.trim() : ''
+
+  if (startDate && endDate && endDate.getTime() !== startDate.getTime()) {
+    if (timeLabel) {
+      return `${formatEventDate(startDate)} - ${formatEventDate(endDate)} | ${timeLabel}`
+    }
+
+    return `${formatEventDate(startDate)} - ${formatEventDate(endDate)}`
+  }
+
+  if (startDate && timeLabel) {
+    return `${formatEventDate(startDate)} | ${timeLabel}`
+  }
+
+  if (startDate) {
+    return formatEventDate(startDate)
+  }
+
+  if (timeLabel) {
+    return timeLabel
+  }
+
+  return 'Date to be announced'
+}
+
 export const formatEventDateHeading = (dateValue) => {
   const parsedDate = parseEventDate(dateValue)
   return parsedDate ? eventDateHeadingFormatter.format(parsedDate) : 'Selected date'

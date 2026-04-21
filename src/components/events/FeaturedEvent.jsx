@@ -1,16 +1,14 @@
 import { PrimaryButton } from '../ui/Button.jsx'
 import { ArrowRightIcon, CalendarIcon, MapPinIcon } from '../ui/Icons.jsx'
 import CategoryTag from '../ui/CategoryTag.jsx'
-import { formatEventDate, getOptimizedImageUrl } from '../../utils/formatters.js'
+import { formatEventSchedule, getOptimizedImageUrl } from '../../utils/formatters.js'
 
 function FeaturedEvent({ event, onViewDetails }) {
   if (!event) {
     return null
   }
 
-  const scheduleLabel = event.timeLabel
-    ? `${formatEventDate(event.startDate)} | ${event.timeLabel}`
-    : formatEventDate(event.startDate)
+  const scheduleLabel = formatEventSchedule(event)
 
   return (
     <section className="featured-event">
