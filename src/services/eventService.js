@@ -22,6 +22,13 @@ const normalizeRemoteEvent = (event, fallbackLocation) => ({
     event.end_local ||
     event.endLocal ||
     '',
+  rawDate:
+    event.rawDate ||
+    event.date ||
+    event.dateText ||
+    event.when ||
+    event.schedule ||
+    '',
   timeLabel: event.timeLabel || event.time || event.start_time || 'Time to be announced',
   location:
     event.location ||
