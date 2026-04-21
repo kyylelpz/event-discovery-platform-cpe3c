@@ -1,7 +1,7 @@
 import { PrimaryButton } from '../ui/Button.jsx'
 import { ArrowRightIcon, CalendarIcon, MapPinIcon } from '../ui/Icons.jsx'
 import CategoryTag from '../ui/CategoryTag.jsx'
-import { formatEventDate } from '../../utils/formatters.js'
+import { formatEventDate, getOptimizedImageUrl } from '../../utils/formatters.js'
 
 function FeaturedEvent({ event, onViewDetails }) {
   if (!event) {
@@ -42,7 +42,13 @@ function FeaturedEvent({ event, onViewDetails }) {
       </div>
 
       <div className="featured-event__media">
-        <img src={event.image} alt={event.imageLabel} />
+        <img
+          src={getOptimizedImageUrl(event.image, 1800)}
+          alt={event.imageLabel}
+          loading="eager"
+          decoding="async"
+          fetchPriority="high"
+        />
       </div>
     </section>
   )

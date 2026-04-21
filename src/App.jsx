@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import {
   categoryOptions,
@@ -52,7 +52,10 @@ function App() {
   const [interactions, setInteractions] = useState(initialInteractions)
   const [activeProfileTab, setActiveProfileTab] = useState('Created Events')
   const [currentEventsPage, setCurrentEventsPage] = useState(1)
+  const [featuredEventId, setFeaturedEventId] = useState(null)
+  const [isSearchFocused, setIsSearchFocused] = useState(false)
   const deferredSearchTerm = useDeferredValue(searchTerm)
+  const previousRouteKeyRef = useRef(null)
 
   useEffect(() => {
     const handlePopState = () => setPathname(window.location.pathname)
@@ -133,8 +136,9 @@ function App() {
   }
 
   const route = resolveRoute(pathname)
-  const allEvents = mergeEvents(createdEvents, remoteEvents)
+  const allEvents = mergeEvents(seedEvents, remoteEvents, createdEvents)
   const normalizedSearch = deferredSearchTerm.trim().toLowerCase()
+  const featuredPool = allEvents.length ? allEvents : seedEvents
 
   const userInterests = currentUser?.interests || []
 
@@ -229,10 +233,54 @@ function App() {
     activeEventPage * EVENTS_PER_PAGE,
   )
 
-  const featuredEvent =
-    sortedEvents.find((event) => event.isFeatured) ||
-    sortedEvents[0] ||
-    allEvents[0]
+  useEffect(() => {
+    if (!featuredPool.length) {
+      setFeaturedEventId(null)
+      return
+    }
+
+    const shouldPickRandomFeature =
+      route.key === 'events' &&
+      (previousRouteKeyRef.current !== 'events' ||
+        !featuredPool.some((event) => event.id === featuredEventId))
+
+    if (shouldPickRandomFeature) {
+      const randomIndex = Math.floor(Math.random() * featuredPool.length)
+      setFeaturedEventId(featuredPool[randomIndex].id)
+    }
+
+    previousRouteKeyRef.current = route.key
+  }, [featuredEventId, featuredPool, route.key])
+
+  const featuredEvent = useMemo(
+    () =>
+      featuredPool.find((event) => event.id === featuredEventId) ||
+      featuredPool.find((event) => event.isFeatured) ||
+      featuredPool[0] ||
+      null,
+    [featuredEventId, featuredPool],
+  )
+
+  const searchResults = useMemo(() => {
+    if (!normalizedSearch) {
+      return []
+    }
+
+    return [...filteredEvents]
+      .sort((leftEvent, rightEvent) => {
+        const relevanceDifference =
+          scoreEventRelevance(rightEvent) - scoreEventRelevance(leftEvent)
+
+        if (relevanceDifference !== 0) {
+          return relevanceDifference
+        }
+
+        return compareByNearestDate(leftEvent, rightEvent)
+      })
+      .slice(0, 6)
+  }, [filteredEvents, normalizedSearch])
+
+  const showSearchResults = isSearchFocused && normalizedSearch.length > 0
   const currentEvent = allEvents.find((event) => event.id === route.params?.eventId)
   const activeProfile =
     featuredUsers.find((user) => user.username === route.params?.username) ||
@@ -322,6 +370,16 @@ function App() {
     onNavigate: navigate,
     searchTerm,
     onSearchChange: handleSearchChange,
+    searchResults,
+    onSearchSelect: (event) => {
+      setIsSearchFocused(false)
+      navigate(routes.eventDetail(event.id))
+    },
+    onSearchFocus: () => setIsSearchFocused(true),
+    onSearchBlur: () => {
+      window.setTimeout(() => setIsSearchFocused(false), 120)
+    },
+    showSearchResults,
     locations: locationOptions,
     selectedLocation,
     onLocationChange: handleLocationChange,

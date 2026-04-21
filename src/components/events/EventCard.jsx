@@ -6,7 +6,7 @@ import {
   HeartIcon,
   MapPinIcon,
 } from '../ui/Icons.jsx'
-import { formatEventDate } from '../../utils/formatters.js'
+import { formatEventDate, getOptimizedImageUrl } from '../../utils/formatters.js'
 
 function EventCard({
   event,
@@ -30,7 +30,12 @@ function EventCard({
         onClick={() => onOpenEvent(event.id)}
         style={{ cursor: 'pointer' }}
       >
-        <img src={event.image} alt={event.imageLabel} loading="lazy" />
+        <img
+          src={getOptimizedImageUrl(event.image, 1200)}
+          alt={event.imageLabel}
+          loading="lazy"
+          decoding="async"
+        />
 
         <div className="event-card__actions-overlay">
           <button

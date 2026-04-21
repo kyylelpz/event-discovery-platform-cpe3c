@@ -87,6 +87,7 @@
 .searchbar {
   position: relative;
   flex: 1;
+  z-index: 30;
 }
 
 .searchbar__icon,
@@ -120,6 +121,48 @@
 .event-form textarea::placeholder,
 .signin-form input::placeholder {
   color: var(--color-muted);
+}
+
+.searchbar__dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  right: 0;
+  display: grid;
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: rgba(252, 252, 252, 0.98);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(12px);
+}
+
+.searchbar__result {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  text-align: left;
+  color: var(--color-text);
+}
+
+.searchbar__result:hover {
+  background: rgba(45, 59, 21, 0.08);
+}
+
+.searchbar__result strong {
+  font-size: 0.98rem;
+  font-weight: 600;
+}
+
+.searchbar__result span {
+  color: var(--color-muted);
+  font-size: 0.9rem;
 }
 
 .location-picker {
@@ -341,19 +384,21 @@
 .category-highlight {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 16px;
+  gap: 12px;
 }
 
 .category-highlight__item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 26px 18px;
+  gap: 10px;
+  min-height: 116px;
+  padding: 18px 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-text);
+  text-align: center;
   transition:
     background-color 0.2s ease,
     border-color 0.2s ease,
@@ -373,8 +418,13 @@
 }
 
 .category-highlight__icon {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
+}
+
+.category-highlight__item span {
+  font-size: 0.94rem;
+  line-height: 1.3;
 }
 
 .filter-tabs {

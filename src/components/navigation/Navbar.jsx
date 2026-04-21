@@ -18,6 +18,11 @@ function Navbar({
   onNavigate,
   searchTerm,
   onSearchChange,
+  searchResults,
+  onSearchSelect,
+  onSearchFocus,
+  onSearchBlur,
+  showSearchResults,
   locations,
   selectedLocation,
   onLocationChange,
@@ -41,6 +46,11 @@ function Navbar({
             onChange={onSearchChange}
             placeholder="Search events..."
             icon={<SearchIcon />}
+            results={searchResults}
+            onSelectResult={onSearchSelect}
+            onFocus={onSearchFocus}
+            onBlur={onSearchBlur}
+            showResults={showSearchResults}
           />
 
           <label className="location-picker">
@@ -93,6 +103,11 @@ function Navbar({
         onNavigate={onNavigate}
         searchTerm={searchTerm}
         onSearchChange={onSearchChange}
+        searchResults={searchResults}
+        onSearchSelect={onSearchSelect}
+        onSearchFocus={onSearchFocus}
+        onSearchBlur={onSearchBlur}
+        showSearchResults={showSearchResults}
         locations={locations}
         selectedLocation={selectedLocation}
         onLocationChange={onLocationChange}
@@ -106,6 +121,11 @@ function MobileNavbar({
   onNavigate,
   searchTerm,
   onSearchChange,
+  searchResults,
+  onSearchSelect,
+  onSearchFocus,
+  onSearchBlur,
+  showSearchResults,
   locations,
   selectedLocation,
   onLocationChange,
@@ -136,6 +156,11 @@ function MobileNavbar({
           onChange={onSearchChange}
           placeholder="Search events..."
           icon={<SearchIcon />}
+          results={searchResults}
+          onSelectResult={onSearchSelect}
+          onFocus={onSearchFocus}
+          onBlur={onSearchBlur}
+          showResults={showSearchResults}
         />
 
         <label className="location-picker">
