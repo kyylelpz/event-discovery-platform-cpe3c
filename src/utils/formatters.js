@@ -6,31 +6,79 @@ const palette = {
   text: '#020202',
 }
 
-export const formatEventDate = (dateValue) =>
-  new Intl.DateTimeFormat('en-PH', {
-    month: 'long',
-    day: 'numeric',
-    weekday: 'short',
-  }).format(new Date(dateValue))
+const eventDateFormatter = new Intl.DateTimeFormat('en-PH', {
+  month: 'long',
+  day: 'numeric',
+  weekday: 'short',
+})
 
-export const formatEventMonth = (dateValue) =>
-  new Intl.DateTimeFormat('en-PH', {
-    month: 'short',
-  }).format(new Date(dateValue))
+const eventMonthFormatter = new Intl.DateTimeFormat('en-PH', {
+  month: 'short',
+})
 
-export const formatEventDay = (dateValue) =>
-  new Intl.DateTimeFormat('en-PH', {
-    day: '2-digit',
-  }).format(new Date(dateValue))
+const eventDayFormatter = new Intl.DateTimeFormat('en-PH', {
+  day: '2-digit',
+})
+
+const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate())
+
+export const parseEventDate = (dateValue) => {
+  if (!dateValue) {
+    return null
+  }
+
+  if (dateValue instanceof Date) {
+    return Number.isNaN(dateValue.getTime()) ? null : dateValue
+  }
+
+  const rawValue = String(dateValue).trim()
+
+  if (!rawValue) {
+    return null
+  }
+
+  const isoMatch = rawValue.match(/(\d{4})-(\d{2})-(\d{2})/)
+
+  if (isoMatch) {
+    const [, year, month, day] = isoMatch
+    return new Date(Number(year), Number(month) - 1, Number(day))
+  }
+
+  const sanitizedValue = rawValue.replace(/(\d+)(st|nd|rd|th)/gi, '$1')
+  const parsedValue = new Date(sanitizedValue)
+
+  return Number.isNaN(parsedValue.getTime()) ? null : parsedValue
+}
+
+export const formatEventDate = (dateValue) => {
+  const parsedDate = parseEventDate(dateValue)
+  return parsedDate ? eventDateFormatter.format(parsedDate) : String(dateValue || 'Date to be announced')
+}
+
+export const formatEventMonth = (dateValue) => {
+  const parsedDate = parseEventDate(dateValue)
+  return parsedDate ? eventMonthFormatter.format(parsedDate) : '--'
+}
+
+export const formatEventDay = (dateValue) => {
+  const parsedDate = parseEventDate(dateValue)
+  return parsedDate ? eventDayFormatter.format(parsedDate) : '--'
+}
 
 export const matchesDateFilter = (dateValue, filter) => {
   if (filter === 'Any time') {
     return true
   }
 
-  const today = new Date()
-  const eventDate = new Date(dateValue)
-  const differenceInDays = Math.ceil(
+  const parsedEventDate = parseEventDate(dateValue)
+
+  if (!parsedEventDate) {
+    return false
+  }
+
+  const today = startOfDay(new Date())
+  const eventDate = startOfDay(parsedEventDate)
+  const differenceInDays = Math.round(
     (eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
   )
 

@@ -6,6 +6,10 @@ import FilterTabs from '../../components/ui/FilterTabs.jsx'
 function EventDiscoveryPage({
   featuredEvent,
   events,
+  filteredCount,
+  currentPage,
+  totalPages,
+  onPageChange,
   categoryOptions,
   dateFilterOptions,
   selectedCategory,
@@ -40,7 +44,11 @@ function EventDiscoveryPage({
                 : `Events in ${selectedLocation}`}
             </p>
           </div>
-          <span>{events.length} events</span>
+          <span>
+            {filteredCount === 0
+              ? '0 events'
+              : `${Math.min(events.length, filteredCount)} shown of ${filteredCount}`}
+          </span>
         </div>
 
         <FilterTabs
@@ -71,6 +79,49 @@ function EventDiscoveryPage({
           emptyCopy="Try another province in the Philippines, widen your date range, or clear the search term."
           {...sharedPageProps}
         />
+
+        {filteredCount > 0 && totalPages > 1 ? (
+          <nav className="pagination" aria-label="Events pagination">
+            <p className="pagination__summary">
+              Page {currentPage} of {totalPages}
+            </p>
+            <div className="pagination__controls">
+              <button
+                type="button"
+                className="pagination__button"
+                onClick={() => onPageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </button>
+
+              <div className="pagination__pages">
+                {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
+                  <button
+                    key={pageNumber}
+                    type="button"
+                    className={`pagination__button ${
+                      pageNumber === currentPage ? 'pagination__button--active' : ''
+                    }`}
+                    onClick={() => onPageChange(pageNumber)}
+                    aria-current={pageNumber === currentPage ? 'page' : undefined}
+                  >
+                    {pageNumber}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                className="pagination__button"
+                onClick={() => onPageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </button>
+            </div>
+          </nav>
+        ) : null}
       </section>
     </div>
   )

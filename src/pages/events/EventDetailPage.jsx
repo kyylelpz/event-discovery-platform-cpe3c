@@ -8,7 +8,6 @@ import {
   HeartIcon,
   MapPinIcon,
   ShareIcon,
-  UsersIcon,
 } from '../../components/ui/Icons.jsx'
 import { formatEventDate } from '../../utils/formatters.js'
 
@@ -24,6 +23,9 @@ function EventDetailPage({
   const isSaved = interactions.saved.includes(event.id)
   const isAttending = interactions.attending.includes(event.id)
   const isHearted = interactions.hearted.includes(event.id)
+  const scheduleLabel = event.timeLabel
+    ? `${formatEventDate(event.startDate)} | ${event.timeLabel}`
+    : formatEventDate(event.startDate)
 
   return (
     <div className="page-stack page-stack--detail">
@@ -63,16 +65,6 @@ function EventDetailPage({
                 </div>
               </div>
             </article>
-
-            <article className="detail-section">
-              <h3>Attendees ({event.attendeeCount})</h3>
-              <div className="attendee-strip">
-                {event.attendees.map((name) => (
-                  <UserAvatar key={name} name={name} size="sm" />
-                ))}
-                <span className="attendee-strip__extra">+{Math.max(event.attendeeCount - event.attendees.length, 0)}</span>
-              </div>
-            </article>
           </div>
 
           <aside className="detail-layout__sidebar">
@@ -82,30 +74,46 @@ function EventDetailPage({
                   <CalendarIcon />
                   <div>
                     <p>Date & Time</p>
-                    <strong>{formatEventDate(event.startDate)}</strong>
-                    <span>{event.timeLabel}</span>
+                    <strong>{scheduleLabel}</strong>
                   </div>
                 </div>
                 <div>
-                  <UsersIcon />
+                  <MapPinIcon />
                   <div>
-                    <p>Attendees</p>
-                    <strong>{event.attendeeCount} going</strong>
+                    <p>Venue</p>
+                    <strong>{event.location}</strong>
                   </div>
                 </div>
               </div>
 
               <div className="detail-panel__actions">
-                <PrimaryButton onClick={() => onToggleAttend(event.id)} className="detail-panel__attend">
+                <PrimaryButton
+                  onClick={() => onToggleAttend(event.id)}
+                  className="detail-panel__attend"
+                >
                   {isAttending ? 'Attending' : 'Attend Event'}
                 </PrimaryButton>
 
                 <div className="detail-panel__icon-row">
-                  <button type="button" className="icon-box" onClick={() => onToggleHeart(event.id)}>
-                    <HeartIcon filled={isHearted} className={isHearted ? 'icon-accent icon-filled' : ''} />
+                  <button
+                    type="button"
+                    className="icon-box"
+                    onClick={() => onToggleHeart(event.id)}
+                  >
+                    <HeartIcon
+                      filled={isHearted}
+                      className={isHearted ? 'icon-accent icon-filled' : ''}
+                    />
                   </button>
-                  <button type="button" className="icon-box" onClick={() => onToggleSave(event.id)}>
-                    <BookmarkIcon filled={isSaved} className={isSaved ? 'icon-accent icon-filled' : ''} />
+                  <button
+                    type="button"
+                    className="icon-box"
+                    onClick={() => onToggleSave(event.id)}
+                  >
+                    <BookmarkIcon
+                      filled={isSaved}
+                      className={isSaved ? 'icon-accent icon-filled' : ''}
+                    />
                   </button>
                   <button type="button" className="icon-box">
                     <ShareIcon />
