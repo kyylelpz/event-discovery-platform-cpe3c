@@ -26,7 +26,12 @@ import ContactSupportPage from './pages/info/ContactSupportPage.jsx'
 import { API_BASE_URL } from './services/apiBase.js'
 import { loadEventsByLocation } from './services/eventService.js'
 import { getSession, saveInterests, signOut } from './services/authService.js'
-import { createPosterDataUri, matchesDateFilter, parseEventDate } from './utils/formatters.js'
+import {
+  createPosterDataUri,
+  isSameCalendarDate,
+  matchesDateFilter,
+  parseEventDate,
+} from './utils/formatters.js'
 import { resolveRoute, routes } from './utils/routing.js'
 
 const EVENTS_PER_PAGE = 15
@@ -54,6 +59,7 @@ function App() {
   const [currentEventsPage, setCurrentEventsPage] = useState(1)
   const [featuredEventId, setFeaturedEventId] = useState(null)
   const [isSearchFocused, setIsSearchFocused] = useState(false)
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState(null)
   const deferredSearchTerm = useDeferredValue(searchTerm)
   const previousRouteKeyRef = useRef(null)
 
@@ -86,21 +92,25 @@ function App() {
 
   const handleSearchChange = (value) => {
     setCurrentEventsPage(1)
+    setSelectedCalendarDate(null)
     setSearchTerm(value)
   }
 
   const handleLocationChange = (value) => {
     setCurrentEventsPage(1)
+    setSelectedCalendarDate(null)
     setSelectedLocation(value)
   }
 
   const handleCategoryChange = (value) => {
     setCurrentEventsPage(1)
+    setSelectedCalendarDate(null)
     setSelectedCategory(value)
   }
 
   const handleDateFilterChange = (value) => {
     setCurrentEventsPage(1)
+    setSelectedCalendarDate(null)
     setSelectedDateFilter(value)
   }
 
@@ -139,16 +149,17 @@ function App() {
   const allEvents = mergeEvents(seedEvents, remoteEvents, createdEvents)
   const normalizedSearch = deferredSearchTerm.trim().toLowerCase()
   const featuredPool = allEvents.length ? allEvents : seedEvents
-
-  const userInterests = currentUser?.interests || []
+  const isCalendarDateMode = Boolean(selectedCalendarDate)
 
   const filteredEvents = allEvents.filter((event) => {
+    if (isCalendarDateMode) {
+      return isSameCalendarDate(event.startDate, selectedCalendarDate)
+    }
+
     const locationMatches =
       selectedLocation === 'All Philippines' || event.province === selectedLocation
     const categoryMatches =
-      selectedCategory === 'All Events'
-        ? userInterests.length === 0 || userInterests.includes(event.category)
-        : event.category === selectedCategory
+      selectedCategory === 'All Events' ? true : event.category === selectedCategory
     const dateMatches = matchesDateFilter(event.startDate, selectedDateFilter)
 
     if (!normalizedSearch) return locationMatches && categoryMatches && dateMatches
@@ -179,17 +190,13 @@ function App() {
       if (searchableText.includes(normalizedSearch)) score += 5
     }
 
-    if (selectedCategory !== 'All Events' && event.category === selectedCategory) {
+    if (!isCalendarDateMode && selectedCategory !== 'All Events' && event.category === selectedCategory) {
       score += 4
     }
 
-    if (selectedLocation !== 'All Philippines') {
+    if (!isCalendarDateMode && selectedLocation !== 'All Philippines') {
       if (event.province === selectedLocation) score += 4
       if (locationText.includes(selectedLocation.toLowerCase())) score += 2
-    }
-
-    if (userInterests.includes(event.category)) {
-      score += 3
     }
 
     if (event.isFeatured) {
@@ -214,6 +221,10 @@ function App() {
   }
 
   const sortedEvents = [...filteredEvents].sort((leftEvent, rightEvent) => {
+    if (isCalendarDateMode) {
+      return `${leftEvent.title}`.localeCompare(`${rightEvent.title}`)
+    }
+
     if (selectedSort === 'Relevance') {
       const relevanceDifference =
         scoreEventRelevance(rightEvent) - scoreEventRelevance(leftEvent)
@@ -383,6 +394,19 @@ function App() {
     locations: locationOptions,
     selectedLocation,
     onLocationChange: handleLocationChange,
+    selectedCalendarDate,
+    onCalendarDateChange: (value) => {
+      setCurrentEventsPage(1)
+      setSearchTerm('')
+      setSelectedCategory('All Events')
+      setSelectedDateFilter('Any time')
+      setSelectedLocation('All Philippines')
+      setSelectedCalendarDate(parseEventDate(value))
+    },
+    onCalendarDateClear: () => {
+      setCurrentEventsPage(1)
+      setSelectedCalendarDate(null)
+    },
     currentUser,
     onSignOut: handleSignOut,
   }
@@ -468,6 +492,8 @@ function App() {
         onDateFilterChange={handleDateFilterChange}
         onSortChange={handleSortChange}
         selectedLocation={selectedLocation}
+        selectedCalendarDate={selectedCalendarDate}
+        onClearCalendarDate={() => setSelectedCalendarDate(null)}
         onNavigate={navigate}
         currentUser={currentUser}
         {...sharedPageProps}

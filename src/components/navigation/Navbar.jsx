@@ -1,9 +1,12 @@
+import { useEffect, useRef, useState } from 'react'
 import { routes } from '../../utils/routing.js'
 import brandLogo from '../../assets/eventcinity-logo.png'
 import { PrimaryButton, SecondaryButton } from '../ui/Button.jsx'
 import {
   CalendarIcon,
   CloseIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
   LogInIcon,
   MapPinIcon,
   MenuIcon,
@@ -12,6 +15,7 @@ import {
   UserPlusIcon,
 } from '../ui/Icons.jsx'
 import SearchBar from '../ui/SearchBar.jsx'
+import { formatCalendarMonth, isSameCalendarDate, parseEventDate } from '../../utils/formatters.js'
 
 function Navbar({
   currentPath,
@@ -26,6 +30,9 @@ function Navbar({
   locations,
   selectedLocation,
   onLocationChange,
+  selectedCalendarDate,
+  onCalendarDateChange,
+  onCalendarDateClear,
 }) {
   const isActive = (target) =>
     currentPath === target || currentPath.startsWith(`${target}/`)
@@ -67,10 +74,12 @@ function Navbar({
             </select>
           </label>
 
-          <PrimaryButton onClick={() => onNavigate(routes.events)}>
-            <CalendarIcon />
-            <span>Find Events</span>
-          </PrimaryButton>
+          <FindEventsDatePicker
+            selectedDate={selectedCalendarDate}
+            onDateChange={onCalendarDateChange}
+            onClear={onCalendarDateClear}
+            onNavigateHome={() => onNavigate(routes.events)}
+          />
         </div>
 
         <nav className="topbar__nav" aria-label="Primary">
@@ -111,6 +120,9 @@ function Navbar({
         locations={locations}
         selectedLocation={selectedLocation}
         onLocationChange={onLocationChange}
+        selectedCalendarDate={selectedCalendarDate}
+        onCalendarDateChange={onCalendarDateChange}
+        onCalendarDateClear={onCalendarDateClear}
       />
     </header>
   )
@@ -129,6 +141,9 @@ function MobileNavbar({
   locations,
   selectedLocation,
   onLocationChange,
+  selectedCalendarDate,
+  onCalendarDateChange,
+  onCalendarDateClear,
 }) {
   const isActive = (target) =>
     currentPath === target || currentPath.startsWith(`${target}/`)
@@ -177,10 +192,13 @@ function MobileNavbar({
           </select>
         </label>
 
-        <PrimaryButton onClick={() => onNavigate(routes.events)}>
-          <CalendarIcon />
-          <span>Find Events</span>
-        </PrimaryButton>
+        <FindEventsDatePicker
+          selectedDate={selectedCalendarDate}
+          onDateChange={onCalendarDateChange}
+          onClear={onCalendarDateClear}
+          onNavigateHome={() => onNavigate(routes.events)}
+          fullWidth
+        />
 
         <div className="topbar__mobile-links">
           <SecondaryButton
@@ -205,6 +223,156 @@ function MobileNavbar({
         </div>
       </div>
     </details>
+  )
+}
+
+function FindEventsDatePicker({
+  selectedDate,
+  onDateChange,
+  onClear,
+  onNavigateHome,
+  fullWidth = false,
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [displayMonth, setDisplayMonth] = useState(() => {
+    const initialDate = parseEventDate(selectedDate) || new Date()
+    return new Date(initialDate.getFullYear(), initialDate.getMonth(), 1)
+  })
+  const pickerRef = useRef(null)
+
+  useEffect(() => {
+    const parsedDate = parseEventDate(selectedDate)
+
+    if (parsedDate) {
+      setDisplayMonth(new Date(parsedDate.getFullYear(), parsedDate.getMonth(), 1))
+    }
+  }, [selectedDate])
+
+  useEffect(() => {
+    if (!isOpen) {
+      return undefined
+    }
+
+    const handleOutsideClick = (event) => {
+      if (!pickerRef.current?.contains(event.target)) {
+        setIsOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [isOpen])
+
+  const monthStart = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), 1)
+  const calendarStart = new Date(monthStart)
+  calendarStart.setDate(monthStart.getDate() - monthStart.getDay())
+  const dayCells = Array.from({ length: 42 }, (_, index) => {
+    const day = new Date(calendarStart)
+    day.setDate(calendarStart.getDate() + index)
+    return day
+  })
+
+  return (
+    <div
+      ref={pickerRef}
+      className={`find-events-picker ${fullWidth ? 'find-events-picker--full' : ''}`}
+    >
+      <PrimaryButton
+        onClick={() => {
+          onNavigateHome()
+          setIsOpen((currentValue) => !currentValue)
+        }}
+      >
+        <CalendarIcon />
+        <span>{selectedDate ? 'Change Date' : 'Find Events'}</span>
+      </PrimaryButton>
+
+      {isOpen ? (
+        <div className="find-events-picker__panel">
+          <div className="find-events-picker__header">
+            <button
+              type="button"
+              className="find-events-picker__nav"
+              onClick={() =>
+                setDisplayMonth(
+                  new Date(displayMonth.getFullYear(), displayMonth.getMonth() - 1, 1),
+                )
+              }
+              aria-label="Previous month"
+            >
+              <ChevronLeftIcon />
+            </button>
+            <strong>{formatCalendarMonth(displayMonth)}</strong>
+            <button
+              type="button"
+              className="find-events-picker__nav"
+              onClick={() =>
+                setDisplayMonth(
+                  new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 1, 1),
+                )
+              }
+              aria-label="Next month"
+            >
+              <ChevronRightIcon />
+            </button>
+          </div>
+
+          <div className="find-events-picker__weekdays">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((dayLabel) => (
+              <span key={dayLabel}>{dayLabel}</span>
+            ))}
+          </div>
+
+          <div className="find-events-picker__grid">
+            {dayCells.map((day) => {
+              const isOutsideMonth = day.getMonth() !== displayMonth.getMonth()
+              const isSelected = selectedDate && isSameCalendarDate(day, selectedDate)
+
+              return (
+                <button
+                  key={day.toISOString()}
+                  type="button"
+                  className={`find-events-picker__day ${
+                    isOutsideMonth ? 'find-events-picker__day--muted' : ''
+                  } ${isSelected ? 'find-events-picker__day--selected' : ''}`}
+                  onClick={() => {
+                    onNavigateHome()
+                    onDateChange(day)
+                    setIsOpen(false)
+                  }}
+                >
+                  {day.getDate()}
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="find-events-picker__footer">
+            <button
+              type="button"
+              className="find-events-picker__link"
+              onClick={() => {
+                onNavigateHome()
+                onDateChange(new Date())
+                setIsOpen(false)
+              }}
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              className="find-events-picker__link"
+              onClick={() => {
+                onClear()
+                setIsOpen(false)
+              }}
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
   )
 }
 

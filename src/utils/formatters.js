@@ -12,6 +12,17 @@ const eventDateFormatter = new Intl.DateTimeFormat('en-PH', {
   weekday: 'short',
 })
 
+const eventDateHeadingFormatter = new Intl.DateTimeFormat('en-PH', {
+  month: 'long',
+  day: 'numeric',
+  year: 'numeric',
+})
+
+const calendarMonthFormatter = new Intl.DateTimeFormat('en-PH', {
+  month: 'long',
+  year: 'numeric',
+})
+
 const eventMonthFormatter = new Intl.DateTimeFormat('en-PH', {
   month: 'short',
 })
@@ -53,6 +64,16 @@ export const parseEventDate = (dateValue) => {
 export const formatEventDate = (dateValue) => {
   const parsedDate = parseEventDate(dateValue)
   return parsedDate ? eventDateFormatter.format(parsedDate) : String(dateValue || 'Date to be announced')
+}
+
+export const formatEventDateHeading = (dateValue) => {
+  const parsedDate = parseEventDate(dateValue)
+  return parsedDate ? eventDateHeadingFormatter.format(parsedDate) : 'Selected date'
+}
+
+export const formatCalendarMonth = (dateValue) => {
+  const parsedDate = parseEventDate(dateValue)
+  return parsedDate ? calendarMonthFormatter.format(parsedDate) : ''
 }
 
 export const formatEventMonth = (dateValue) => {
@@ -102,6 +123,21 @@ export const matchesDateFilter = (dateValue, filter) => {
   }
 
   return true
+}
+
+export const isSameCalendarDate = (leftValue, rightValue) => {
+  const leftDate = parseEventDate(leftValue)
+  const rightDate = parseEventDate(rightValue)
+
+  if (!leftDate || !rightDate) {
+    return false
+  }
+
+  return (
+    leftDate.getFullYear() === rightDate.getFullYear() &&
+    leftDate.getMonth() === rightDate.getMonth() &&
+    leftDate.getDate() === rightDate.getDate()
+  )
 }
 
 export const getOptimizedImageUrl = (imageUrl, width = 1600) => {
