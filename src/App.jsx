@@ -6,7 +6,6 @@ import {
   featuredUsers,
   initialInteractions,
   locationOptions,
-  seedEvents,
 } from './data/mockData.js'
 import axios from 'axios'
 import MainLayout from './layouts/MainLayout.jsx'
@@ -29,6 +28,7 @@ import { getSession, saveInterests, signOut } from './services/authService.js'
 import {
   createPosterDataUri,
   eventOccursOnDate,
+  formatDateKey,
   getEventDateKeys,
   matchesDateFilter,
   parseEventDate,
@@ -53,14 +53,13 @@ function App() {
   const [selectedCategory, setSelectedCategory] = useState('All Events')
   const [selectedDateFilter, setSelectedDateFilter] = useState('Any time')
   const [selectedSort, setSelectedSort] = useState('Nearest date')
-  const [remoteEvents, setRemoteEvents] = useState(seedEvents)
+  const [remoteEvents, setRemoteEvents] = useState([])
   const [createdEvents, setCreatedEvents] = useState([])
   const [interactions, setInteractions] = useState(initialInteractions)
   const [activeProfileTab, setActiveProfileTab] = useState('Created Events')
   const [currentEventsPage, setCurrentEventsPage] = useState(1)
   const [featuredEventId, setFeaturedEventId] = useState(null)
   const [isSearchFocused, setIsSearchFocused] = useState(false)
-  const [selectedCalendarDate, setSelectedCalendarDate] = useState(null)
   const deferredSearchTerm = useDeferredValue(searchTerm)
   const previousRouteKeyRef = useRef(null)
 
@@ -93,25 +92,21 @@ function App() {
 
   const handleSearchChange = (value) => {
     setCurrentEventsPage(1)
-    setSelectedCalendarDate(null)
     setSearchTerm(value)
   }
 
   const handleLocationChange = (value) => {
     setCurrentEventsPage(1)
-    setSelectedCalendarDate(null)
     setSelectedLocation(value)
   }
 
   const handleCategoryChange = (value) => {
     setCurrentEventsPage(1)
-    setSelectedCalendarDate(null)
     setSelectedCategory(value)
   }
 
   const handleDateFilterChange = (value) => {
     setCurrentEventsPage(1)
-    setSelectedCalendarDate(null)
     setSelectedDateFilter(value)
   }
 
@@ -147,6 +142,8 @@ function App() {
   }
 
   const route = resolveRoute(pathname)
+  const selectedCalendarDate =
+    route.key === 'events-date' ? parseEventDate(route.params?.dateKey) : null
   const allEvents = mergeEvents(remoteEvents, createdEvents)
   const normalizedSearch = deferredSearchTerm.trim().toLowerCase()
   const featuredPool = allEvents
@@ -391,7 +388,6 @@ function App() {
     onNavigate: navigate,
     onGoToDashboard: () => {
       setCurrentEventsPage(1)
-      setSelectedCalendarDate(null)
       navigate(routes.events)
     },
     searchTerm,
@@ -412,16 +408,18 @@ function App() {
     availableDateCounts,
     selectedCalendarDate,
     onCalendarDateChange: (value) => {
+      const parsedDate = parseEventDate(value)
+      if (!parsedDate) return
       setCurrentEventsPage(1)
       setSearchTerm('')
       setSelectedCategory('All Events')
       setSelectedDateFilter('Any time')
       setSelectedLocation('All Philippines')
-      setSelectedCalendarDate(parseEventDate(value))
+      navigate(routes.eventsByDate(formatDateKey(parsedDate)))
     },
     onCalendarDateClear: () => {
       setCurrentEventsPage(1)
-      setSelectedCalendarDate(null)
+      navigate(routes.events)
     },
     currentUser,
     onSignOut: handleSignOut,
@@ -509,7 +507,7 @@ function App() {
         onSortChange={handleSortChange}
         selectedLocation={selectedLocation}
         selectedCalendarDate={selectedCalendarDate}
-        onClearCalendarDate={() => setSelectedCalendarDate(null)}
+        onClearCalendarDate={() => navigate(routes.events)}
         onNavigate={navigate}
         {...sharedPageProps}
       />

@@ -1,5 +1,6 @@
 export const routes = {
   events: '/events',
+  eventsByDate: (dateKey) => `/events/date/${dateKey}`,
   createEvent: '/events/create',
   eventDetail: (eventId) => `/events/${eventId}`,
   people: '/people',
@@ -32,6 +33,10 @@ export const resolveRoute = (pathname) => {
 
   if (cleanPath === '/events/create') {
     return { key: 'create-event', params: {} }
+  }
+
+  if (parts[0] === 'events' && parts[1] === 'date' && parts[2]) {
+    return { key: 'events-date', params: { dateKey: parts[2] } }
   }
 
   if (parts[0] === 'events' && parts[1]) {

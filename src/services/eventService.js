@@ -6,6 +6,16 @@ const getFallbackLocationLabel = (fallbackLocation) =>
     ? 'Philippines'
     : `${fallbackLocation}, Philippines`
 
+const pickValue = (...values) => {
+  for (const value of values) {
+    if (value !== undefined && value !== null && value !== '') {
+      return value
+    }
+  }
+
+  return ''
+}
+
 const pickText = (...values) => {
   for (const value of values) {
     if (typeof value === 'string' && value.trim()) {
@@ -14,6 +24,16 @@ const pickText = (...values) => {
 
     if (value && typeof value === 'object') {
       const nestedText = pickText(
+        value.start,
+        value.end,
+        value.local,
+        value.utc,
+        value.datetime,
+        value.date,
+        value.when,
+        value.range,
+        value.start_date,
+        value.end_date,
         value.text,
         value.label,
         value.name,
@@ -36,83 +56,118 @@ const pickText = (...values) => {
   return ''
 }
 
-const normalizeRemoteEvent = (event, fallbackLocation) => ({
-  id:
-    event.eventId ||
-    event.id ||
-    event._id ||
-    `${(event.name || event.title || 'event').toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
-  title: event.name || event.title || 'Untitled Event',
-  category: event.category || event.segment || 'Community',
-  startDate: event.startDate || event.start_time || event.date || '2026-05-01',
-  endDate:
-    event.endDate ||
-    event.end_time ||
-    event.end ||
-    event.end_local ||
-    event.endLocal ||
+const normalizeRemoteEvent = (event, fallbackLocation) => {
+  const title = event.name || event.title || 'Untitled Event'
+  const category = event.category || event.segment || 'Community'
+  const startDate = pickValue(
+    event.startDate,
+    event.start_time,
+    event.start,
+    event.date?.start_date,
+    event.date?.start,
+    event.date?.local,
+    event.when?.start_date,
+    event.when?.start,
+    event.schedule?.start,
+    event.event_dates?.start,
+    event.date,
     '',
-  rawDate:
-    pickText(
-      event.rawDate,
-      event.date,
-      event.dateText,
-      event.when,
-      event.schedule,
-      event.date_range,
-      event.event_dates,
-    ) || '',
-  timeLabel:
-    pickText(event.timeLabel, event.time, event.start_time, event.when, event.schedule) ||
-    'Time to be announced',
-  location:
-    pickText(
-      event.location,
-      event.address,
-      event.venue,
-      event.venue?.name,
-      event.venue?.address,
-      event.formatted_address,
-    ) || getFallbackLocationLabel(fallbackLocation),
-  province: event.province || (fallbackLocation === 'All Philippines' ? '' : fallbackLocation),
-  host: pickText(event.host, event.organizer, event.organizer_name) || 'Eventcinity Partner',
-  description:
-    pickText(
-      event.description,
-      event.summary,
-      event.snippet,
-      event.details,
-      event.about,
-    ) ||
-    'Imported from a live events source. This mapping can be swapped for Eventbrite payloads later without changing the JSX UI.',
-  attendeeCount: event.attendeeCount || event.going_count || 0,
-  savedCount: event.savedCount || 0,
-  reactions: event.reactions || 0,
-  attendees: [],
-  mapLabel:
-    pickText(
-      event.mapLabel,
-      event.location,
-      event.address,
-      event.venue,
-      event.venue?.name,
-      event.venue?.address,
-    ) || getFallbackLocationLabel(fallbackLocation),
-  createdBy: 'lia-tan',
-  source: event.source || 'live',
-  image:
-    event.image ||
-    event.imageUrl ||
-    event.logo?.url ||
-    createPosterDataUri({
-      title: event.name || event.title || 'Imported Event',
-      location:
-        pickText(event.location, event.venue?.name, event.address) ||
-        getFallbackLocationLabel(fallbackLocation),
-      category: event.category || event.segment || 'Community',
-    }),
-  imageLabel: 'Imported event artwork',
-})
+  )
+  const endDate = pickValue(
+    event.endDate,
+    event.end_time,
+    event.end,
+    event.end_local,
+    event.endLocal,
+    event.date?.end_date,
+    event.date?.end,
+    event.when?.end_date,
+    event.when?.end,
+    event.schedule?.end,
+    event.event_dates?.end,
+    '',
+  )
+  const rawDate = pickText(
+    event.rawDate,
+    event.dateText,
+    event.date_range,
+    event.event_dates?.text,
+    event.event_dates,
+    event.when,
+    event.schedule,
+    event.date,
+    event.date_label,
+  )
+
+  return {
+    id:
+      event.eventId ||
+      event.id ||
+      event._id ||
+      `${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+    title,
+    category,
+    startDate: startDate || '2026-05-01',
+    endDate,
+    rawDate,
+    timeLabel:
+      pickText(
+        event.timeLabel,
+        event.time,
+        event.start_time,
+        event.when?.text,
+        event.schedule?.text,
+        event.schedule,
+      ) || 'Time to be announced',
+    location:
+      pickText(
+        event.location,
+        event.address,
+        event.venue,
+        event.venue?.name,
+        event.venue?.address,
+        event.formatted_address,
+      ) || getFallbackLocationLabel(fallbackLocation),
+    province: event.province || (fallbackLocation === 'All Philippines' ? '' : fallbackLocation),
+    host: pickText(event.host, event.organizer, event.organizer_name) || 'Eventcinity Partner',
+    description:
+      pickText(
+        event.description,
+        event.summary,
+        event.snippet,
+        event.details,
+        event.about,
+      ) ||
+      'Imported from a live events source. This mapping can be swapped for Eventbrite payloads later without changing the JSX UI.',
+    attendeeCount: event.attendeeCount || event.going_count || 0,
+    savedCount: event.savedCount || 0,
+    reactions: event.reactions || 0,
+    attendees: [],
+    mapLabel:
+      pickText(
+        event.mapLabel,
+        event.location,
+        event.address,
+        event.venue,
+        event.venue?.name,
+        event.venue?.address,
+      ) || getFallbackLocationLabel(fallbackLocation),
+    createdBy: 'lia-tan',
+    source: event.source || 'live',
+    image:
+      event.image ||
+      event.imageUrl ||
+      event.logo?.url ||
+      createPosterDataUri({
+        title,
+        location:
+          pickText(event.location, event.venue?.name, event.address) ||
+          getFallbackLocationLabel(fallbackLocation),
+        category,
+      }),
+    imageLabel: 'Imported event artwork',
+  }
+}
 
 export const loadEventsByLocation = async (location) => {
   try {
