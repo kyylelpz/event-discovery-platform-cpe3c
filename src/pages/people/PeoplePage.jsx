@@ -23,7 +23,11 @@ function PeoplePage({ people, onOpenProfile }) {
         {people.map((person) => (
           <article key={person.username} className="person-card">
             <div className="person-card__header">
-              <UserAvatar name={person.name} size="lg" />
+              <UserAvatar
+                name={person.name}
+                imageUrl={person.profilePic || person.avatar}
+                size="lg"
+              />
               <div>
                 <h2>{person.name}</h2>
                 <p>{person.location}</p>
