@@ -81,6 +81,9 @@ export const matchesDateFilter = (dateValue, filter) => {
   const differenceInDays = Math.round(
     (eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
   )
+  const weekendEnd = new Date(today)
+  const daysUntilSunday = (7 - today.getDay()) % 7
+  weekendEnd.setDate(today.getDate() + daysUntilSunday)
 
   if (filter === 'Next 7 days') {
     return differenceInDays >= 0 && differenceInDays <= 7
@@ -95,10 +98,33 @@ export const matchesDateFilter = (dateValue, filter) => {
 
   if (filter === 'This weekend') {
     const eventDay = eventDate.getDay()
-    return differenceInDays >= 0 && differenceInDays <= 7 && (eventDay === 0 || eventDay === 6)
+    return eventDate >= today && eventDate <= weekendEnd && (eventDay === 0 || eventDay === 6)
   }
 
   return true
+}
+
+export const getOptimizedImageUrl = (imageUrl, width = 1600) => {
+  if (!imageUrl) {
+    return ''
+  }
+
+  try {
+    const url = new URL(imageUrl)
+
+    if (url.hostname.includes('images.unsplash.com')) {
+      url.searchParams.set('auto', 'format')
+      url.searchParams.set('fit', 'max')
+      url.searchParams.set('fm', 'jpg')
+      url.searchParams.set('q', '90')
+      url.searchParams.set('w', String(width))
+      return url.toString()
+    }
+
+    return imageUrl
+  } catch {
+    return imageUrl
+  }
 }
 
 export const createPosterDataUri = ({ title, location, category }) => {
