@@ -136,6 +136,7 @@ function App() {
     if (type === 'new') {
       setShowInterests(true) // new user → show interests picker
     } else {
+      setShowInterests(false)
       navigate(routes.events) // returning user → go to homepage
     }
   }
@@ -153,6 +154,7 @@ function App() {
   const handleSignOut = () => {
     signOut()
     setCurrentUser(null)
+    setShowInterests(false)
     navigate(routes.events)
   }
 

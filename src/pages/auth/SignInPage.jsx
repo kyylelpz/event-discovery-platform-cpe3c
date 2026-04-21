@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { PrimaryButton } from '../../components/ui/Button.jsx'
 import { API_BASE_URL } from '../../services/apiBase.js'
-import { setSession } from '../../services/authService.js'
+import { getSignupEmailError, signIn, signUp } from '../../services/authService.js'
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap');
@@ -272,9 +272,21 @@ function SignInPage({ onAuthSuccess }) {
     e.preventDefault()
     setError(null)
 
-    if (!email.trim() || !password.trim()) {
+    const normalizedEmail = email.trim().toLowerCase()
+    const trimmedPassword = password.trim()
+
+    if (!normalizedEmail || !trimmedPassword) {
       setError('Fill in both fields to continue')
       return
+    }
+
+    if (isSignUp) {
+      const emailError = getSignupEmailError(normalizedEmail)
+
+      if (emailError) {
+        setError(emailError)
+        return
+      }
     }
 
     if (isSignUp && password !== confirmPassword) {
@@ -284,29 +296,12 @@ function SignInPage({ onAuthSuccess }) {
 
     setIsLoading(true)
     try {
-      const endpoint = isSignUp
-        ? `${API_BASE_URL}/api/auth/register`
-        : `${API_BASE_URL}/api/auth/login`
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email, password }),
+      const authAction = isSignUp ? signUp : signIn
+      const session = await authAction({
+        email: normalizedEmail,
+        password,
+        name: normalizedEmail.split('@')[0],
       })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Something went wrong with the server.')
-      }
-
-      const session = {
-        email,
-        name: data.user?.name || email.split('@')[0],
-        interests: [],
-      }
-      setSession(session)
 
       const userType = isSignUp ? 'new' : 'returning'
 
@@ -363,6 +358,8 @@ function SignInPage({ onAuthSuccess }) {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 autoComplete="email"
+                inputMode="email"
+                pattern={isSignUp ? '^[^\\s@]+@[^\\s@]+\\.com$' : undefined}
                 autoFocus
               />
             </div>

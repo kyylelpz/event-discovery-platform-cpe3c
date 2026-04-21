@@ -181,6 +181,46 @@
   gap: 8px;
 }
 
+.topbar__account,
+.topbar__mobile-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topbar__account {
+  min-height: 44px;
+  padding: 6px 12px 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: rgba(45, 59, 21, 0.05);
+}
+
+.topbar__account-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.topbar__account-copy strong,
+.topbar__account-copy span {
+  display: block;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar__account-copy strong {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.topbar__account-copy span {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+}
+
 .button {
   display: inline-flex;
   align-items: center;
@@ -1567,6 +1607,16 @@
     gap: 10px;
     padding-top: 12px;
     border-top: 1px solid var(--color-border);
+  }
+
+  .topbar__mobile-user {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .topbar__mobile-user .topbar__account,
+  .topbar__mobile-user .button {
+    width: 100%;
   }
 
   .brandmark__logo-frame {
