@@ -8,6 +8,24 @@ const textEncoder = new TextEncoder()
 
 const normalizeEmail = (value) => String(value || '').trim().toLowerCase()
 const getDefaultName = (email) => normalizeEmail(email).split('@')[0] || 'Eventcinity user'
+const isBrowser = typeof window !== 'undefined'
+
+export const isHostedAuthEnvironment = () => {
+  if (!isBrowser) {
+    return false
+  }
+
+  const { hostname } = window.location
+
+  return (
+    hostname === 'eventcinity.com' ||
+    hostname === 'www.eventcinity.com' ||
+    hostname === 'api.eventcinity.com' ||
+    hostname.endsWith('.eventcinity.com')
+  )
+}
+
+const canUseLocalAuthFallback = () => !isHostedAuthEnvironment()
 
 const getUsers = () => {
   try {
@@ -21,11 +39,26 @@ const saveUsers = (users) => {
   localStorage.setItem(USERS_KEY, JSON.stringify(users))
 }
 
-const buildSession = ({ email, name, interests = [], authProvider = 'local' }) => ({
+const buildSession = ({
+  email,
+  name,
+  username = '',
+  interests = [],
+  authProvider = 'local',
+  phone = '',
+  bio = '',
+  profilePic = '',
+  createdAt = '',
+}) => ({
   email: normalizeEmail(email),
   name: String(name || '').trim() || getDefaultName(email),
+  username: String(username || '').trim(),
   interests: Array.isArray(interests) ? interests : [],
   authProvider,
+  phone: String(phone || '').trim(),
+  bio: String(bio || '').trim(),
+  profilePic: String(profilePic || '').trim(),
+  createdAt: String(createdAt || '').trim(),
 })
 
 const readResponseData = async (response) => {
@@ -49,6 +82,28 @@ const isRecoverableRemoteAuthError = (error) =>
   error?.status === 502 ||
   error?.status === 503 ||
   error?.status === 504
+
+const updateRemoteProfile = async (updates) => {
+  const response = await fetch(`${API_BASE_URL}/api/profile`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': 'eventcinityAPIprofileBRO',
+    },
+    credentials: 'include',
+    body: JSON.stringify(updates),
+  })
+
+  const data = await readResponseData(response)
+
+  if (!response.ok) {
+    const error = new Error(data.message || 'Profile update failed.')
+    error.status = response.status
+    throw error
+  }
+
+  return data
+}
 
 const requestRemoteAuth = async (path, payload) => {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -180,8 +235,13 @@ const createSessionFromAuthPayload = (data, email, fallbackName, authProvider) =
   return buildSession({
     email: user.email || email,
     name: user.name || fallbackName || getDefaultName(email),
+    username: user.username || '',
     interests: user.interests || [],
     authProvider,
+    phone: user.phone || '',
+    bio: user.bio || '',
+    profilePic: user.profilePic || user.avatar || user.imageUrl || '',
+    createdAt: user.createdAt || '',
   })
 }
 
@@ -226,16 +286,18 @@ export const signUp = async ({ email, password, name }) => {
 
     const session = createSessionFromAuthPayload(data, normalizedEmail, fallbackName, 'remote')
     setSession(session)
-    await upsertLocalUser({
-      email: normalizedEmail,
-      password,
-      name: session.name,
-      interests: session.interests,
-      authProvider: 'remote',
-    })
+    if (canUseLocalAuthFallback()) {
+      await upsertLocalUser({
+        email: normalizedEmail,
+        password,
+        name: session.name,
+        interests: session.interests,
+        authProvider: 'remote',
+      })
+    }
     return session
   } catch (error) {
-    if (!isRecoverableRemoteAuthError(error)) {
+    if (!isRecoverableRemoteAuthError(error) || !canUseLocalAuthFallback()) {
       throw error
     }
 
@@ -282,16 +344,18 @@ export const signIn = async ({ email, password }) => {
       'remote',
     )
     setSession(session)
-    await upsertLocalUser({
-      email: normalizedEmail,
-      password,
-      name: session.name,
-      interests: session.interests,
-      authProvider: 'remote',
-    })
+    if (canUseLocalAuthFallback()) {
+      await upsertLocalUser({
+        email: normalizedEmail,
+        password,
+        name: session.name,
+        interests: session.interests,
+        authProvider: 'remote',
+      })
+    }
     return session
   } catch (error) {
-    if (!isRecoverableRemoteAuthError(error)) {
+    if (!isRecoverableRemoteAuthError(error) || !canUseLocalAuthFallback()) {
       throw error
     }
 
@@ -324,6 +388,10 @@ export const signOut = () => {
   }).catch(() => {})
 }
 
+export const clearSession = () => {
+  localStorage.removeItem(SESSION_KEY)
+}
+
 export const getSession = () => {
   try {
     return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null')
@@ -332,16 +400,37 @@ export const getSession = () => {
   }
 }
 
-export const saveInterests = (email, interests) => {
+export const saveInterests = async (email, interests) => {
   const normalizedEmail = normalizeEmail(email)
   const users = getUsers()
+  const session = getSession()
 
-  if (users[normalizedEmail]) {
+  if (canUseLocalAuthFallback() && users[normalizedEmail]) {
     users[normalizedEmail].interests = interests
     saveUsers(users)
   }
 
-  const session = getSession()
+  const shouldSyncRemoteProfile =
+    session?.authProvider === 'remote' || isHostedAuthEnvironment()
+
+  if (shouldSyncRemoteProfile) {
+    try {
+      const data = await updateRemoteProfile({ interests })
+      const remoteUser = data.user || data.data?.user || {}
+
+      if (session) {
+        const nextSession = {
+          ...session,
+          interests: Array.isArray(remoteUser.interests) ? remoteUser.interests : interests,
+        }
+        localStorage.setItem(SESSION_KEY, JSON.stringify(nextSession))
+      }
+
+      return
+    } catch (error) {
+      console.warn('Unable to sync interests to the backend:', error)
+    }
+  }
 
   if (session) {
     session.interests = interests

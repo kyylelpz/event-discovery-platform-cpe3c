@@ -3,6 +3,7 @@ import { routes } from '../../utils/routing.js'
 import brandLogo from '../../assets/eventcinity-logo.png'
 import { PrimaryButton, SecondaryButton } from '../ui/Button.jsx'
 import UserAvatar from '../ui/UserAvatar.jsx'
+import { formatMemberSince } from '../../services/profileService.js'
 import {
   CalendarIcon,
   CloseIcon,
@@ -11,6 +12,7 @@ import {
   LogInIcon,
   MapPinIcon,
   MenuIcon,
+  MoreVerticalIcon,
   PlusSquareIcon,
   SearchIcon,
   UserPlusIcon,
@@ -109,19 +111,7 @@ function Navbar({
           </SecondaryButton>
 
           {currentUser ? (
-            <>
-              <div className="topbar__account" aria-label={`Signed in as ${currentUser.name}`}>
-                <UserAvatar name={currentUser.name} size="sm" />
-                <div className="topbar__account-copy">
-                  <strong>{currentUser.name}</strong>
-                  <span>{currentUser.email}</span>
-                </div>
-              </div>
-
-              <SecondaryButton onClick={onSignOut}>
-                Sign Out
-              </SecondaryButton>
-            </>
+            <ProfileMenu currentUser={currentUser} onSignOut={onSignOut} />
           ) : (
             <SecondaryButton
               isActive={isActive(routes.signin)}
@@ -237,17 +227,7 @@ function MobileNavbar({
 
         <div className="topbar__mobile-links">
           {currentUser ? (
-            <div className="topbar__mobile-user" aria-label={`Signed in as ${currentUser.name}`}>
-              <div className="topbar__account">
-                <UserAvatar name={currentUser.name} size="sm" />
-                <div className="topbar__account-copy">
-                  <strong>{currentUser.name}</strong>
-                  <span>{currentUser.email}</span>
-                </div>
-              </div>
-
-              <SecondaryButton onClick={onSignOut}>Sign Out</SecondaryButton>
-            </div>
+            <ProfileMenu currentUser={currentUser} onSignOut={onSignOut} mobile />
           ) : null}
 
           <SecondaryButton
@@ -274,6 +254,114 @@ function MobileNavbar({
         </div>
       </div>
     </details>
+  )
+}
+
+function ProfileMenu({ currentUser, onSignOut, mobile = false }) {
+  const [isOpen, setIsOpen] = useState(false)
+  const menuRef = useRef(null)
+  const interests = Array.isArray(currentUser.interests) ? currentUser.interests : []
+  const displayName = currentUser.name || currentUser.username || 'Eventcinity user'
+  const usernameLabel = currentUser.username ? `@${currentUser.username}` : displayName
+  const joinedLabel = formatMemberSince(currentUser.createdAt)
+  const phoneLabel = currentUser.phone || 'Nothing here yet. Explore more events!'
+  const bioLabel = currentUser.bio || 'Nothing here yet. Explore more events!'
+
+  useEffect(() => {
+    if (!isOpen) {
+      return undefined
+    }
+
+    const handleOutsideClick = (event) => {
+      if (!menuRef.current?.contains(event.target)) {
+        setIsOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [isOpen])
+
+  return (
+    <div
+      ref={menuRef}
+      className={`profile-menu ${mobile ? 'profile-menu--mobile' : ''}`}
+    >
+      <div className="topbar__account" aria-label={`Signed in as ${displayName}`}>
+        <UserAvatar name={displayName} imageUrl={currentUser.profilePic} size="sm" />
+        <div className="topbar__account-copy">
+          <strong>{displayName}</strong>
+          <span>{currentUser.email}</span>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        className="profile-menu__trigger"
+        aria-label="Open profile menu"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((currentValue) => !currentValue)}
+      >
+        <MoreVerticalIcon />
+      </button>
+
+      {isOpen ? (
+        <div className="profile-menu__panel">
+          <div className="profile-menu__header">
+            <UserAvatar name={displayName} imageUrl={currentUser.profilePic} size="lg" />
+            <div className="profile-menu__identity">
+              <h3>{displayName}</h3>
+              <p>{usernameLabel}</p>
+              <span>{currentUser.email}</span>
+            </div>
+          </div>
+
+          <div className="profile-menu__info-grid">
+            <div className="profile-menu__info-card">
+              <h4>Member Since</h4>
+              <p>{joinedLabel}</p>
+            </div>
+
+            <div className="profile-menu__info-card">
+              <h4>Phone</h4>
+              <p>{phoneLabel}</p>
+            </div>
+          </div>
+
+          <div className="profile-menu__section">
+            <h4>Bio</h4>
+            <p>{bioLabel}</p>
+          </div>
+
+          <div className="profile-menu__section">
+            <h4>Interests</h4>
+            {interests.length ? (
+              <div className="profile-menu__chips">
+                {interests.map((interest) => (
+                  <span key={interest} className="profile-menu__chip">
+                    {interest}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <div className="profile-menu__empty">
+                Nothing here yet. Explore more events!
+              </div>
+            )}
+          </div>
+
+          <SecondaryButton
+            className="profile-menu__signout"
+            onClick={() => {
+              setIsOpen(false)
+              onSignOut()
+            }}
+          >
+            Sign Out
+          </SecondaryButton>
+        </div>
+      ) : null}
+    </div>
   )
 }
 
