@@ -33,12 +33,12 @@ import {
   signOut,
   syncStoredUser,
 } from './services/authService.js'
-import { fetchCurrentUserProfile } from './services/profileService.js'
 import {
-  buildEmptyInteractions,
-  getUserInteractions,
-  saveUserInteractions,
-} from './services/userDatabaseService.js'
+  buildEmptyInteractionState,
+  fetchInteractionState,
+  updateInteractionState,
+} from './services/interactionService.js'
+import { fetchCurrentUserProfile } from './services/profileService.js'
 import {
   buildGoogleMapsSearchUrl,
   createPosterDataUri,
@@ -173,13 +173,19 @@ function App() {
   const [selectedSort, setSelectedSort] = useState('Nearest date')
   const [remoteEvents, setRemoteEvents] = useState([])
   const [createdEvents, setCreatedEvents] = useState([])
-  const [interactions, setInteractions] = useState(() => getUserInteractions(currentUser?.email))
+  const [interactionState, setInteractionState] = useState(() => buildEmptyInteractionState())
   const [activeProfileTab, setActiveProfileTab] = useState('Created Events')
   const [currentEventsPage, setCurrentEventsPage] = useState(1)
   const [isSearchFocused, setIsSearchFocused] = useState(false)
   const deferredSearchTerm = useDeferredValue(searchTerm)
   const currentUserRef = useRef(currentUser)
   const recentAuthSuccessAtRef = useRef(0)
+  const {
+    interactions,
+    savedEvents: savedInteractionEvents,
+    likedEvents: likedInteractionEvents,
+    attendingEvents: attendingInteractionEvents,
+  } = interactionState
 
   useEffect(() => {
     currentUserRef.current = currentUser
@@ -268,7 +274,7 @@ function App() {
           if (isHostedAuthEnvironment()) {
             clearSession()
             setCurrentUser(null)
-            setInteractions(buildEmptyInteractions())
+            setInteractionState(buildEmptyInteractionState())
             setShowInterests(false)
             return
           }
@@ -298,6 +304,39 @@ function App() {
       isActive = false
     }
   }, [currentUser?.email, currentUser?.authProvider])
+
+  useEffect(() => {
+    if (!currentUser?.email) {
+      return undefined
+    }
+
+    let isActive = true
+
+    const syncInteractionState = async () => {
+      try {
+        const nextInteractionState = await fetchInteractionState()
+
+        if (!isActive) {
+          return
+        }
+
+        setInteractionState(nextInteractionState)
+      } catch (error) {
+        if (!isActive) {
+          return
+        }
+
+        console.warn('Unable to load the current user interaction state:', error)
+        setInteractionState(buildEmptyInteractionState())
+      }
+    }
+
+    void syncInteractionState()
+
+    return () => {
+      isActive = false
+    }
+  }, [currentUser?.email])
 
   const navigate = (nextPath) => {
     const normalizedPath = normalizeRoutePath(nextPath)
@@ -350,7 +389,7 @@ function App() {
 
     recentAuthSuccessAtRef.current = Date.now()
     setCurrentUser(nextUser)
-    setInteractions(getUserInteractions(nextUser.email))
+    setInteractionState(buildEmptyInteractionState())
     setSession(nextUser)
     if (type === 'new' || nextUser.shouldShowInterestsPrompt) {
       setShowInterests(true)
@@ -386,7 +425,7 @@ function App() {
     recentAuthSuccessAtRef.current = 0
     signOut()
     setCurrentUser(null)
-    setInteractions(buildEmptyInteractions())
+    setInteractionState(buildEmptyInteractionState())
     setShowInterests(false)
     navigate(routes.events)
   }
@@ -424,7 +463,13 @@ function App() {
 
   const selectedCalendarDate =
     route.key === 'events-date' ? parseEventDate(route.params?.dateKey) : null
-  const allEvents = mergeEvents(remoteEvents, createdEvents)
+  const allEvents = mergeEvents(
+    savedInteractionEvents,
+    likedInteractionEvents,
+    attendingInteractionEvents,
+    remoteEvents,
+    createdEvents,
+  )
   const normalizedSearch = deferredSearchTerm.trim().toLowerCase()
   const isCalendarDateMode = Boolean(selectedCalendarDate)
   const availableDateCounts = useMemo(() => {
@@ -591,10 +636,10 @@ function App() {
 
   const createdByProfile = allEvents.filter((e) => e.createdBy === activeProfile?.username)
   const savedByUser = isViewingCurrentUserProfile
-    ? allEvents.filter((e) => interactions.saved.includes(e.id))
+    ? savedInteractionEvents
     : []
   const likedByUser = isViewingCurrentUserProfile
-    ? allEvents.filter((e) => interactions.hearted.includes(e.id))
+    ? likedInteractionEvents
     : []
   const relatedEvents = currentEvent
     ? allEvents.filter((e) =>
@@ -603,24 +648,40 @@ function App() {
       )
     : []
 
-  const toggleInteraction = (key, eventId) => {
+  const toggleInteraction = async (key, event) => {
     if (!currentUser?.email) {
       navigate(routes.signin)
       return
     }
 
-    setInteractions((currentState) => {
-      const hasEvent = currentState[key].includes(eventId)
-      const nextState = {
-        ...currentState,
-        [key]: hasEvent
-          ? currentState[key].filter((id) => id !== eventId)
-          : [...currentState[key], eventId],
-      }
+    const eventId = String(event?.id || '').trim()
 
-      saveUserInteractions(currentUser.email, nextState)
-      return nextState
-    })
+    if (!eventId) {
+      return
+    }
+
+    const nextFlags = {
+      hearted:
+        key === 'hearted'
+          ? !interactions.hearted.includes(eventId)
+          : interactions.hearted.includes(eventId),
+      saved:
+        key === 'saved'
+          ? !interactions.saved.includes(eventId)
+          : interactions.saved.includes(eventId),
+      attending:
+        key === 'attending'
+          ? !interactions.attending.includes(eventId)
+          : interactions.attending.includes(eventId),
+    }
+
+    try {
+      const nextInteractionState = await updateInteractionState(event, nextFlags)
+      setInteractionState(nextInteractionState)
+    } catch (error) {
+      console.warn('Unable to update the current user interaction state:', error)
+      window.alert('Unable to save that event action right now. Please try again.')
+    }
   }
 
   const handleCreateEvent = async (formData) => {
@@ -739,9 +800,9 @@ function App() {
 
   const sharedPageProps = {
     interactions,
-    onToggleHeart: (eventId) => toggleInteraction('hearted', eventId),
-    onToggleSave: (eventId) => toggleInteraction('saved', eventId),
-    onToggleAttend: (eventId) => toggleInteraction('attending', eventId),
+    onToggleHeart: (event) => toggleInteraction('hearted', event),
+    onToggleSave: (event) => toggleInteraction('saved', event),
+    onToggleAttend: (event) => toggleInteraction('attending', event),
     onOpenEvent: (eventId) => navigate(routes.eventDetail(eventId)),
   }
 

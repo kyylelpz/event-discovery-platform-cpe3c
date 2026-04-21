@@ -9,7 +9,7 @@ function FeaturedEvent({ event, matchedInterest, onViewDetails }) {
   }
 
   const scheduleLabel = formatEventSchedule(event)
-  const featuredImage = getResponsiveImageProps(event.image, [960, 1440, 2200])
+  const featuredImage = getResponsiveImageProps(event.image)
   const locationHref = event.mapUrl
   const handleImageError = (eventObject) => {
     if (!event.fallbackImage || eventObject.currentTarget.dataset.fallbackApplied === 'true') {
