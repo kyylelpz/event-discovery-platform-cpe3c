@@ -77,6 +77,23 @@ export const parseEventDate = (dateValue) => {
     return null
   }
 
+  const monthDayMatch = rawValue.match(
+    /^(?:[A-Za-z]{3,9},?\s+)?([A-Za-z]{3,9})\s+(\d{1,2})(?:,\s*(\d{4}))?(?:,\s*\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)?$/i,
+  )
+
+  if (monthDayMatch) {
+    const [, monthText, dayText, yearText] = monthDayMatch
+    const monthIndex = monthIndexMap[monthText.slice(0, 3).toLowerCase()]
+
+    if (monthIndex !== undefined) {
+      return new Date(
+        Number(yearText || new Date().getFullYear()),
+        monthIndex,
+        Number(dayText),
+      )
+    }
+  }
+
   const isoMatch = rawValue.match(/(\d{4})-(\d{2})-(\d{2})/)
 
   if (isoMatch) {
