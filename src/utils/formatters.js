@@ -33,6 +33,20 @@ const eventDayFormatter = new Intl.DateTimeFormat('en-PH', {
 
 const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate())
 
+export const formatDateKey = (dateValue) => {
+  const parsedDate = parseEventDate(dateValue)
+
+  if (!parsedDate) {
+    return ''
+  }
+
+  const year = parsedDate.getFullYear()
+  const month = `${parsedDate.getMonth() + 1}`.padStart(2, '0')
+  const day = `${parsedDate.getDate()}`.padStart(2, '0')
+
+  return `${year}-${month}-${day}`
+}
+
 export const parseEventDate = (dateValue) => {
   if (!dateValue) {
     return null
@@ -200,10 +214,7 @@ export const getEventDateKeys = (event) => {
   const cursor = new Date(startDate)
 
   while (cursor.getTime() <= endDate.getTime()) {
-    const year = cursor.getFullYear()
-    const month = `${cursor.getMonth() + 1}`.padStart(2, '0')
-    const day = `${cursor.getDate()}`.padStart(2, '0')
-    dateKeys.push(`${year}-${month}-${day}`)
+    dateKeys.push(formatDateKey(cursor))
     cursor.setDate(cursor.getDate() + 1)
   }
 
