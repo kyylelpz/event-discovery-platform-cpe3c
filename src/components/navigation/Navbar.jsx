@@ -31,6 +31,7 @@ function Navbar({
   locations,
   selectedLocation,
   onLocationChange,
+  availableDateCounts,
   selectedCalendarDate,
   onCalendarDateChange,
   onCalendarDateClear,
@@ -76,6 +77,7 @@ function Navbar({
           </label>
 
           <FindEventsDatePicker
+            availableDateCounts={availableDateCounts}
             selectedDate={selectedCalendarDate}
             onDateChange={onCalendarDateChange}
             onClear={onCalendarDateClear}
@@ -122,6 +124,7 @@ function Navbar({
         locations={locations}
         selectedLocation={selectedLocation}
         onLocationChange={onLocationChange}
+        availableDateCounts={availableDateCounts}
         selectedCalendarDate={selectedCalendarDate}
         onCalendarDateChange={onCalendarDateChange}
         onCalendarDateClear={onCalendarDateClear}
@@ -144,6 +147,7 @@ function MobileNavbar({
   locations,
   selectedLocation,
   onLocationChange,
+  availableDateCounts,
   selectedCalendarDate,
   onCalendarDateChange,
   onCalendarDateClear,
@@ -196,6 +200,7 @@ function MobileNavbar({
         </label>
 
         <FindEventsDatePicker
+          availableDateCounts={availableDateCounts}
           selectedDate={selectedCalendarDate}
           onDateChange={onCalendarDateChange}
           onClear={onCalendarDateClear}
@@ -230,6 +235,7 @@ function MobileNavbar({
 }
 
 function FindEventsDatePicker({
+  availableDateCounts,
   selectedDate,
   onDateChange,
   onClear,
@@ -330,6 +336,9 @@ function FindEventsDatePicker({
             {dayCells.map((day) => {
               const isOutsideMonth = day.getMonth() !== displayMonth.getMonth()
               const isSelected = selectedDate && isSameCalendarDate(day, selectedDate)
+              const dateKey = day.toISOString().slice(0, 10)
+              const eventCount = availableDateCounts[dateKey] || 0
+              const isAvailable = eventCount > 0
 
               return (
                 <button
@@ -337,7 +346,10 @@ function FindEventsDatePicker({
                   type="button"
                   className={`find-events-picker__day ${
                     isOutsideMonth ? 'find-events-picker__day--muted' : ''
-                  } ${isSelected ? 'find-events-picker__day--selected' : ''}`}
+                  } ${isAvailable ? 'find-events-picker__day--available' : ''} ${
+                    isSelected ? 'find-events-picker__day--selected' : ''
+                  }`}
+                  disabled={!isAvailable}
                   onClick={() => {
                     onNavigateHome()
                     onDateChange(day)
@@ -345,6 +357,9 @@ function FindEventsDatePicker({
                   }}
                 >
                   {day.getDate()}
+                  {isAvailable ? (
+                    <span className="find-events-picker__count">{eventCount}</span>
+                  ) : null}
                 </button>
               )
             })}
