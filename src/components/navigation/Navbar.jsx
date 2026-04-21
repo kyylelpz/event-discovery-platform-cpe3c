@@ -405,19 +405,15 @@ function FindEventsDatePicker({
   fullWidth = false,
 }) {
   const [isOpen, setIsOpen] = useState(false)
-  const [displayMonth, setDisplayMonth] = useState(() => {
-    const initialDate = parseEventDate(selectedDate) || new Date()
-    return new Date(initialDate.getFullYear(), initialDate.getMonth(), 1)
-  })
+  const [openMonth, setOpenMonth] = useState(null)
   const pickerRef = useRef(null)
-
-  useEffect(() => {
-    const parsedDate = parseEventDate(selectedDate)
-
-    if (parsedDate) {
-      setDisplayMonth(new Date(parsedDate.getFullYear(), parsedDate.getMonth(), 1))
-    }
-  }, [selectedDate])
+  const parsedSelectedDate = parseEventDate(selectedDate) || new Date()
+  const referenceMonth = new Date(
+    parsedSelectedDate.getFullYear(),
+    parsedSelectedDate.getMonth(),
+    1,
+  )
+  const displayMonth = openMonth || referenceMonth
 
   useEffect(() => {
     if (!isOpen) {
@@ -450,7 +446,11 @@ function FindEventsDatePicker({
     >
       <PrimaryButton
         onClick={() => {
-          setIsOpen((currentValue) => !currentValue)
+          setIsOpen((currentValue) => {
+            const nextValue = !currentValue
+            setOpenMonth(nextValue ? referenceMonth : null)
+            return nextValue
+          })
         }}
       >
         <CalendarIcon />
@@ -464,7 +464,7 @@ function FindEventsDatePicker({
               type="button"
               className="find-events-picker__nav"
               onClick={() =>
-                setDisplayMonth(
+                setOpenMonth(
                   new Date(displayMonth.getFullYear(), displayMonth.getMonth() - 1, 1),
                 )
               }
@@ -477,7 +477,7 @@ function FindEventsDatePicker({
               type="button"
               className="find-events-picker__nav"
               onClick={() =>
-                setDisplayMonth(
+                setOpenMonth(
                   new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 1, 1),
                 )
               }
@@ -513,6 +513,7 @@ function FindEventsDatePicker({
                   onClick={() => {
                     onDateChange(day)
                     setIsOpen(false)
+                    setOpenMonth(null)
                   }}
                 >
                   {day.getDate()}
@@ -531,6 +532,7 @@ function FindEventsDatePicker({
               onClick={() => {
                 onDateChange(new Date())
                 setIsOpen(false)
+                setOpenMonth(null)
               }}
             >
               Today
@@ -541,6 +543,7 @@ function FindEventsDatePicker({
               onClick={() => {
                 onClear()
                 setIsOpen(false)
+                setOpenMonth(null)
               }}
             >
               Clear

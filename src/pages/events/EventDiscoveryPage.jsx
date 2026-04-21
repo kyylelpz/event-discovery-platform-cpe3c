@@ -6,6 +6,7 @@ import { formatEventDateHeading } from '../../utils/formatters.js'
 
 function EventDiscoveryPage({
   featuredEvent,
+  featuredInterestLabel,
   events,
   filteredCount,
   currentPage,
@@ -28,7 +29,11 @@ function EventDiscoveryPage({
   return (
     <div className="page-stack">
       {!isCalendarDateMode ? (
-        <FeaturedEvent event={featuredEvent} onViewDetails={sharedPageProps.onOpenEvent} />
+        <FeaturedEvent
+          event={featuredEvent}
+          matchedInterest={featuredInterestLabel}
+          onViewDetails={sharedPageProps.onOpenEvent}
+        />
       ) : null}
 
       {!isCalendarDateMode ? (
