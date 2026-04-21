@@ -1,5 +1,8 @@
 const normalizeBaseUrl = (value) => value.replace(/\/+$/, '')
-const HOSTED_BACKEND_FALLBACK = 'https://mediumaquamarine-hare-514275.hostingersite.com'
+const LOCAL_API_BASE_URL = 'http://localhost:5000'
+const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1'])
+
+export const isLocalHostname = (hostname = '') => LOCAL_HOSTNAMES.has(String(hostname || '').trim())
 
 export const getApiBaseUrl = () => {
   const explicitBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim()
@@ -9,25 +12,16 @@ export const getApiBaseUrl = () => {
   }
 
   if (typeof window !== 'undefined') {
-    const { hostname, protocol } = window.location
+    const { hostname, origin } = window.location
 
-    if (
-      hostname === 'eventcinity.com' ||
-      hostname === 'www.eventcinity.com'
-    ) {
-      return HOSTED_BACKEND_FALLBACK
+    if (isLocalHostname(hostname)) {
+      return LOCAL_API_BASE_URL
     }
 
-    if (hostname === 'api.eventcinity.com') {
-      return `${protocol}//api.eventcinity.com`
-    }
-
-    if (hostname.endsWith('.eventcinity.com')) {
-      return HOSTED_BACKEND_FALLBACK
-    }
+    return normalizeBaseUrl(origin)
   }
 
-  return 'http://localhost:5000'
+  return LOCAL_API_BASE_URL
 }
 
 export const API_BASE_URL = getApiBaseUrl()

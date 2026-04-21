@@ -1,4 +1,4 @@
-import { API_BASE_URL } from './apiBase.js'
+import { API_BASE_URL, isLocalHostname } from './apiBase.js'
 
 const USERS_KEY = 'eventcinity_users'
 const SESSION_KEY = 'eventcinity_session'
@@ -26,14 +26,17 @@ export const isHostedAuthEnvironment = () => {
     return false
   }
 
-  const { hostname } = window.location
+  const explicitBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim()
 
-  return (
-    hostname === 'eventcinity.com' ||
-    hostname === 'www.eventcinity.com' ||
-    hostname === 'api.eventcinity.com' ||
-    hostname.endsWith('.eventcinity.com')
-  )
+  if (explicitBaseUrl) {
+    try {
+      return !isLocalHostname(new URL(explicitBaseUrl).hostname)
+    } catch {
+      return !isLocalHostname(window.location.hostname)
+    }
+  }
+
+  return !isLocalHostname(window.location.hostname)
 }
 
 const canUseLocalAuthFallback = () => !isHostedAuthEnvironment()
@@ -55,6 +58,7 @@ const saveUsers = (users) => {
 }
 
 const buildSession = ({
+  id = '',
   email,
   name,
   username = '',
@@ -70,6 +74,7 @@ const buildSession = ({
   hasCompletedOnboarding,
   shouldShowInterestsPrompt = false,
 }) => ({
+  id: String(id || '').trim(),
   email: normalizeEmail(email),
   name: String(name || '').trim() || getDefaultName(email),
   username: String(username || getDefaultUsername(email)).trim(),
@@ -91,6 +96,7 @@ const buildSession = ({
 
 const sanitizeStoredUser = (user = {}) =>
   buildSession({
+    id: user.id,
     email: user.email,
     name: user.name,
     username: user.username,
@@ -130,11 +136,10 @@ const isRecoverableRemoteAuthError = (error) =>
   error?.status === 504
 
 const updateRemoteProfile = async (updates) => {
-  const response = await fetch(`${API_BASE_URL}/api/profile`, {
+  const response = await fetch(`${API_BASE_URL}/api/profile/me`, {
     method: 'PUT',
     headers: getAuthRequestHeaders({
       'Content-Type': 'application/json',
-      'x-api-key': 'eventcinityAPIprofileBRO',
     }),
     credentials: 'include',
     body: JSON.stringify(updates),
@@ -239,6 +244,7 @@ const verifyStoredPassword = async (user, password) => {
 }
 
 const upsertLocalUser = async ({
+  id = '',
   email,
   password,
   name,
@@ -263,6 +269,7 @@ const upsertLocalUser = async ({
 
   const nextUser = {
     ...existingUser,
+    id: String(id || existingUser.id || '').trim(),
     email: normalizedEmail,
     name: String(name || existingUser.name || getDefaultName(normalizedEmail)).trim(),
     username: String(username || existingUser.username || getDefaultUsername(normalizedEmail)).trim(),
@@ -300,6 +307,7 @@ export const syncStoredUser = async (user) => {
   }
 
   return upsertLocalUser({
+    id: user.id,
     email: user.email,
     name: user.name,
     username: user.username,
@@ -339,6 +347,7 @@ const migrateLegacyPasswordIfNeeded = async (email, user, password) => {
   }
 
   return upsertLocalUser({
+    id: user.id,
     email,
     password,
     name: user.name,
@@ -382,6 +391,7 @@ const createSessionFromAuthPayload = (data, email, fallbackName, authProvider) =
         : false
 
   return buildSession({
+    id: user.id || localMirror.id || '',
     email: user.email || localMirror.email || email,
     name: user.name || localMirror.name || fallbackName || getDefaultName(email),
     username: user.username || localMirror.username || '',
@@ -405,6 +415,7 @@ const createSessionFromAuthPayload = (data, email, fallbackName, authProvider) =
 }
 
 const syncLocalAuthMirror = async ({
+  id,
   email,
   password,
   name,
@@ -426,6 +437,7 @@ const syncLocalAuthMirror = async ({
 
   try {
     await upsertLocalUser({
+      id,
       email,
       password,
       name,
@@ -514,6 +526,7 @@ export const signUp = async ({ email, password, name }) => {
     })
     setSession(session)
     await syncLocalAuthMirror({
+      id: session.id,
       email: normalizedEmail,
       password,
       name: session.name,
@@ -586,6 +599,7 @@ export const signIn = async ({ email, password }) => {
     })
     setSession(session)
     await syncLocalAuthMirror({
+      id: session.id,
       email: normalizedEmail,
       password,
       name: session.name,
@@ -664,6 +678,7 @@ export const saveInterests = async (email, interests) => {
 
   if (canUseLocalAuthFallback()) {
     await upsertLocalUser({
+      id: session?.id,
       email: normalizedEmail,
       name: session?.name,
       username: session?.username,

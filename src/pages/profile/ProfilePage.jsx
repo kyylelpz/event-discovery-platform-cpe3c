@@ -14,6 +14,7 @@ function ProfilePage({
   createdEvents = [],
   savedEvents = [],
   likedEvents = [],
+  attendingEvents = [],
   activeTab,
   onTabChange,
   isCurrentUser = false,
@@ -22,8 +23,9 @@ function ProfilePage({
   const tabs = isCurrentUser
     ? [
         { label: 'Created Events', events: createdEvents, icon: <PlusSquareIcon /> },
-        { label: 'Saved Events', events: savedEvents, icon: <BookmarkIcon /> },
-        { label: 'Liked Events', events: likedEvents, icon: <HeartIcon /> },
+        { label: 'Bookmarks', events: savedEvents, icon: <BookmarkIcon /> },
+        { label: 'Favorites', events: likedEvents, icon: <HeartIcon /> },
+        { label: 'Attending', events: attendingEvents, icon: <CalendarIcon /> },
       ]
     : [{ label: 'Created Events', events: createdEvents, icon: <PlusSquareIcon /> }]
   const activeTabConfig = tabs.find((tab) => tab.label === activeTab) || tabs[0]
@@ -42,7 +44,7 @@ function ProfilePage({
     isCurrentUser && Array.isArray(user.interests) ? user.interests : []
   const joinedLabel = user.joinedDate || formatMemberSince(user.createdAt)
   const emptyCopy = isCurrentUser
-    ? 'This area will fill out as you create, save, and like more events.'
+    ? 'This area fills in from your own account activity and hosted events.'
     : 'This community member has not shared anything here yet.'
 
   return (

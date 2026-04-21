@@ -3,10 +3,8 @@ import './App.css'
 import {
   categoryOptions,
   dateFilterOptions,
-  featuredUsers,
   locationOptions,
 } from './data/mockData.js'
-import axios from 'axios'
 import MainLayout from './layouts/MainLayout.jsx'
 import SignInPage from './pages/auth/SignInPage.jsx'
 import InterestsPage from './pages/auth/InterestsPage.jsx'
@@ -22,11 +20,14 @@ import LocationGuidesPage from './pages/info/LocationGuidesPage.jsx'
 import HelpCenterPage from './pages/info/HelpCenterPage.jsx'
 import ContactSupportPage from './pages/info/ContactSupportPage.jsx'
 import { API_BASE_URL } from './services/apiBase.js'
-import { loadEventsByLocation } from './services/eventService.js'
+import {
+  fetchCreatedEventsByCurrentUser,
+  fetchCreatedEventsByUsername,
+  loadEventsByLocation,
+} from './services/eventService.js'
 import {
   clearSession,
   getAuthRequestHeaders,
-  getKnownUsers,
   getSession,
   isHostedAuthEnvironment,
   saveInterests,
@@ -40,6 +41,7 @@ import {
   updateInteractionState,
 } from './services/interactionService.js'
 import { fetchCurrentUserProfile } from './services/profileService.js'
+import { fetchCommunityUsers, fetchPublicProfile } from './services/userService.js'
 import {
   buildGoogleMapsSearchUrl,
   createPosterDataUri,
@@ -114,10 +116,9 @@ const getUserProfileSlug = (user) => {
   return slugify(String(baseValue).trim() || 'me') || 'me'
 }
 
-const getUserProfilePath = (user) => routes.profile(getUserProfileSlug(user))
-
 const normalizeCommunityUser = (user = {}) => ({
   ...user,
+  id: String(user.id || user._id || '').trim(),
   email: String(user.email || '').trim().toLowerCase(),
   name:
     String(user.name || user.username || String(user.email || '').split('@')[0] || '').trim() ||
@@ -131,6 +132,7 @@ const normalizeCommunityUser = (user = {}) => ({
     ? user.interests.map((interest) => String(interest || '').trim()).filter(Boolean)
     : [],
   profilePic: String(user.profilePic || user.avatar || '').trim(),
+  createdEventsCount: Number(user.createdEventsCount || 0),
 })
 
 const mergeCommunityUsers = (...userGroups) => {
@@ -142,8 +144,9 @@ const mergeCommunityUsers = (...userGroups) => {
     .forEach((user) => {
       const normalizedUser = normalizeCommunityUser(user)
       const userKey =
-        normalizedUser.email ||
+        normalizedUser.id ||
         normalizedUser.username ||
+        normalizedUser.email ||
         normalizedUser.name.toLowerCase()
       const existingUser = merged.get(userKey)
 
@@ -174,6 +177,10 @@ function App() {
   const [selectedSort, setSelectedSort] = useState('Nearest date')
   const [remoteEvents, setRemoteEvents] = useState([])
   const [createdEvents, setCreatedEvents] = useState([])
+  const [profileCreatedEvents, setProfileCreatedEvents] = useState([])
+  const [communityUsers, setCommunityUsers] = useState([])
+  const [activePublicProfile, setActivePublicProfile] = useState(null)
+  const [isPublicProfileLoading, setIsPublicProfileLoading] = useState(false)
   const [interactionState, setInteractionState] = useState(() => buildEmptyInteractionState())
   const [activeProfileTab, setActiveProfileTab] = useState('Created Events')
   const [currentEventsPage, setCurrentEventsPage] = useState(1)
@@ -339,6 +346,34 @@ function App() {
     }
   }, [currentUser?.email])
 
+  useEffect(() => {
+    let isActive = true
+
+    const loadCommunityDirectory = async () => {
+      try {
+        const users = await fetchCommunityUsers()
+
+        if (!isActive) {
+          return
+        }
+
+        setCommunityUsers(users)
+      } catch (error) {
+        if (!isActive) {
+          return
+        }
+
+        console.warn('Unable to load the community directory:', error)
+      }
+    }
+
+    void loadCommunityDirectory()
+
+    return () => {
+      isActive = false
+    }
+  }, [currentUser?.id, currentUser?.username, currentUser?.profilePic, currentUser?.bio, currentUser?.location])
+
   const navigate = (nextPath) => {
     const normalizedPath = normalizeRoutePath(nextPath)
 
@@ -399,7 +434,7 @@ function App() {
     }
 
     setShowInterests(false)
-    navigate(getUserProfilePath(nextUser))
+    navigate(routes.profile('me'))
   }
 
   // Called after interests are picked
@@ -433,6 +468,7 @@ function App() {
 
   const route = resolveRoute(pathname)
   const currentUserEmail = String(currentUser?.email || '').trim().toLowerCase()
+  const currentUserProfileSlug = currentUser ? getUserProfileSlug(currentUser) : ''
   const currentUserInterestLabels = Array.isArray(currentUser?.interests)
     ? currentUser.interests
         .map((value) => String(value || '').trim())
@@ -441,13 +477,18 @@ function App() {
   const currentUserInterests = normalizeInterestList(currentUserInterestLabels)
   const communityPeople = useMemo(
     () =>
-      mergeCommunityUsers(currentUser ? [currentUser] : [], getKnownUsers(), featuredUsers).map(
+      mergeCommunityUsers(currentUser ? [currentUser] : [], communityUsers).map(
         (user) => {
           const isCurrentUserEntry =
-            currentUserEmail && user.email === currentUserEmail
+            (currentUser?.id && user.id === currentUser.id) ||
+            (currentUser?.username && user.username === currentUser.username) ||
+            (currentUserEmail && user.email === currentUserEmail)
 
           if (isCurrentUserEntry) {
-            return user
+            return {
+              ...user,
+              ...currentUser,
+            }
           }
 
           return {
@@ -459,7 +500,7 @@ function App() {
           }
         },
       ),
-    [currentUser, currentUserEmail],
+    [communityUsers, currentUser, currentUserEmail],
   )
 
   const selectedCalendarDate =
@@ -470,6 +511,7 @@ function App() {
     attendingInteractionEvents,
     remoteEvents,
     createdEvents,
+    profileCreatedEvents,
   )
   const normalizedSearch = deferredSearchTerm.trim().toLowerCase()
   const isCalendarDateMode = Boolean(selectedCalendarDate)
@@ -626,21 +668,125 @@ function App() {
   const isViewingCurrentUserProfile =
     route.key === 'profile' &&
     currentUser &&
-    ['me', getUserProfileSlug(currentUser)].includes(route.params?.username)
+    ['me', currentUserProfileSlug].includes(route.params?.username)
+
+  useEffect(() => {
+    if (route.key !== 'profile') {
+      setActivePublicProfile(null)
+      setIsPublicProfileLoading(false)
+      return undefined
+    }
+
+    const requestedUsername = String(route.params?.username || '').trim()
+
+    if (!requestedUsername || requestedUsername === 'me' || isViewingCurrentUserProfile) {
+      setActivePublicProfile(null)
+      setIsPublicProfileLoading(false)
+      return undefined
+    }
+
+    const fallbackProfile =
+      communityPeople.find((user) => user.username === requestedUsername) || null
+
+    if (fallbackProfile) {
+      setActivePublicProfile(fallbackProfile)
+    }
+
+    let isActive = true
+    setIsPublicProfileLoading(true)
+
+    const loadPublicProfile = async () => {
+      try {
+        const profile = await fetchPublicProfile(requestedUsername)
+
+        if (!isActive) {
+          return
+        }
+
+        setActivePublicProfile(profile)
+      } catch (error) {
+        if (!isActive) {
+          return
+        }
+
+        console.warn('Unable to load the selected public profile:', error)
+        setActivePublicProfile(fallbackProfile)
+      } finally {
+        if (isActive) {
+          setIsPublicProfileLoading(false)
+        }
+      }
+    }
+
+    void loadPublicProfile()
+
+    return () => {
+      isActive = false
+    }
+  }, [route.key, route.params?.username, isViewingCurrentUserProfile, communityPeople])
+
+  useEffect(() => {
+    if (route.key !== 'profile') {
+      setProfileCreatedEvents([])
+      return undefined
+    }
+
+    const requestedUsername = String(route.params?.username || '').trim()
+    const shouldLoadCurrentUserEvents = isViewingCurrentUserProfile && currentUser?.email
+    const shouldLoadPublicEvents =
+      requestedUsername && requestedUsername !== 'me' && !isViewingCurrentUserProfile
+
+    if (!shouldLoadCurrentUserEvents && !shouldLoadPublicEvents) {
+      setProfileCreatedEvents([])
+      return undefined
+    }
+
+    let isActive = true
+
+    const loadCreatedEventsForProfile = async () => {
+      try {
+        const events = shouldLoadCurrentUserEvents
+          ? await fetchCreatedEventsByCurrentUser()
+          : await fetchCreatedEventsByUsername(requestedUsername)
+
+        if (!isActive) {
+          return
+        }
+
+        setProfileCreatedEvents(events)
+      } catch (error) {
+        if (!isActive) {
+          return
+        }
+
+        console.warn('Unable to load created events for the selected profile:', error)
+        setProfileCreatedEvents([])
+      }
+    }
+
+    void loadCreatedEventsForProfile()
+
+    return () => {
+      isActive = false
+    }
+  }, [route.key, route.params?.username, isViewingCurrentUserProfile, currentUser?.email])
+
   const activeProfile = isViewingCurrentUserProfile
     ? {
         ...currentUser,
-        username: currentUser.username || getUserProfileSlug(currentUser),
+        username: currentUser.username || currentUserProfileSlug,
       }
-    : communityPeople.find((user) => user.username === route.params?.username) ||
-      communityPeople[0]
+    : activePublicProfile
 
-  const createdByProfile = allEvents.filter((e) => e.createdBy === activeProfile?.username)
+  const createdByProfile = profileCreatedEvents
   const savedByUser = isViewingCurrentUserProfile
     ? savedInteractionEvents
     : []
   const likedByUser = isViewingCurrentUserProfile
     ? likedInteractionEvents
+    : []
+  const attendingByUser = isViewingCurrentUserProfile
+    ? attendingInteractionEvents
     : []
   const relatedEvents = currentEvent
     ? allEvents.filter((e) =>
@@ -699,36 +845,45 @@ function App() {
         payload.append('image', formData.imageFile)
       }
 
-      const response = await axios.post(`${API_BASE_URL}/api/events/create`, payload, {
-        headers: getAuthRequestHeaders({
-          'Content-Type': 'multipart/form-data',
-        }),
-        withCredentials: true,
+      const response = await fetch(`${API_BASE_URL}/api/events/create`, {
+        method: 'POST',
+        headers: getAuthRequestHeaders(),
+        credentials: 'include',
+        body: payload,
       })
+      const responseData = await response.json()
 
-      if (response.data.success) {
-        const dbEvent = response.data.data
+      if (!response.ok || !responseData.success) {
+        throw new Error(responseData.message || 'Failed to create event.')
+      }
+
+      if (responseData.success) {
+        const dbEvent = responseData.data
         const fallbackImage = createPosterDataUri({
           title: dbEvent.title,
-          location: dbEvent.location || formData.province,
+          location: dbEvent.location || dbEvent.venue || formData.province,
           category: dbEvent.category || 'Community',
         })
-        const mapLabel = dbEvent.location || formData.venue || formData.province
+        const mapLabel =
+          dbEvent.location ||
+          dbEvent.venue ||
+          formData.venue ||
+          formData.province
 
         const newEvent = {
           id: dbEvent.eventId,
           title: dbEvent.title,
-          category: dbEvent.category || 'Community',
-          startDate: dbEvent.date,
-          timeLabel: dbEvent.time || '',
-          location: dbEvent.location,
-          province: formData.province,
-          host: currentUser?.name || 'Community Host',
-          createdBy: currentUser ? getUserProfileSlug(currentUser) : '',
+          category: dbEvent.category || formData.category || 'Community',
+          startDate: dbEvent.startDate || dbEvent.date || formData.date,
+          timeLabel: dbEvent.timeLabel || dbEvent.time || formData.time || '',
+          location: dbEvent.location || dbEvent.venue || formData.venue || formData.province,
+          province: dbEvent.province || formData.province,
+          host: dbEvent.organizer || dbEvent.creatorName || currentUser?.name || 'Community Host',
+          createdBy: dbEvent.createdBy || currentUser?.username || '',
           description: dbEvent.description || '',
-          attendeeCount: 1,
-          savedCount: 1,
-          reactions: 1,
+          attendeeCount: Number(dbEvent.attendeeCount || 0),
+          savedCount: Number(dbEvent.savedCount || 0),
+          reactions: Number(dbEvent.reactions || 0),
           image:
             dbEvent.imageUrl ||
             formData.imagePreview ||
@@ -743,7 +898,7 @@ function App() {
         navigate(routes.eventDetail(newEvent.id))
       }
     } catch (err) {
-      console.error('Upload failed:', err.response?.data || err.message)
+      console.error('Upload failed:', err.message)
       alert('Failed to create event. Check console for details.')
     }
   }
@@ -794,7 +949,7 @@ function App() {
         return
       }
 
-      navigate(getUserProfilePath(currentUser))
+      navigate(routes.profile('me'))
     },
     onSignOut: handleSignOut,
   }
@@ -839,18 +994,45 @@ function App() {
       />
     )
   } else if (route.key === 'profile') {
-    page = (
-      <ProfilePage
-        user={activeProfile}
-        createdEvents={createdByProfile}
-        savedEvents={savedByUser}
-        likedEvents={likedByUser}
-        isCurrentUser={isViewingCurrentUserProfile}
-        activeTab={activeProfileTab}
-        onTabChange={setActiveProfileTab}
-        {...sharedPageProps}
-      />
-    )
+    if (route.params?.username === 'me' && !currentUser) {
+      page = <SignInPage onAuthSuccess={handleAuthSuccess} />
+    } else if (isPublicProfileLoading && !activeProfile) {
+      page = (
+        <div className="profile-page">
+          <section className="profile-card">
+            <div className="section-block__heading">
+              <h2>Loading profile</h2>
+              <p>Pulling the latest account data from the database.</p>
+            </div>
+          </section>
+        </div>
+      )
+    } else if (!activeProfile) {
+      page = (
+        <div className="profile-page">
+          <section className="profile-card">
+            <div className="section-block__heading">
+              <h2>Profile not found</h2>
+              <p>That user account could not be found.</p>
+            </div>
+          </section>
+        </div>
+      )
+    } else {
+      page = (
+        <ProfilePage
+          user={activeProfile}
+          createdEvents={createdByProfile}
+          savedEvents={savedByUser}
+          likedEvents={likedByUser}
+          attendingEvents={attendingByUser}
+          isCurrentUser={isViewingCurrentUserProfile}
+          activeTab={activeProfileTab}
+          onTabChange={setActiveProfileTab}
+          {...sharedPageProps}
+        />
+      )
+    }
   } else if (route.key === 'signin') {
     page = <SignInPage onAuthSuccess={handleAuthSuccess} />
   } else if (route.key === 'about-programmers') {

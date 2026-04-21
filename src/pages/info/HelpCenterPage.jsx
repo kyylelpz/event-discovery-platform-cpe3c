@@ -9,7 +9,7 @@ const faqs = [
   },
   {
     q: 'How do I save an event?',
-    a: 'Click the bookmark icon on any event card or event detail page. Saved events appear in your profile under the "Saved Events" tab so you can find them quickly later.',
+    a: 'Click the bookmark icon on any event card or event detail page. Bookmarked events appear in your profile under the "Bookmarks" tab so you can find them quickly later.',
   },
   {
     q: 'How does location filtering work?',

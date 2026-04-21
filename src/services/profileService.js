@@ -1,8 +1,6 @@
 import { API_BASE_URL } from './apiBase.js'
 import { getAuthRequestHeaders } from './authService.js'
 
-const PROFILE_API_KEY = 'eventcinityAPIprofileBRO'
-
 const normalizeEmail = (value) => String(value || '').trim().toLowerCase()
 
 const extractInterestLabel = (value) => {
@@ -84,12 +82,14 @@ export const normalizeProfile = (rawProfile, fallbackSession = {}) => {
         : !needsInterestsSelection
 
   return {
+    id: String(rawProfile?.id || rawProfile?._id || fallbackSession.id || '').trim(),
     email,
     name:
       String(rawProfile?.name || rawProfile?.username || fallbackSession.name || '').trim() ||
       getDefaultName(email),
     username: String(rawProfile?.username || fallbackSession.username || '').trim(),
     interests,
+    location: String(rawProfile?.location || fallbackSession.location || 'Philippines').trim(),
     phone: String(rawProfile?.phone || fallbackSession.phone || '').trim(),
     bio: String(rawProfile?.bio || fallbackSession.bio || '').trim(),
     profilePic: String(
@@ -100,7 +100,11 @@ export const normalizeProfile = (rawProfile, fallbackSession = {}) => {
         '',
     ).trim(),
     createdAt: String(rawProfile?.createdAt || fallbackSession.createdAt || '').trim(),
-    authProvider: rawProfile?.authProvider || fallbackSession.authProvider || 'remote',
+    authProvider:
+      rawProfile?.authProvider ||
+      rawProfile?.provider ||
+      fallbackSession.authProvider ||
+      'remote',
     needsInterestsSelection,
     hasCompletedOnboarding,
   }
@@ -108,9 +112,15 @@ export const normalizeProfile = (rawProfile, fallbackSession = {}) => {
 
 export const fetchCurrentUserProfile = async (fallbackSession = {}) => {
   try {
-    return await requestProfile('/api/profile', fallbackSession, {
-      'x-api-key': PROFILE_API_KEY,
-    })
+    return await requestProfile('/api/profile/me', fallbackSession)
+  } catch (error) {
+    if (error?.status !== 404) {
+      throw error
+    }
+  }
+
+  try {
+    return await requestProfile('/api/profile', fallbackSession)
   } catch (error) {
     if (error?.status !== 404) {
       throw error

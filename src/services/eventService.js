@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './apiBase.js'
+import { getAuthRequestHeaders } from './authService.js'
 import { buildGoogleMapsSearchUrl, createPosterDataUri } from '../utils/formatters.js'
 
 const getFallbackLocationLabel = (fallbackLocation) =>
@@ -153,7 +154,21 @@ const joinUniqueText = (...values) => {
   return uniqueValues.join(', ')
 }
 
-const normalizeRemoteEvent = (event, fallbackLocation) => {
+const readResponseData = async (response) => {
+  const rawText = await response.text()
+
+  if (!rawText) {
+    return {}
+  }
+
+  try {
+    return JSON.parse(rawText)
+  } catch {
+    return { message: rawText }
+  }
+}
+
+export const normalizeEventRecord = (event, fallbackLocation) => {
   const title = event.name || event.title || 'Untitled Event'
   const category = event.category || event.segment || 'Community'
   const venueLabel = pickText(
@@ -263,8 +278,16 @@ const normalizeRemoteEvent = (event, fallbackLocation) => {
         event.schedule,
       ) || 'Time to be announced',
     location: locationLabel,
-    province: event.province || (fallbackLocation === 'All Philippines' ? '' : fallbackLocation),
-    host: pickText(event.host, event.organizer, event.organizer_name) || 'Eventcinity Partner',
+    province:
+      pickText(event.province) ||
+      (fallbackLocation === 'All Philippines' ? '' : fallbackLocation),
+    host:
+      pickText(
+        event.host,
+        event.organizer,
+        event.organizer_name,
+        event.creatorName,
+      ) || 'Eventcinity Partner',
     description:
       pickText(
         event.description,
@@ -281,7 +304,7 @@ const normalizeRemoteEvent = (event, fallbackLocation) => {
     attendees: [],
     mapLabel,
     mapUrl: buildGoogleMapsSearchUrl(mapLabel),
-    createdBy: 'lia-tan',
+    createdBy: pickText(event.createdBy, event.creatorUsername, event.username),
     source: event.source || 'live',
     image: imageUrl,
     fallbackImage,
@@ -289,30 +312,48 @@ const normalizeRemoteEvent = (event, fallbackLocation) => {
   }
 }
 
+const normalizeEventPayload = (payload, fallbackLocation) => {
+  const events = Array.isArray(payload.events)
+    ? payload.events
+    : Array.isArray(payload.data)
+      ? payload.data
+      : []
+
+  if (!Array.isArray(events)) {
+    throw new Error('Malformed event payload')
+  }
+
+  return events.map((event) => normalizeEventRecord(event, fallbackLocation))
+}
+
+const requestEventCollection = async (path, fallbackLocation, options = {}) => {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    credentials: 'include',
+    headers: {
+      Accept: 'application/json',
+      ...(options.requiresAuth ? getAuthRequestHeaders() : {}),
+      ...(options.headers || {}),
+    },
+    ...options,
+  })
+  const payload = await readResponseData(response)
+
+  if (!response.ok) {
+    const error = new Error(payload.message || 'Failed to load live events')
+    error.status = response.status
+    throw error
+  }
+
+  return normalizeEventPayload(payload, fallbackLocation)
+}
+
 export const loadEventsByLocation = async (location) => {
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/api/events?location=${encodeURIComponent(location)}`,
-    )
-
-    if (!response.ok) {
-      throw new Error('Failed to load live events')
-    }
-
-    const payload = await response.json()
-
-    const events = Array.isArray(payload.events)
-      ? payload.events
-      : Array.isArray(payload.data)
-        ? payload.data
-        : []
-
-    if (!Array.isArray(events)) {
-      throw new Error('Malformed event payload')
-    }
-
     return {
-      events: events.map((event) => normalizeRemoteEvent(event, location)),
+      events: await requestEventCollection(
+        `/api/events?location=${encodeURIComponent(location)}`,
+        location,
+      ),
       mode: 'live',
     }
   } catch (error) {
@@ -323,3 +364,14 @@ export const loadEventsByLocation = async (location) => {
     }
   }
 }
+
+export const fetchCreatedEventsByCurrentUser = async () =>
+  requestEventCollection('/api/events/created/me', 'All Philippines', {
+    requiresAuth: true,
+  })
+
+export const fetchCreatedEventsByUsername = async (username) =>
+  requestEventCollection(
+    `/api/events/created/by/${encodeURIComponent(username)}`,
+    'All Philippines',
+  )
