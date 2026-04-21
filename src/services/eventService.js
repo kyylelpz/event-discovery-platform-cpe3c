@@ -126,7 +126,7 @@ const isUsableEventImage = (imageUrl) =>
 const pickImageUrl = (...values) => {
   const candidates = Array.from(new Set(values.flatMap((value) => collectImageCandidates(value))))
 
-  return candidates.find((candidate) => isUsableEventImage(candidate)) || ''
+  return candidates.find((candidate) => isUsableEventImage(candidate)) || candidates[0] || ''
 }
 
 const joinUniqueText = (...values) => {

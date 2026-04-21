@@ -56,6 +56,7 @@ function EventDetailPage({
             loading="eager"
             decoding="async"
             fetchPriority="high"
+            referrerPolicy="no-referrer"
             onError={handleImageError}
           />
           <div className="detail-hero__overlay">
@@ -85,7 +86,34 @@ function EventDetailPage({
               <h3>Location</h3>
               {mapEmbedUrl ? (
                 <div className="detail-map">
+                  <div className="detail-map__header">
+                    <span className="detail-map__eyebrow">Venue guide</span>
+                    <div className="detail-map__headline">
+                      <div className="detail-map__address">
+                        <strong>{event.location}</strong>
+                        <p>Pan and zoom here, then continue in Google Maps for live directions.</p>
+                      </div>
+
+                      {locationHref ? (
+                        <a
+                          className="button button--primary detail-map__cta"
+                          href={locationHref}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <span>Continue in Google Maps</span>
+                          <ArrowRightIcon />
+                        </a>
+                      ) : null}
+                    </div>
+                  </div>
+
                   <div className="detail-map__frame">
+                    <div className="detail-map__badge">
+                      <MapPinIcon />
+                      <span>Interactive map preview</span>
+                    </div>
+
                     <iframe
                       className="detail-map__embed"
                       title={`Map for ${event.title}`}
@@ -94,28 +122,6 @@ function EventDetailPage({
                       allowFullScreen
                       referrerPolicy="no-referrer-when-downgrade"
                     />
-                  </div>
-
-                  <div className="detail-map__summary">
-                    <div className="detail-place-card">
-                      <MapPinIcon />
-                      <div>
-                        <strong>{event.location}</strong>
-                        <p>Explore the area here, then continue in Google Maps for directions.</p>
-                      </div>
-                    </div>
-
-                    {locationHref ? (
-                      <a
-                        className="button button--primary detail-map__cta"
-                        href={locationHref}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        <span>Continue in Google Maps</span>
-                        <ArrowRightIcon />
-                      </a>
-                    ) : null}
                   </div>
                 </div>
               ) : (

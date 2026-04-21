@@ -950,31 +950,85 @@
 .detail-map {
   display: grid;
   gap: 18px;
+  padding: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(circle at top left, rgba(45, 59, 21, 0.08), transparent 40%),
+    linear-gradient(180deg, rgba(45, 59, 21, 0.03), rgba(45, 59, 21, 0.01)),
+    var(--color-surface);
+}
+
+.detail-map__header {
+  display: grid;
+  gap: 14px;
+}
+
+.detail-map__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(45, 59, 21, 0.1);
+  color: var(--color-accent);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.detail-map__headline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.detail-map__address {
+  display: grid;
+  gap: 6px;
+}
+
+.detail-map__address p {
+  max-width: 52ch;
 }
 
 .detail-map__frame {
+  position: relative;
   overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: rgba(45, 59, 21, 0.05);
+  box-shadow: 0 20px 40px rgba(2, 2, 2, 0.08);
+}
+
+.detail-map__badge {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 999px;
+  background: rgba(252, 252, 252, 0.88);
+  backdrop-filter: blur(12px);
+  color: var(--color-accent);
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .detail-map__embed {
   display: block;
   width: 100%;
-  min-height: 360px;
+  min-height: 420px;
   border: 0;
-}
-
-.detail-map__summary {
-  display: flex;
-  align-items: stretch;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.detail-map__summary .detail-place-card {
-  flex: 1 1 320px;
 }
 
 .detail-map__cta {
@@ -1577,12 +1631,20 @@
     bottom: 20px;
   }
 
-  .detail-map__summary {
+  .detail-map__cta {
+    width: 100%;
+  }
+
+  .detail-map {
+    padding: 20px;
+  }
+
+  .detail-map__headline {
     flex-direction: column;
   }
 
-  .detail-map__cta {
-    width: 100%;
+  .detail-map__embed {
+    min-height: 320px;
   }
 
   .event-card__footer {

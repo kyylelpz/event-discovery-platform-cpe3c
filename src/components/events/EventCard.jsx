@@ -46,6 +46,7 @@ function EventCard({
           alt={event.imageLabel}
           loading="lazy"
           decoding="async"
+          referrerPolicy="no-referrer"
           onError={handleImageError}
         />
 
