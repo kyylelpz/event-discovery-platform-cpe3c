@@ -33,7 +33,7 @@ import {
   matchesDateFilter,
   parseEventDate,
 } from './utils/formatters.js'
-import { resolveRoute, routes } from './utils/routing.js'
+import { normalizeRoutePath, resolveRoute, routes } from './utils/routing.js'
 
 const EVENTS_PER_PAGE = 15
 
@@ -44,7 +44,7 @@ const mergeEvents = (...eventGroups) => {
 }
 
 function App() {
-  const [pathname, setPathname] = useState(() => window.location.pathname)
+  const [pathname, setPathname] = useState(() => normalizeRoutePath(window.location.pathname))
   const [currentUser, setCurrentUser] = useState(() => getSession())
   const [showInterests, setShowInterests] = useState(false)
 
@@ -64,7 +64,18 @@ function App() {
   const previousRouteKeyRef = useRef(null)
 
   useEffect(() => {
-    const handlePopState = () => setPathname(window.location.pathname)
+    const syncPathname = () => {
+      const normalizedPath = normalizeRoutePath(window.location.pathname)
+
+      if (normalizedPath !== window.location.pathname) {
+        window.history.replaceState(window.history.state, '', normalizedPath)
+      }
+
+      setPathname(normalizedPath)
+    }
+
+    syncPathname()
+    const handlePopState = () => syncPathname()
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
@@ -85,9 +96,12 @@ function App() {
   }, [selectedLocation])
 
   const navigate = (nextPath) => {
-    if (!nextPath || nextPath === pathname) return
-    window.history.pushState({}, '', nextPath)
-    setPathname(nextPath)
+    const normalizedPath = normalizeRoutePath(nextPath)
+
+    if (!normalizedPath || normalizedPath === pathname) return
+
+    window.history.pushState({}, '', normalizedPath)
+    setPathname(normalizedPath)
   }
 
   const handleSearchChange = (value) => {
