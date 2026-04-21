@@ -26,7 +26,7 @@ import ContactSupportPage from './pages/info/ContactSupportPage.jsx'
 import { API_BASE_URL } from './services/apiBase.js'
 import { loadEventsByLocation } from './services/eventService.js'
 import { getSession, saveInterests, signOut } from './services/authService.js'
-import { createPosterDataUri, matchesDateFilter } from './utils/formatters.js'
+import { createPosterDataUri, matchesDateFilter, parseEventDate } from './utils/formatters.js'
 import { resolveRoute, routes } from './utils/routing.js'
 
 const EVENTS_PER_PAGE = 15
@@ -46,12 +46,11 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All Events')
   const [selectedDateFilter, setSelectedDateFilter] = useState('Any time')
+  const [selectedSort, setSelectedSort] = useState('Nearest date')
   const [remoteEvents, setRemoteEvents] = useState(seedEvents)
   const [createdEvents, setCreatedEvents] = useState([])
   const [interactions, setInteractions] = useState(initialInteractions)
   const [activeProfileTab, setActiveProfileTab] = useState('Created Events')
-  const [isLoadingEvents, setIsLoadingEvents] = useState(false)
-  const [feedMode, setFeedMode] = useState('mock')
   const [currentEventsPage, setCurrentEventsPage] = useState(1)
   const deferredSearchTerm = useDeferredValue(searchTerm)
 
@@ -68,12 +67,9 @@ function App() {
   useEffect(() => {
     let isActive = true
     const syncEvents = async () => {
-      setIsLoadingEvents(true)
-      const { events, mode } = await loadEventsByLocation(selectedLocation)
+      const { events } = await loadEventsByLocation(selectedLocation)
       if (!isActive) return
       setRemoteEvents(events)
-      setFeedMode(mode)
-      setIsLoadingEvents(false)
     }
     syncEvents()
     return () => { isActive = false }
@@ -103,6 +99,11 @@ function App() {
   const handleDateFilterChange = (value) => {
     setCurrentEventsPage(1)
     setSelectedDateFilter(value)
+  }
+
+  const handleSortChange = (value) => {
+    setCurrentEventsPage(1)
+    setSelectedSort(value)
   }
 
   // Called after sign in or sign up
@@ -156,16 +157,81 @@ function App() {
     return locationMatches && categoryMatches && dateMatches && searchableText.includes(normalizedSearch)
   })
 
-  const totalEventPages = Math.max(1, Math.ceil(filteredEvents.length / EVENTS_PER_PAGE))
+  const scoreEventRelevance = (event) => {
+    let score = 0
+    const searchableText = [
+      event.title,
+      event.location,
+      event.province,
+      event.host,
+      event.category,
+      event.description,
+    ].join(' ').toLowerCase()
+    const titleText = `${event.title || ''}`.toLowerCase()
+    const locationText = `${event.location || ''} ${event.province || ''}`.toLowerCase()
+
+    if (normalizedSearch) {
+      if (titleText.includes(normalizedSearch)) score += 8
+      if (searchableText.includes(normalizedSearch)) score += 5
+    }
+
+    if (selectedCategory !== 'All Events' && event.category === selectedCategory) {
+      score += 4
+    }
+
+    if (selectedLocation !== 'All Philippines') {
+      if (event.province === selectedLocation) score += 4
+      if (locationText.includes(selectedLocation.toLowerCase())) score += 2
+    }
+
+    if (userInterests.includes(event.category)) {
+      score += 3
+    }
+
+    if (event.isFeatured) {
+      score += 1
+    }
+
+    return score
+  }
+
+  const compareByNearestDate = (leftEvent, rightEvent) => {
+    const leftDate = parseEventDate(leftEvent.startDate)
+    const rightDate = parseEventDate(rightEvent.startDate)
+
+    if (leftDate && rightDate) {
+      return leftDate.getTime() - rightDate.getTime()
+    }
+
+    if (leftDate) return -1
+    if (rightDate) return 1
+
+    return `${leftEvent.title}`.localeCompare(`${rightEvent.title}`)
+  }
+
+  const sortedEvents = [...filteredEvents].sort((leftEvent, rightEvent) => {
+    if (selectedSort === 'Relevance') {
+      const relevanceDifference =
+        scoreEventRelevance(rightEvent) - scoreEventRelevance(leftEvent)
+
+      if (relevanceDifference !== 0) {
+        return relevanceDifference
+      }
+    }
+
+    return compareByNearestDate(leftEvent, rightEvent)
+  })
+
+  const totalEventPages = Math.max(1, Math.ceil(sortedEvents.length / EVENTS_PER_PAGE))
   const activeEventPage = Math.min(currentEventsPage, totalEventPages)
-  const paginatedEvents = filteredEvents.slice(
+  const paginatedEvents = sortedEvents.slice(
     (activeEventPage - 1) * EVENTS_PER_PAGE,
     activeEventPage * EVENTS_PER_PAGE,
   )
 
   const featuredEvent =
-    filteredEvents.find((event) => event.isFeatured) ||
-    filteredEvents[0] ||
+    sortedEvents.find((event) => event.isFeatured) ||
+    sortedEvents[0] ||
     allEvents[0]
   const currentEvent = allEvents.find((event) => event.id === route.params?.eventId)
   const activeProfile =
@@ -195,8 +261,6 @@ function App() {
 
   const handleCreateEvent = async (formData) => {
     try {
-      setIsLoadingEvents(true)
-
       const payload = new FormData()
       payload.append('title', formData.title)
       payload.append('description', formData.description)
@@ -249,8 +313,6 @@ function App() {
     } catch (err) {
       console.error('Upload failed:', err.response?.data || err.message)
       alert('Failed to create event. Check console for details.')
-    } finally {
-      setIsLoadingEvents(false)
     }
   }
 
@@ -340,16 +402,14 @@ function App() {
         currentPage={activeEventPage}
         totalPages={totalEventPages}
         onPageChange={setCurrentEventsPage}
-        categoryOptions={categoryOptions}
         dateFilterOptions={dateFilterOptions}
         selectedCategory={selectedCategory}
         selectedDateFilter={selectedDateFilter}
+        selectedSort={selectedSort}
         onCategoryChange={handleCategoryChange}
         onDateFilterChange={handleDateFilterChange}
+        onSortChange={handleSortChange}
         selectedLocation={selectedLocation}
-        isLoadingEvents={isLoadingEvents}
-        feedMode={feedMode}
-        totalEvents={allEvents.length}
         onNavigate={navigate}
         currentUser={currentUser}
         {...sharedPageProps}
