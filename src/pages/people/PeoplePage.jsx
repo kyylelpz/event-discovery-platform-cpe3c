@@ -15,7 +15,7 @@ function PeoplePage({ people, onOpenProfile }) {
           people in your community.
         </p>
         <div className="people-hero__badge">
-          <span>Feature coming soon</span>
+          <span>Private data stays on each account</span>
         </div>
       </section>
 
@@ -31,7 +31,7 @@ function PeoplePage({ people, onOpenProfile }) {
             </div>
             <p className="person-card__bio">{person.bio}</p>
             <p className="person-card__meta">
-              Interests: {person.interests.join(', ')}
+              Private interests, bookmarks, likes, and attendance stay hidden to other users.
             </p>
             <div className="person-card__actions">
               <PrimaryButton onClick={() => onOpenProfile(person.username)}>

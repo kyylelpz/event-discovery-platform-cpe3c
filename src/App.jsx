@@ -4,7 +4,6 @@ import {
   categoryOptions,
   dateFilterOptions,
   featuredUsers,
-  initialInteractions,
   locationOptions,
 } from './data/mockData.js'
 import axios from 'axios'
@@ -36,6 +35,11 @@ import {
 } from './services/authService.js'
 import { fetchCurrentUserProfile } from './services/profileService.js'
 import {
+  buildEmptyInteractions,
+  getUserInteractions,
+  saveUserInteractions,
+} from './services/userDatabaseService.js'
+import {
   buildGoogleMapsSearchUrl,
   createPosterDataUri,
   eventOccursOnDate,
@@ -52,6 +56,51 @@ const mergeEvents = (...eventGroups) => {
   const merged = new Map()
   eventGroups.flat().forEach((event) => merged.set(event.id, event))
   return [...merged.values()]
+}
+
+const normalizeInterestList = (values) =>
+  Array.isArray(values)
+    ? values
+        .map((value) => String(value || '').trim().toLowerCase())
+        .filter(Boolean)
+    : []
+
+const scoreEventForInterests = (event, interests = []) => {
+  if (!interests.length || !event) {
+    return 0
+  }
+
+  const category = String(event.category || '').trim().toLowerCase()
+  const searchableText = [
+    event.title,
+    event.category,
+    event.description,
+    event.host,
+    event.location,
+    event.province,
+  ]
+    .join(' ')
+    .toLowerCase()
+
+  return interests.reduce((score, interest) => {
+    if (!interest) {
+      return score
+    }
+
+    if (category === interest) {
+      return score + 12
+    }
+
+    if (category.includes(interest) || interest.includes(category)) {
+      return score + 8
+    }
+
+    if (searchableText.includes(interest)) {
+      return score + 3
+    }
+
+    return score
+  }, 0)
 }
 
 const getUserProfileSlug = (user) => {
@@ -114,7 +163,7 @@ function App() {
   const [pathname, setPathname] = useState(() => normalizeRoutePath(window.location.pathname))
   const [currentUser, setCurrentUser] = useState(() => getSession())
   const [showInterests, setShowInterests] = useState(
-    () => Boolean(getSession()?.needsInterestsSelection),
+    () => Boolean(getSession()?.shouldShowInterestsPrompt),
   )
 
   const [selectedLocation, setSelectedLocation] = useState('All Philippines')
@@ -124,14 +173,17 @@ function App() {
   const [selectedSort, setSelectedSort] = useState('Nearest date')
   const [remoteEvents, setRemoteEvents] = useState([])
   const [createdEvents, setCreatedEvents] = useState([])
-  const [interactions, setInteractions] = useState(initialInteractions)
+  const [interactions, setInteractions] = useState(() => getUserInteractions(currentUser?.email))
   const [activeProfileTab, setActiveProfileTab] = useState('Created Events')
   const [currentEventsPage, setCurrentEventsPage] = useState(1)
-  const [featuredEventId, setFeaturedEventId] = useState(null)
   const [isSearchFocused, setIsSearchFocused] = useState(false)
   const deferredSearchTerm = useDeferredValue(searchTerm)
-  const previousRouteKeyRef = useRef(null)
+  const currentUserRef = useRef(currentUser)
   const recentAuthSuccessAtRef = useRef(0)
+
+  useEffect(() => {
+    currentUserRef.current = currentUser
+  }, [currentUser])
 
   useEffect(() => {
     const syncPathname = () => {
@@ -166,12 +218,14 @@ function App() {
   }, [selectedLocation])
 
   useEffect(() => {
-    if (!currentUser?.email) {
+    const activeUser = currentUserRef.current
+
+    if (!activeUser?.email) {
       return undefined
     }
 
     const shouldSyncRemoteProfile =
-      currentUser.authProvider === 'remote' || isHostedAuthEnvironment()
+      activeUser.authProvider === 'remote' || isHostedAuthEnvironment()
 
     if (!shouldSyncRemoteProfile) {
       return undefined
@@ -181,13 +235,13 @@ function App() {
 
     const syncCurrentUserProfile = async () => {
       try {
-        const profile = await fetchCurrentUserProfile(currentUser)
+        const profile = await fetchCurrentUserProfile(activeUser)
 
         if (!isActive) {
           return
         }
 
-        const nextSession = { ...currentUser, ...profile }
+        const nextSession = { ...activeUser, ...profile }
         setCurrentUser(nextSession)
         setSession(nextSession)
         void syncStoredUser(nextSession)
@@ -200,13 +254,13 @@ function App() {
           const recentlyAuthenticated =
             Date.now() - recentAuthSuccessAtRef.current < 30_000
           const shouldPreserveFreshSession =
-            recentlyAuthenticated || Boolean(currentUser?.needsInterestsSelection)
+            recentlyAuthenticated || Boolean(activeUser.needsInterestsSelection)
 
           if (shouldPreserveFreshSession) {
-            const fallbackSession = { ...currentUser, authProvider: 'local' }
+            const fallbackSession = { ...activeUser, authProvider: 'local' }
             setCurrentUser(fallbackSession)
             setSession(fallbackSession)
-            setShowInterests(Boolean(fallbackSession.needsInterestsSelection))
+            setShowInterests(Boolean(fallbackSession.shouldShowInterestsPrompt))
             void syncStoredUser(fallbackSession)
             return
           }
@@ -214,11 +268,12 @@ function App() {
           if (isHostedAuthEnvironment()) {
             clearSession()
             setCurrentUser(null)
+            setInteractions(buildEmptyInteractions())
             setShowInterests(false)
             return
           }
 
-          const fallbackSession = { ...currentUser, authProvider: 'local' }
+          const fallbackSession = { ...activeUser, authProvider: 'local' }
           setCurrentUser(fallbackSession)
           setSession(fallbackSession)
           void syncStoredUser(fallbackSession)
@@ -286,13 +341,18 @@ function App() {
             ...session,
             needsInterestsSelection: true,
             hasCompletedOnboarding: false,
+            shouldShowInterestsPrompt: true,
           }
-        : session
+        : {
+            ...session,
+            shouldShowInterestsPrompt: false,
+          }
 
     recentAuthSuccessAtRef.current = Date.now()
     setCurrentUser(nextUser)
+    setInteractions(getUserInteractions(nextUser.email))
     setSession(nextUser)
-    if (type === 'new' || nextUser.needsInterestsSelection) {
+    if (type === 'new' || nextUser.shouldShowInterestsPrompt) {
       setShowInterests(true)
       navigate(routes.events)
       return
@@ -313,6 +373,7 @@ function App() {
               interests,
               needsInterestsSelection: false,
               hasCompletedOnboarding: true,
+              shouldShowInterestsPrompt: false,
             }
           : prev,
       )
@@ -325,21 +386,46 @@ function App() {
     recentAuthSuccessAtRef.current = 0
     signOut()
     setCurrentUser(null)
+    setInteractions(buildEmptyInteractions())
     setShowInterests(false)
     navigate(routes.events)
   }
 
   const route = resolveRoute(pathname)
+  const currentUserEmail = String(currentUser?.email || '').trim().toLowerCase()
+  const currentUserInterestLabels = Array.isArray(currentUser?.interests)
+    ? currentUser.interests
+        .map((value) => String(value || '').trim())
+        .filter(Boolean)
+    : []
+  const currentUserInterests = normalizeInterestList(currentUserInterestLabels)
   const communityPeople = useMemo(
-    () => mergeCommunityUsers(currentUser ? [currentUser] : [], getKnownUsers(), featuredUsers),
-    [currentUser],
+    () =>
+      mergeCommunityUsers(currentUser ? [currentUser] : [], getKnownUsers(), featuredUsers).map(
+        (user) => {
+          const isCurrentUserEntry =
+            currentUserEmail && user.email === currentUserEmail
+
+          if (isCurrentUserEntry) {
+            return user
+          }
+
+          return {
+            ...user,
+            email: '',
+            phone: '',
+            interests: [],
+            isPrivateProfile: true,
+          }
+        },
+      ),
+    [currentUser, currentUserEmail],
   )
 
   const selectedCalendarDate =
     route.key === 'events-date' ? parseEventDate(route.params?.dateKey) : null
   const allEvents = mergeEvents(remoteEvents, createdEvents)
   const normalizedSearch = deferredSearchTerm.trim().toLowerCase()
-  const featuredPool = allEvents
   const isCalendarDateMode = Boolean(selectedCalendarDate)
   const availableDateCounts = useMemo(() => {
     return allEvents.reduce((counts, event) => {
@@ -444,55 +530,50 @@ function App() {
     activeEventPage * EVENTS_PER_PAGE,
   )
 
-  useEffect(() => {
-    if (!featuredPool.length) {
-      setFeaturedEventId(null)
-      return
-    }
-
-    const shouldPickNextFeature =
-      route.key === 'events' &&
-      (previousRouteKeyRef.current !== 'events' ||
-        !featuredPool.some((event) => event.id === featuredEventId))
-
-    if (shouldPickNextFeature) {
-      const currentIndex = featuredPool.findIndex((event) => event.id === featuredEventId)
-      const nextIndex =
-        currentIndex >= 0 ? (currentIndex + 1) % featuredPool.length : 0
-
-      setFeaturedEventId(featuredPool[nextIndex].id)
-    }
-
-    previousRouteKeyRef.current = route.key
-  }, [featuredEventId, featuredPool, route.key])
-
   const featuredEvent = useMemo(
     () =>
-      featuredPool.find((event) => event.id === featuredEventId) ||
-      featuredPool.find((event) => event.isFeatured) ||
-      featuredPool[0] ||
-      null,
-    [featuredEventId, featuredPool],
-  )
+      [...allEvents].sort((leftEvent, rightEvent) => {
+        const interestDifference =
+          scoreEventForInterests(rightEvent, currentUserInterests) -
+          scoreEventForInterests(leftEvent, currentUserInterests)
 
-  const searchResults = useMemo(() => {
-    if (!normalizedSearch) {
-      return []
-    }
+        if (interestDifference !== 0) {
+          return interestDifference
+        }
 
-    return [...filteredEvents]
-      .sort((leftEvent, rightEvent) => {
-        const relevanceDifference =
-          scoreEventRelevance(rightEvent) - scoreEventRelevance(leftEvent)
+        const featuredDifference =
+          Number(Boolean(rightEvent.isFeatured)) - Number(Boolean(leftEvent.isFeatured))
 
-        if (relevanceDifference !== 0) {
-          return relevanceDifference
+        if (featuredDifference !== 0) {
+          return featuredDifference
         }
 
         return compareByNearestDate(leftEvent, rightEvent)
-      })
-      .slice(0, 6)
-  }, [filteredEvents, normalizedSearch])
+      })[0] || null,
+    [allEvents, currentUserInterests],
+  )
+  const featuredInterestLabel =
+    featuredEvent && currentUserInterestLabels.length
+      ? currentUserInterestLabels.find(
+          (interest) =>
+            scoreEventForInterests(featuredEvent, normalizeInterestList([interest])) > 0,
+        ) || ''
+      : ''
+
+  const searchResults = !normalizedSearch
+    ? []
+    : [...filteredEvents]
+        .sort((leftEvent, rightEvent) => {
+          const relevanceDifference =
+            scoreEventRelevance(rightEvent) - scoreEventRelevance(leftEvent)
+
+          if (relevanceDifference !== 0) {
+            return relevanceDifference
+          }
+
+          return compareByNearestDate(leftEvent, rightEvent)
+        })
+        .slice(0, 6)
 
   const showSearchResults = isSearchFocused && normalizedSearch.length > 0
   const currentEvent = allEvents.find((event) => event.id === route.params?.eventId)
@@ -523,14 +604,22 @@ function App() {
     : []
 
   const toggleInteraction = (key, eventId) => {
+    if (!currentUser?.email) {
+      navigate(routes.signin)
+      return
+    }
+
     setInteractions((currentState) => {
       const hasEvent = currentState[key].includes(eventId)
-      return {
+      const nextState = {
         ...currentState,
         [key]: hasEvent
           ? currentState[key].filter((id) => id !== eventId)
           : [...currentState[key], eventId],
       }
+
+      saveUserInteractions(currentUser.email, nextState)
+      return nextState
     })
   }
 
@@ -718,6 +807,7 @@ function App() {
     page = (
       <EventDiscoveryPage
         featuredEvent={featuredEvent}
+        featuredInterestLabel={featuredInterestLabel}
         events={isCalendarDateMode ? sortedEvents : paginatedEvents}
         filteredCount={filteredEvents.length}
         currentPage={activeEventPage}

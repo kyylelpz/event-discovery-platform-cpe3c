@@ -19,20 +19,27 @@ function ProfilePage({
   isCurrentUser = false,
   ...sharedPageProps
 }) {
-  const tabs = [
-    { label: 'Created Events', events: createdEvents, icon: <PlusSquareIcon /> },
-    { label: 'Saved Events', events: savedEvents, icon: <BookmarkIcon /> },
-    { label: 'Liked Events', events: likedEvents, icon: <HeartIcon /> },
-  ]
+  const tabs = isCurrentUser
+    ? [
+        { label: 'Created Events', events: createdEvents, icon: <PlusSquareIcon /> },
+        { label: 'Saved Events', events: savedEvents, icon: <BookmarkIcon /> },
+        { label: 'Liked Events', events: likedEvents, icon: <HeartIcon /> },
+      ]
+    : [{ label: 'Created Events', events: createdEvents, icon: <PlusSquareIcon /> }]
   const activeTabConfig = tabs.find((tab) => tab.label === activeTab) || tabs[0]
   const displayEvents = activeTabConfig.events
   const displayName = user.name || user.username || 'Eventcinity user'
   const usernameLabel = user.username ? `@${user.username}` : displayName
   const locationLabel = user.location || 'Philippines'
-  const emailLabel = user.email || 'No email yet'
-  const phoneLabel = user.phone || 'Nothing here yet. Explore more events!'
+  const emailLabel = isCurrentUser
+    ? user.email || 'No email yet'
+    : 'Private account details are hidden from other users.'
+  const phoneLabel = isCurrentUser
+    ? user.phone || 'Nothing here yet. Explore more events!'
+    : 'Private account details are hidden from other users.'
   const bioLabel = user.bio || 'Nothing here yet. Explore more events!'
-  const interests = Array.isArray(user.interests) ? user.interests : []
+  const interests =
+    isCurrentUser && Array.isArray(user.interests) ? user.interests : []
   const joinedLabel = user.joinedDate || formatMemberSince(user.createdAt)
   const emptyCopy = isCurrentUser
     ? 'This area will fill out as you create, save, and like more events.'
@@ -95,7 +102,9 @@ function ProfilePage({
             </div>
           ) : (
             <div className="profile-menu__empty">
-              Nothing here yet. Explore more events!
+              {isCurrentUser
+                ? 'Nothing here yet. Explore more events!'
+                : 'Interests are private to this account.'}
             </div>
           )}
         </section>

@@ -3,7 +3,7 @@ import { ArrowRightIcon, CalendarIcon, MapPinIcon } from '../ui/Icons.jsx'
 import CategoryTag from '../ui/CategoryTag.jsx'
 import { formatEventSchedule, getResponsiveImageProps } from '../../utils/formatters.js'
 
-function FeaturedEvent({ event, onViewDetails }) {
+function FeaturedEvent({ event, matchedInterest, onViewDetails }) {
   if (!event) {
     return null
   }
@@ -58,6 +58,12 @@ function FeaturedEvent({ event, onViewDetails }) {
             <span>View Event Details</span>
             <ArrowRightIcon />
           </PrimaryButton>
+
+          {matchedInterest ? (
+            <p className="status-note">
+              Matched to your interest in {matchedInterest}.
+            </p>
+          ) : null}
         </div>
       </div>
 

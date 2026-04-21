@@ -572,7 +572,7 @@ export const buildGoogleMapsEmbedUrl = (query) => {
   return `https://www.google.com/maps?q=${encodeURIComponent(normalizedQuery)}&z=15&output=embed`
 }
 
-export const getResponsiveImageProps = (imageUrl, _widths = [1600]) => {
+export const getResponsiveImageProps = (imageUrl) => {
   if (!imageUrl || typeof imageUrl !== 'string') {
     return {
       src: '',
