@@ -15,7 +15,12 @@ import {
   UserPlusIcon,
 } from '../ui/Icons.jsx'
 import SearchBar from '../ui/SearchBar.jsx'
-import { formatCalendarMonth, isSameCalendarDate, parseEventDate } from '../../utils/formatters.js'
+import {
+  formatCalendarMonth,
+  formatDateKey,
+  isSameCalendarDate,
+  parseEventDate,
+} from '../../utils/formatters.js'
 
 function Navbar({
   currentPath,
@@ -336,20 +341,19 @@ function FindEventsDatePicker({
             {dayCells.map((day) => {
               const isOutsideMonth = day.getMonth() !== displayMonth.getMonth()
               const isSelected = selectedDate && isSameCalendarDate(day, selectedDate)
-              const dateKey = day.toISOString().slice(0, 10)
+              const dateKey = formatDateKey(day)
               const eventCount = availableDateCounts[dateKey] || 0
               const isAvailable = eventCount > 0
 
               return (
                 <button
-                  key={day.toISOString()}
+                  key={`${dateKey}-${isOutsideMonth ? 'outside' : 'current'}`}
                   type="button"
                   className={`find-events-picker__day ${
                     isOutsideMonth ? 'find-events-picker__day--muted' : ''
                   } ${isAvailable ? 'find-events-picker__day--available' : ''} ${
                     isSelected ? 'find-events-picker__day--selected' : ''
                   }`}
-                  disabled={!isAvailable}
                   onClick={() => {
                     onNavigateHome()
                     onDateChange(day)
