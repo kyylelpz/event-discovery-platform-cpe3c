@@ -26,11 +26,13 @@ import { API_BASE_URL } from './services/apiBase.js'
 import { loadEventsByLocation } from './services/eventService.js'
 import {
   clearSession,
+  getKnownUsers,
   getSession,
   isHostedAuthEnvironment,
   saveInterests,
   setSession,
   signOut,
+  syncStoredUser,
 } from './services/authService.js'
 import { fetchCurrentUserProfile } from './services/profileService.js'
 import {
@@ -64,10 +66,56 @@ const getUserProfileSlug = (user) => {
 
 const getUserProfilePath = (user) => routes.profile(getUserProfileSlug(user))
 
+const normalizeCommunityUser = (user = {}) => ({
+  ...user,
+  email: String(user.email || '').trim().toLowerCase(),
+  name:
+    String(user.name || user.username || String(user.email || '').split('@')[0] || '').trim() ||
+    'Eventcinity user',
+  username: String(user.username || getUserProfileSlug(user)).trim() || getUserProfileSlug(user),
+  location: String(user.location || 'Philippines').trim(),
+  bio:
+    String(user.bio || '').trim() ||
+    'New to Eventcinity and ready to discover events in the community.',
+  interests: Array.isArray(user.interests)
+    ? user.interests.map((interest) => String(interest || '').trim()).filter(Boolean)
+    : [],
+  profilePic: String(user.profilePic || user.avatar || '').trim(),
+})
+
+const mergeCommunityUsers = (...userGroups) => {
+  const merged = new Map()
+
+  userGroups
+    .flat()
+    .filter(Boolean)
+    .forEach((user) => {
+      const normalizedUser = normalizeCommunityUser(user)
+      const userKey =
+        normalizedUser.email ||
+        normalizedUser.username ||
+        normalizedUser.name.toLowerCase()
+      const existingUser = merged.get(userKey)
+
+      merged.set(userKey, {
+        ...existingUser,
+        ...normalizedUser,
+        interests:
+          normalizedUser.interests.length > 0
+            ? normalizedUser.interests
+            : existingUser?.interests || [],
+      })
+    })
+
+  return [...merged.values()]
+}
+
 function App() {
   const [pathname, setPathname] = useState(() => normalizeRoutePath(window.location.pathname))
   const [currentUser, setCurrentUser] = useState(() => getSession())
-  const [showInterests, setShowInterests] = useState(false)
+  const [showInterests, setShowInterests] = useState(
+    () => Boolean(getSession()?.needsInterestsSelection),
+  )
 
   const [selectedLocation, setSelectedLocation] = useState('All Philippines')
   const [searchTerm, setSearchTerm] = useState('')
@@ -141,6 +189,7 @@ function App() {
         const nextSession = { ...currentUser, ...profile }
         setCurrentUser(nextSession)
         setSession(nextSession)
+        void syncStoredUser(nextSession)
       } catch (error) {
         if (!isActive) {
           return
@@ -157,6 +206,7 @@ function App() {
           const fallbackSession = { ...currentUser, authProvider: 'local' }
           setCurrentUser(fallbackSession)
           setSession(fallbackSession)
+          void syncStoredUser(fallbackSession)
           return
         }
 
@@ -207,9 +257,20 @@ function App() {
 
   // Called after sign in or sign up
   const handleAuthSuccess = (session, type) => {
-    setCurrentUser(session)
-    if (type === 'new') {
+    const nextUser =
+      type === 'new'
+        ? {
+            ...session,
+            needsInterestsSelection: true,
+            hasCompletedOnboarding: false,
+          }
+        : session
+
+    setCurrentUser(nextUser)
+    if (type === 'new' || nextUser.needsInterestsSelection) {
       setShowInterests(true) // new user → show interests picker
+      navigate(routes.events)
+      return
     } else {
       setShowInterests(false)
       navigate(routes.events) // returning user → go to homepage
@@ -220,7 +281,16 @@ function App() {
   const handleInterestsDone = async (interests) => {
     if (currentUser) {
       await saveInterests(currentUser.email, interests)
-      setCurrentUser((prev) => (prev ? { ...prev, interests } : prev))
+      setCurrentUser((prev) =>
+        prev
+          ? {
+              ...prev,
+              interests,
+              needsInterestsSelection: false,
+              hasCompletedOnboarding: true,
+            }
+          : prev,
+      )
     }
     setShowInterests(false)
     navigate(routes.events)
@@ -234,6 +304,11 @@ function App() {
   }
 
   const route = resolveRoute(pathname)
+  const communityPeople = useMemo(
+    () => mergeCommunityUsers(currentUser ? [currentUser] : [], getKnownUsers(), featuredUsers),
+    [currentUser],
+  )
+
   const selectedCalendarDate =
     route.key === 'events-date' ? parseEventDate(route.params?.dateKey) : null
   const allEvents = mergeEvents(remoteEvents, createdEvents)
@@ -349,14 +424,17 @@ function App() {
       return
     }
 
-    const shouldPickRandomFeature =
+    const shouldPickNextFeature =
       route.key === 'events' &&
       (previousRouteKeyRef.current !== 'events' ||
         !featuredPool.some((event) => event.id === featuredEventId))
 
-    if (shouldPickRandomFeature) {
-      const randomIndex = Math.floor(Math.random() * featuredPool.length)
-      setFeaturedEventId(featuredPool[randomIndex].id)
+    if (shouldPickNextFeature) {
+      const currentIndex = featuredPool.findIndex((event) => event.id === featuredEventId)
+      const nextIndex =
+        currentIndex >= 0 ? (currentIndex + 1) % featuredPool.length : 0
+
+      setFeaturedEventId(featuredPool[nextIndex].id)
     }
 
     previousRouteKeyRef.current = route.key
@@ -401,9 +479,10 @@ function App() {
         ...currentUser,
         username: currentUser.username || getUserProfileSlug(currentUser),
       }
-    : featuredUsers.find((user) => user.username === route.params?.username) || featuredUsers[0]
+    : communityPeople.find((user) => user.username === route.params?.username) ||
+      communityPeople[0]
 
-  const createdByProfile = allEvents.filter((e) => e.createdBy === activeProfile.username)
+  const createdByProfile = allEvents.filter((e) => e.createdBy === activeProfile?.username)
   const savedByUser = isViewingCurrentUserProfile
     ? allEvents.filter((e) => interactions.saved.includes(e.id))
     : []
@@ -578,7 +657,7 @@ function App() {
   } else if (route.key === 'people') {
     page = (
       <PeoplePage
-        people={featuredUsers}
+        people={communityPeople}
         onOpenProfile={(username) => navigate(routes.profile(username))}
       />
     )

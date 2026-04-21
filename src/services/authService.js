@@ -13,6 +13,12 @@ const getDefaultUsername = (email) =>
     .replace(/[^a-z0-9]+/gi, '-')
     .replace(/^-+|-+$/g, '')
     .toLowerCase() || 'eventcinity-user'
+const normalizeInterests = (values) =>
+  Array.isArray(values)
+    ? values
+        .map((value) => String(value || '').trim())
+        .filter(Boolean)
+    : []
 const isBrowser = typeof window !== 'undefined'
 
 export const isHostedAuthEnvironment = () => {
@@ -54,21 +60,46 @@ const buildSession = ({
   username = '',
   interests = [],
   authProvider = 'local',
+  location = '',
   phone = '',
   bio = '',
   profilePic = '',
   createdAt = '',
+  needsInterestsSelection = false,
+  hasCompletedOnboarding,
 }) => ({
   email: normalizeEmail(email),
   name: String(name || '').trim() || getDefaultName(email),
   username: String(username || getDefaultUsername(email)).trim(),
-  interests: Array.isArray(interests) ? interests : [],
+  interests: normalizeInterests(interests),
   authProvider,
+  location: String(location || '').trim(),
   phone: String(phone || '').trim(),
   bio: String(bio || '').trim(),
   profilePic: String(profilePic || '').trim(),
   createdAt: String(createdAt || '').trim(),
+  needsInterestsSelection: Boolean(needsInterestsSelection),
+  hasCompletedOnboarding:
+    typeof hasCompletedOnboarding === 'boolean'
+      ? hasCompletedOnboarding
+      : !needsInterestsSelection,
 })
+
+const sanitizeStoredUser = (user = {}) =>
+  buildSession({
+    email: user.email,
+    name: user.name,
+    username: user.username,
+    interests: user.interests,
+    authProvider: user.authProvider || 'local',
+    location: user.location,
+    phone: user.phone,
+    bio: user.bio,
+    profilePic: user.profilePic,
+    createdAt: user.createdAt,
+    needsInterestsSelection: user.needsInterestsSelection,
+    hasCompletedOnboarding: user.hasCompletedOnboarding,
+  })
 
 const readResponseData = async (response) => {
   const rawText = await response.text()
@@ -205,22 +236,43 @@ const upsertLocalUser = async ({
   email,
   password,
   name,
+  username,
   interests = [],
   authProvider = 'local',
+  location = '',
+  phone = '',
+  bio = '',
+  profilePic = '',
+  createdAt = '',
+  needsInterestsSelection = false,
+  hasCompletedOnboarding,
 }) => {
   const normalizedEmail = normalizeEmail(email)
   const users = getUsers()
   const existingUser = users[normalizedEmail] || {}
-  const passwordRecord = await createPasswordRecord(password)
+  const passwordRecord = String(password || '').trim()
+    ? await createPasswordRecord(password)
+    : {}
 
   const nextUser = {
     ...existingUser,
     email: normalizedEmail,
     name: String(name || existingUser.name || getDefaultName(normalizedEmail)).trim(),
-    username: String(existingUser.username || getDefaultUsername(normalizedEmail)).trim(),
-    interests: Array.isArray(interests) ? interests : existingUser.interests || [],
-    createdAt: existingUser.createdAt || new Date().toISOString(),
+    username: String(username || existingUser.username || getDefaultUsername(normalizedEmail)).trim(),
+    interests: normalizeInterests(
+      Array.isArray(interests) ? interests : existingUser.interests || [],
+    ),
+    createdAt: String(existingUser.createdAt || createdAt || new Date().toISOString()).trim(),
     authProvider,
+    location: String(location ?? existingUser.location ?? '').trim(),
+    phone: String(phone ?? existingUser.phone ?? '').trim(),
+    bio: String(bio ?? existingUser.bio ?? '').trim(),
+    profilePic: String(profilePic ?? existingUser.profilePic ?? '').trim(),
+    needsInterestsSelection: Boolean(needsInterestsSelection),
+    hasCompletedOnboarding:
+      typeof hasCompletedOnboarding === 'boolean'
+        ? hasCompletedOnboarding
+        : !needsInterestsSelection,
     ...passwordRecord,
   }
 
@@ -234,6 +286,44 @@ const upsertLocalUser = async ({
   return nextUser
 }
 
+export const syncStoredUser = async (user) => {
+  if (!canUseLocalAuthFallback() || !user?.email) {
+    return null
+  }
+
+  return upsertLocalUser({
+    email: user.email,
+    name: user.name,
+    username: user.username,
+    interests: user.interests,
+    authProvider: user.authProvider || 'local',
+    location: user.location,
+    phone: user.phone,
+    bio: user.bio,
+    profilePic: user.profilePic,
+    createdAt: user.createdAt,
+    needsInterestsSelection: user.needsInterestsSelection,
+    hasCompletedOnboarding: user.hasCompletedOnboarding,
+  })
+}
+
+export const getKnownUsers = () =>
+  Object.values(getUsers())
+    .map((user) => sanitizeStoredUser(user))
+    .sort((leftUser, rightUser) => {
+      const leftCreatedAt = Date.parse(leftUser.createdAt || '')
+      const rightCreatedAt = Date.parse(rightUser.createdAt || '')
+
+      if (!Number.isNaN(leftCreatedAt) && !Number.isNaN(rightCreatedAt)) {
+        return rightCreatedAt - leftCreatedAt
+      }
+
+      if (!Number.isNaN(leftCreatedAt)) return -1
+      if (!Number.isNaN(rightCreatedAt)) return 1
+
+      return leftUser.name.localeCompare(rightUser.name)
+    })
+
 const migrateLegacyPasswordIfNeeded = async (email, user, password) => {
   if (!user || typeof user.password !== 'string' || user.passwordHash) {
     return user
@@ -243,24 +333,48 @@ const migrateLegacyPasswordIfNeeded = async (email, user, password) => {
     email,
     password,
     name: user.name,
+    username: user.username,
     interests: user.interests,
     authProvider: user.authProvider || 'local',
+    location: user.location,
+    phone: user.phone,
+    bio: user.bio,
+    profilePic: user.profilePic,
+    createdAt: user.createdAt,
+    needsInterestsSelection: user.needsInterestsSelection,
+    hasCompletedOnboarding: user.hasCompletedOnboarding,
   })
 }
 
 const createSessionFromAuthPayload = (data, email, fallbackName, authProvider) => {
   const user = data?.user || data?.data?.user || data?.data || {}
+  const localMirror = getUsers()[normalizeEmail(email)] || {}
 
   return buildSession({
-    email: user.email || email,
-    name: user.name || fallbackName || getDefaultName(email),
-    username: user.username || '',
-    interests: user.interests || [],
+    email: user.email || localMirror.email || email,
+    name: user.name || localMirror.name || fallbackName || getDefaultName(email),
+    username: user.username || localMirror.username || '',
+    interests:
+      (Array.isArray(user.interests) ? user.interests : null) || localMirror.interests || [],
     authProvider,
-    phone: user.phone || '',
-    bio: user.bio || '',
-    profilePic: user.profilePic || user.avatar || user.imageUrl || '',
-    createdAt: user.createdAt || '',
+    location: user.location || localMirror.location || '',
+    phone: user.phone || localMirror.phone || '',
+    bio: user.bio || localMirror.bio || '',
+    profilePic:
+      user.profilePic ||
+      user.avatar ||
+      user.imageUrl ||
+      localMirror.profilePic ||
+      '',
+    createdAt: user.createdAt || localMirror.createdAt || '',
+    needsInterestsSelection:
+      typeof user.needsInterestsSelection === 'boolean'
+        ? user.needsInterestsSelection
+        : Boolean(localMirror.needsInterestsSelection),
+    hasCompletedOnboarding:
+      typeof user.hasCompletedOnboarding === 'boolean'
+        ? user.hasCompletedOnboarding
+        : localMirror.hasCompletedOnboarding,
   })
 }
 
@@ -268,8 +382,16 @@ const syncLocalAuthMirror = async ({
   email,
   password,
   name,
+  username,
   interests,
   authProvider,
+  location,
+  phone,
+  bio,
+  profilePic,
+  createdAt,
+  needsInterestsSelection,
+  hasCompletedOnboarding,
 }) => {
   if (!canUseLocalAuthFallback()) {
     return
@@ -280,15 +402,23 @@ const syncLocalAuthMirror = async ({
       email,
       password,
       name,
+      username,
       interests,
       authProvider,
+      location,
+      phone,
+      bio,
+      profilePic,
+      createdAt,
+      needsInterestsSelection,
+      hasCompletedOnboarding,
     })
   } catch (error) {
     console.warn('Unable to cache the signed-in user locally:', error)
   }
 }
 
-export const getSignupEmailError = (email) => {
+export const getEmailValidationError = (email) => {
   const normalizedEmail = normalizeEmail(email)
 
   if (!normalizedEmail) {
@@ -302,6 +432,8 @@ export const getSignupEmailError = (email) => {
   return ''
 }
 
+export const getSignupEmailError = getEmailValidationError
+
 export const setSession = (session) => {
   try {
     localStorage.setItem(SESSION_KEY, JSON.stringify(buildSession(session)))
@@ -312,7 +444,7 @@ export const setSession = (session) => {
 
 export const signUp = async ({ email, password, name }) => {
   const normalizedEmail = normalizeEmail(email)
-  const emailError = getSignupEmailError(normalizedEmail)
+  const emailError = getEmailValidationError(normalizedEmail)
 
   if (emailError) {
     throw new Error(emailError)
@@ -331,14 +463,26 @@ export const signUp = async ({ email, password, name }) => {
       name: fallbackName,
     })
 
-    const session = createSessionFromAuthPayload(data, normalizedEmail, fallbackName, 'remote')
+    const session = buildSession({
+      ...createSessionFromAuthPayload(data, normalizedEmail, fallbackName, 'remote'),
+      needsInterestsSelection: true,
+      hasCompletedOnboarding: false,
+    })
     setSession(session)
     await syncLocalAuthMirror({
       email: normalizedEmail,
       password,
       name: session.name,
+      username: session.username,
       interests: session.interests,
       authProvider: 'remote',
+      location: session.location,
+      phone: session.phone,
+      bio: session.bio,
+      profilePic: session.profilePic,
+      createdAt: session.createdAt,
+      needsInterestsSelection: true,
+      hasCompletedOnboarding: false,
     })
     return session
   } catch (error) {
@@ -358,6 +502,8 @@ export const signUp = async ({ email, password, name }) => {
       name: fallbackName,
       interests: [],
       authProvider: 'local',
+      needsInterestsSelection: true,
+      hasCompletedOnboarding: false,
     })
     const session = buildSession(user)
     setSession(session)
@@ -367,9 +513,10 @@ export const signUp = async ({ email, password, name }) => {
 
 export const signIn = async ({ email, password }) => {
   const normalizedEmail = normalizeEmail(email)
+  const emailError = getEmailValidationError(normalizedEmail)
 
-  if (!normalizedEmail) {
-    throw new Error('Email is required.')
+  if (emailError) {
+    throw new Error(emailError)
   }
 
   if (!String(password || '').trim()) {
@@ -393,8 +540,16 @@ export const signIn = async ({ email, password }) => {
       email: normalizedEmail,
       password,
       name: session.name,
+      username: session.username,
       interests: session.interests,
       authProvider: 'remote',
+      location: session.location,
+      phone: session.phone,
+      bio: session.bio,
+      profilePic: session.profilePic,
+      createdAt: session.createdAt,
+      needsInterestsSelection: session.needsInterestsSelection,
+      hasCompletedOnboarding: session.hasCompletedOnboarding,
     })
     return session
   } catch (error) {
@@ -441,7 +596,8 @@ export const clearSession = () => {
 
 export const getSession = () => {
   try {
-    return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null')
+    const storedSession = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null')
+    return storedSession ? buildSession(storedSession) : null
   } catch {
     return null
   }
@@ -449,12 +605,23 @@ export const getSession = () => {
 
 export const saveInterests = async (email, interests) => {
   const normalizedEmail = normalizeEmail(email)
-  const users = getUsers()
   const session = getSession()
 
-  if (canUseLocalAuthFallback() && users[normalizedEmail]) {
-    users[normalizedEmail].interests = interests
-    saveUsers(users)
+  if (canUseLocalAuthFallback()) {
+    await upsertLocalUser({
+      email: normalizedEmail,
+      name: session?.name,
+      username: session?.username,
+      interests,
+      authProvider: session?.authProvider || 'local',
+      location: session?.location,
+      phone: session?.phone,
+      bio: session?.bio,
+      profilePic: session?.profilePic,
+      createdAt: session?.createdAt,
+      needsInterestsSelection: false,
+      hasCompletedOnboarding: true,
+    })
   }
 
   const shouldSyncRemoteProfile =
@@ -469,6 +636,8 @@ export const saveInterests = async (email, interests) => {
         const nextSession = {
           ...session,
           interests: Array.isArray(remoteUser.interests) ? remoteUser.interests : interests,
+          needsInterestsSelection: false,
+          hasCompletedOnboarding: true,
         }
         localStorage.setItem(SESSION_KEY, JSON.stringify(nextSession))
       }
@@ -481,6 +650,8 @@ export const saveInterests = async (email, interests) => {
 
   if (session) {
     session.interests = interests
+    session.needsInterestsSelection = false
+    session.hasCompletedOnboarding = true
     localStorage.setItem(SESSION_KEY, JSON.stringify(session))
   }
 }
