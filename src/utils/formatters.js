@@ -176,13 +176,23 @@ export const formatEventSchedule = (event) => {
   }
 
   const rawDate = typeof event.rawDate === 'string' ? event.rawDate.trim() : ''
+  const timeLabel = typeof event.timeLabel === 'string' ? event.timeLabel.trim() : ''
+
   if (rawDate) {
     return rawDate
   }
 
+  if (
+    timeLabel &&
+    /(?:mon|tue|wed|thu|fri|sat|sun|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(
+      timeLabel,
+    )
+  ) {
+    return timeLabel
+  }
+
   const startDate = parseEventDate(event.startDate)
   const endDate = parseEventDate(event.endDate)
-  const timeLabel = typeof event.timeLabel === 'string' ? event.timeLabel.trim() : ''
 
   if (startDate && endDate && endDate.getTime() !== startDate.getTime()) {
     if (timeLabel) {
