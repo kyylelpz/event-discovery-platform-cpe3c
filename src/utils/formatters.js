@@ -33,6 +33,21 @@ const eventDayFormatter = new Intl.DateTimeFormat('en-PH', {
 
 const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate())
 
+const monthIndexMap = {
+  jan: 0,
+  feb: 1,
+  mar: 2,
+  apr: 3,
+  may: 4,
+  jun: 5,
+  jul: 6,
+  aug: 7,
+  sep: 8,
+  oct: 9,
+  nov: 10,
+  dec: 11,
+}
+
 export const formatDateKey = (dateValue) => {
   const parsedDate = parseEventDate(dateValue)
 
@@ -75,7 +90,30 @@ export const parseEventDate = (dateValue) => {
   return Number.isNaN(parsedValue.getTime()) ? null : parsedValue
 }
 
-const extractRangeDatesFromText = (textValue) => {
+const parseLooseMonthDate = (value, fallbackYear = new Date().getFullYear()) => {
+  if (!value) {
+    return null
+  }
+
+  const match = String(value)
+    .trim()
+    .match(/(?:[A-Za-z]{3,9},?\s+)?([A-Za-z]{3,9})\s+(\d{1,2})(?:,\s*(\d{4}))?/i)
+
+  if (!match) {
+    return null
+  }
+
+  const [, monthText, dayText, explicitYear] = match
+  const monthIndex = monthIndexMap[monthText.slice(0, 3).toLowerCase()]
+
+  if (monthIndex === undefined) {
+    return null
+  }
+
+  return new Date(Number(explicitYear || fallbackYear), monthIndex, Number(dayText))
+}
+
+const extractRangeDatesFromText = (textValue, fallbackYear) => {
   if (!textValue) {
     return { startDate: null, endDate: null }
   }
@@ -91,8 +129,8 @@ const extractRangeDatesFromText = (textValue) => {
   )
 
   if (rangeMatch) {
-    const startDate = parseEventDate(rangeMatch[1])
-    const endDate = parseEventDate(rangeMatch[2])
+    const startDate = parseEventDate(rangeMatch[1]) || parseLooseMonthDate(rangeMatch[1], fallbackYear)
+    const endDate = parseEventDate(rangeMatch[2]) || parseLooseMonthDate(rangeMatch[2], fallbackYear)
     return { startDate, endDate }
   }
 
@@ -101,7 +139,9 @@ const extractRangeDatesFromText = (textValue) => {
   )
 
   if (dateMatches?.length) {
-    const parsedDates = dateMatches.map((item) => parseEventDate(item)).filter(Boolean)
+    const parsedDates = dateMatches
+      .map((item) => parseEventDate(item) || parseLooseMonthDate(item, fallbackYear))
+      .filter(Boolean)
 
     if (parsedDates.length) {
       return {
@@ -115,17 +155,48 @@ const extractRangeDatesFromText = (textValue) => {
 }
 
 const deriveRangeFromEventText = (event) => {
+  const directStartDate = parseEventDate(event?.startDate)
+  const fallbackYear = directStartDate?.getFullYear() || new Date().getFullYear()
   const candidateRanges = [
-    extractRangeDatesFromText(event?.rawDate),
-    extractRangeDatesFromText(event?.timeLabel),
-    extractRangeDatesFromText(event?.dateText),
+    extractRangeDatesFromText(event?.rawDate, fallbackYear),
+    extractRangeDatesFromText(event?.timeLabel, fallbackYear),
+    extractRangeDatesFromText(event?.dateText, fallbackYear),
   ]
 
-  return (
-    candidateRanges.find((candidate) => candidate.startDate || candidate.endDate) || {
-      startDate: null,
-      endDate: null,
+  return candidateRanges.reduce(
+    (bestRange, candidate) => {
+      if (!candidate.startDate && !candidate.endDate) {
+        return bestRange
+      }
+
+      if (!bestRange.startDate && !bestRange.endDate) {
+        return candidate
+      }
+
+      const bestStart = bestRange.startDate || bestRange.endDate
+      const bestEnd = bestRange.endDate || bestRange.startDate
+      const candidateStart = candidate.startDate || candidate.endDate
+      const candidateEnd = candidate.endDate || candidate.startDate
+
+      if (!bestStart || !bestEnd) {
+        return candidate
+      }
+
+      if (!candidateStart || !candidateEnd) {
+        return bestRange
+      }
+
+      const bestDuration = bestEnd.getTime() - bestStart.getTime()
+      const candidateDuration = candidateEnd.getTime() - candidateStart.getTime()
+
+      if (candidateDuration > bestDuration) {
+        return candidate
+      }
+
+      return bestRange
     }
+    ,
+    { startDate: null, endDate: null },
   )
 }
 
@@ -139,7 +210,7 @@ export const getEventDateRange = (event) => {
     event?.end_local
   const directEndDate = parseEventDate(rawEndDate)
   const derivedRange = deriveRangeFromEventText(event)
-  const startDate = directStartDate || derivedRange.startDate
+  const startDate = derivedRange.startDate || directStartDate
   const parsedEndDate = directEndDate || derivedRange.endDate
 
   if (!startDate) {
