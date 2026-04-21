@@ -8,6 +8,11 @@ const textEncoder = new TextEncoder()
 
 const normalizeEmail = (value) => String(value || '').trim().toLowerCase()
 const getDefaultName = (email) => normalizeEmail(email).split('@')[0] || 'Eventcinity user'
+const getDefaultUsername = (email) =>
+  getDefaultName(email)
+    .replace(/[^a-z0-9]+/gi, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase() || 'eventcinity-user'
 const isBrowser = typeof window !== 'undefined'
 
 export const isHostedAuthEnvironment = () => {
@@ -52,7 +57,7 @@ const buildSession = ({
 }) => ({
   email: normalizeEmail(email),
   name: String(name || '').trim() || getDefaultName(email),
-  username: String(username || '').trim(),
+  username: String(username || getDefaultUsername(email)).trim(),
   interests: Array.isArray(interests) ? interests : [],
   authProvider,
   phone: String(phone || '').trim(),
@@ -201,6 +206,7 @@ const upsertLocalUser = async ({
     ...existingUser,
     email: normalizedEmail,
     name: String(name || existingUser.name || getDefaultName(normalizedEmail)).trim(),
+    username: String(existingUser.username || getDefaultUsername(normalizedEmail)).trim(),
     interests: Array.isArray(interests) ? interests : existingUser.interests || [],
     createdAt: existingUser.createdAt || new Date().toISOString(),
     authProvider,

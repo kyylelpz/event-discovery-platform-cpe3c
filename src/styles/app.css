@@ -198,6 +198,13 @@
   border: 1px solid var(--color-border);
   border-radius: 16px;
   background: rgba(45, 59, 21, 0.05);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.topbar__account:hover {
+  background: rgba(45, 59, 21, 0.08);
 }
 
 .topbar__account-copy {
@@ -239,6 +246,12 @@
 
 .profile-menu__trigger:hover {
   background: rgba(45, 59, 21, 0.08);
+}
+
+.topbar__account:focus-visible,
+.profile-menu__trigger:focus-visible {
+  outline: 2px solid rgba(193, 127, 74, 0.35);
+  outline-offset: 2px;
 }
 
 .profile-menu__panel {
@@ -355,6 +368,12 @@
   background: rgba(252, 252, 252, 0.65);
 }
 
+.profile-menu__actions {
+  display: grid;
+  gap: 10px;
+}
+
+.profile-menu__action,
 .profile-menu__signout {
   width: 100%;
 }
@@ -1424,23 +1443,42 @@
   line-height: 1.7;
 }
 
+.profile-page__email {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.profile-page__info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.profile-page__interest-section {
+  gap: 16px;
+}
+
+.profile-page__chips {
+  gap: 10px;
+}
+
 .profile-card__meta {
   font-size: 0.95rem;
   grid-template-columns: repeat(2, max-content);
-}
-
-.profile-card__button {
-  width: max-content;
 }
 
 .profile-tabs {
   display: flex;
   align-items: center;
   gap: 16px;
+  flex-wrap: wrap;
   border-bottom: 1px solid var(--color-border);
 }
 
 .profile-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   padding: 0 0 14px;
   border: 0;
   border-bottom: 2px solid transparent;
@@ -1790,6 +1828,7 @@
 
   .category-highlight,
   .event-grid,
+  .profile-page__info-grid,
   .people-grid,
   .info-page__grid,
   .programmer-grid,
