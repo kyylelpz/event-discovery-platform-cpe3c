@@ -29,7 +29,7 @@ function EventDetailPage({
   const isAttending = interactions.attending.includes(event.id)
   const isHearted = interactions.hearted.includes(event.id)
   const scheduleLabel = formatEventSchedule(event)
-  const detailImage = getResponsiveImageProps(event.image, [960, 1600, 2400])
+  const detailImage = getResponsiveImageProps(event.image)
   const locationHref = event.mapUrl
   const mapQuery = event.mapLabel || event.location
   const mapEmbedUrl = buildGoogleMapsEmbedUrl(mapQuery)
@@ -168,7 +168,7 @@ function EventDetailPage({
 
               <div className="detail-panel__actions">
                 <PrimaryButton
-                  onClick={() => onToggleAttend(event.id)}
+                  onClick={() => onToggleAttend(event)}
                   className="detail-panel__attend"
                 >
                   {isAttending ? 'Attending' : 'Attend Event'}
@@ -178,7 +178,7 @@ function EventDetailPage({
                   <button
                     type="button"
                     className="icon-box"
-                    onClick={() => onToggleHeart(event.id)}
+                    onClick={() => onToggleHeart(event)}
                   >
                     <HeartIcon
                       filled={isHearted}
@@ -188,7 +188,7 @@ function EventDetailPage({
                   <button
                     type="button"
                     className="icon-box"
-                    onClick={() => onToggleSave(event.id)}
+                    onClick={() => onToggleSave(event)}
                   >
                     <BookmarkIcon
                       filled={isSaved}

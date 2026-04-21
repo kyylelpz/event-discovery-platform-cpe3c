@@ -1,5 +1,4 @@
 import { API_BASE_URL } from './apiBase.js'
-import { saveUserInterests, syncUserDatabaseProfile } from './userDatabaseService.js'
 
 const USERS_KEY = 'eventcinity_users'
 const SESSION_KEY = 'eventcinity_session'
@@ -462,7 +461,6 @@ export const setSession = (session) => {
   try {
     const normalizedSession = buildSession(session)
     localStorage.setItem(SESSION_KEY, JSON.stringify(normalizedSession))
-    syncUserDatabaseProfile(normalizedSession)
   } catch (error) {
     console.warn('Unable to persist the active session locally:', error)
   }
@@ -660,8 +658,6 @@ export const saveInterests = async (email, interests) => {
       shouldShowInterestsPrompt: false,
     })
   }
-
-  saveUserInterests(normalizedEmail, interests)
 
   const shouldSyncRemoteProfile =
     session?.authProvider === 'remote' || isHostedAuthEnvironment()

@@ -20,7 +20,7 @@ function EventCard({
   const isSaved = interactions.saved.includes(event.id)
   const isAttending = interactions.attending.includes(event.id)
   const scheduleLabel = formatEventSchedule(event)
-  const eventImage = getResponsiveImageProps(event.image, [640, 960, 1400])
+  const eventImage = getResponsiveImageProps(event.image)
   const locationHref = event.mapUrl
   const handleImageError = (eventObject) => {
     if (!event.fallbackImage || eventObject.currentTarget.dataset.fallbackApplied === 'true') {
@@ -56,7 +56,7 @@ function EventCard({
             className="icon-badge"
             onClick={(eventObject) => {
               eventObject.stopPropagation()
-              onToggleHeart(event.id)
+              onToggleHeart(event)
             }}
             aria-label="Heart event"
           >
@@ -70,7 +70,7 @@ function EventCard({
             className="icon-badge"
             onClick={(eventObject) => {
               eventObject.stopPropagation()
-              onToggleSave(event.id)
+              onToggleSave(event)
             }}
             aria-label="Save event"
           >
@@ -122,7 +122,7 @@ function EventCard({
           <button
             type="button"
             className={`attend-chip ${isAttending ? 'attend-chip--active' : ''}`}
-            onClick={() => onToggleAttend(event.id)}
+            onClick={() => onToggleAttend(event)}
           >
             {isAttending && <CheckIcon />}
             <span>{isAttending ? 'Attending' : 'Attend'}</span>
