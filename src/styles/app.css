@@ -319,6 +319,7 @@
 }
 
 .find-events-picker__day {
+  position: relative;
   min-height: 38px;
   border: 0;
   border-radius: 12px;
@@ -330,13 +331,36 @@
   background: rgba(45, 59, 21, 0.08);
 }
 
+.find-events-picker__day:disabled {
+  cursor: default;
+}
+
 .find-events-picker__day--muted {
   color: rgba(105, 98, 88, 0.45);
+}
+
+.find-events-picker__day--available {
+  background: rgba(45, 59, 21, 0.06);
+  font-weight: 600;
 }
 
 .find-events-picker__day--selected {
   background: var(--color-accent);
   color: var(--color-surface);
+}
+
+.find-events-picker__count {
+  position: absolute;
+  right: 6px;
+  bottom: 4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: rgba(45, 59, 21, 0.12);
+  color: inherit;
+  font-size: 0.64rem;
+  line-height: 16px;
 }
 
 .topbar__mobile {

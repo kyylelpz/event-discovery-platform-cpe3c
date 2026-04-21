@@ -42,6 +42,20 @@ const mergeEvents = (...eventGroups) => {
   return [...merged.values()]
 }
 
+const toDateKey = (dateValue) => {
+  const parsedDate = parseEventDate(dateValue)
+
+  if (!parsedDate) {
+    return null
+  }
+
+  const year = parsedDate.getFullYear()
+  const month = `${parsedDate.getMonth() + 1}`.padStart(2, '0')
+  const day = `${parsedDate.getDate()}`.padStart(2, '0')
+
+  return `${year}-${month}-${day}`
+}
+
 function App() {
   const [pathname, setPathname] = useState(() => window.location.pathname)
   const [currentUser, setCurrentUser] = useState(() => getSession())
@@ -150,6 +164,18 @@ function App() {
   const normalizedSearch = deferredSearchTerm.trim().toLowerCase()
   const featuredPool = allEvents.length ? allEvents : seedEvents
   const isCalendarDateMode = Boolean(selectedCalendarDate)
+  const availableDateCounts = useMemo(() => {
+    return allEvents.reduce((counts, event) => {
+      const dateKey = toDateKey(event.startDate)
+
+      if (!dateKey) {
+        return counts
+      }
+
+      counts[dateKey] = (counts[dateKey] || 0) + 1
+      return counts
+    }, {})
+  }, [allEvents])
 
   const filteredEvents = allEvents.filter((event) => {
     if (isCalendarDateMode) {
@@ -399,6 +425,7 @@ function App() {
     locations: locationOptions,
     selectedLocation,
     onLocationChange: handleLocationChange,
+    availableDateCounts,
     selectedCalendarDate,
     onCalendarDateChange: (value) => {
       setCurrentEventsPage(1)
