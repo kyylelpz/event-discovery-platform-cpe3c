@@ -9,7 +9,7 @@ import {
   MapPinIcon,
   ShareIcon,
 } from '../../components/ui/Icons.jsx'
-import { formatEventSchedule } from '../../utils/formatters.js'
+import { formatEventSchedule, getResponsiveImageProps } from '../../utils/formatters.js'
 
 function EventDetailPage({
   event,
@@ -24,12 +24,22 @@ function EventDetailPage({
   const isAttending = interactions.attending.includes(event.id)
   const isHearted = interactions.hearted.includes(event.id)
   const scheduleLabel = formatEventSchedule(event)
+  const detailImage = getResponsiveImageProps(event.image, [960, 1600, 2400])
 
   return (
     <div className="page-stack page-stack--detail">
       <section className="detail-hero">
         <div className="detail-hero__image-wrap">
-          <img className="detail-hero__image" src={event.image} alt={event.imageLabel} />
+          <img
+            className="detail-hero__image"
+            src={detailImage.src}
+            srcSet={detailImage.srcSet}
+            sizes="100vw"
+            alt={event.imageLabel}
+            loading="eager"
+            decoding="async"
+            fetchPriority="high"
+          />
           <div className="detail-hero__overlay">
             <CategoryTag>{event.category}</CategoryTag>
           </div>

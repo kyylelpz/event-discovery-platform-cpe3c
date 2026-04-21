@@ -14,6 +14,24 @@ export const routes = {
   aboutProgrammers: '/about-the-programmers',
 }
 
+export const normalizeRoutePath = (pathname) => {
+  if (!pathname) {
+    return '/'
+  }
+
+  const cleanPath = pathname === '/' ? '/' : pathname.replace(/\/+$/, '') || '/'
+
+  if (cleanPath === '/event') {
+    return routes.events
+  }
+
+  if (cleanPath.startsWith('/event/')) {
+    return `/events/${cleanPath.slice('/event/'.length)}`
+  }
+
+  return cleanPath
+}
+
 export const slugify = (value) =>
   value
     .trim()
@@ -22,9 +40,7 @@ export const slugify = (value) =>
     .replace(/^-+|-+$/g, '')
 
 export const resolveRoute = (pathname) => {
-  console.log('resolveRoute called with:', pathname)
-
-  const cleanPath = pathname === '/' ? '/events' : pathname.replace(/\/$/, '') || '/events'
+  const cleanPath = normalizeRoutePath(pathname === '/' ? '/events' : pathname || '/events')
   const parts = cleanPath.split('/').filter(Boolean)
 
   if (cleanPath === '/events') {

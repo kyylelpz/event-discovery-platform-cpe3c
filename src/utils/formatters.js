@@ -413,13 +413,117 @@ export const getEventDateKeys = (event) => {
   return dateKeys
 }
 
+const normalizeImageProtocol = (imageUrl) => {
+  if (typeof imageUrl !== 'string') {
+    return imageUrl
+  }
+
+  return imageUrl.startsWith('//') ? `https:${imageUrl}` : imageUrl
+}
+
+const updateNumericSearchParams = (searchParams, keys, nextValue) => {
+  let updated = false
+
+  keys.forEach((key) => {
+    if (searchParams.has(key)) {
+      searchParams.set(key, String(nextValue))
+      updated = true
+    }
+  })
+
+  return updated
+}
+
+const optimizeCloudinaryImageUrl = (imageUrl, width) => {
+  if (!imageUrl.includes('/image/upload/')) {
+    return imageUrl
+  }
+
+  const [prefix, suffix] = imageUrl.split('/image/upload/')
+
+  if (!suffix) {
+    return imageUrl
+  }
+
+  const firstSegment = suffix.split('/')[0]
+  const alreadyHasTransforms = firstSegment && !/^v\d+$/i.test(firstSegment)
+
+  if (alreadyHasTransforms) {
+    return imageUrl
+  }
+
+  return `${prefix}/image/upload/f_auto,q_auto:good,w_${width}/${suffix}`
+}
+
+const optimizeGoogleHostedImageUrl = (imageUrl, width) => {
+  const targetHeight = Math.max(900, Math.round(width * 0.625))
+
+  try {
+    const url = new URL(imageUrl)
+    const isGoogleHosted = /(googleusercontent\.com|ggpht\.com|googleapis\.com|gstatic\.com)$/i.test(
+      url.hostname,
+    )
+
+    if (!isGoogleHosted) {
+      return imageUrl
+    }
+
+    const updatedWidth = updateNumericSearchParams(url.searchParams, ['w', 'width', 'sz', 's'], width)
+    const updatedHeight = updateNumericSearchParams(url.searchParams, ['h', 'height'], targetHeight)
+    const updatedQuality = updateNumericSearchParams(url.searchParams, ['q', 'quality'], 90)
+
+    if (updatedWidth || updatedHeight || updatedQuality) {
+      return url.toString()
+    }
+  } catch {
+    return imageUrl
+  }
+
+  if (/=([a-z0-9,_-]+)$/i.test(imageUrl)) {
+    return imageUrl.replace(/=([a-z0-9,_-]+)$/i, `=w${width}-h${targetHeight}-p-k-no-nu`)
+  }
+
+  return imageUrl
+}
+
+const optimizeGenericImageUrl = (imageUrl, width) => {
+  const targetHeight = Math.max(900, Math.round(width * 0.625))
+
+  try {
+    const url = new URL(imageUrl)
+    let updated = false
+
+    updated = updateNumericSearchParams(
+      url.searchParams,
+      ['w', 'width', 'maxwidth', 'imwidth'],
+      width,
+    ) || updated
+    updated = updateNumericSearchParams(
+      url.searchParams,
+      ['h', 'height', 'maxheight'],
+      targetHeight,
+    ) || updated
+    updated = updateNumericSearchParams(url.searchParams, ['q', 'quality'], 90) || updated
+
+    return updated ? url.toString() : imageUrl
+  } catch {
+    return imageUrl
+  }
+}
+
 export const getOptimizedImageUrl = (imageUrl, width = 1600) => {
   if (!imageUrl) {
     return ''
   }
 
+  const normalizedUrl = normalizeImageProtocol(imageUrl)
+
+  if (/^data:/i.test(normalizedUrl)) {
+    return normalizedUrl
+  }
+
   try {
-    const url = new URL(imageUrl)
+    const url = new URL(normalizedUrl)
 
     if (url.hostname.includes('images.unsplash.com')) {
       url.searchParams.set('auto', 'format')
@@ -429,10 +533,40 @@ export const getOptimizedImageUrl = (imageUrl, width = 1600) => {
       url.searchParams.set('w', String(width))
       return url.toString()
     }
-
-    return imageUrl
   } catch {
-    return imageUrl
+    return normalizedUrl
+  }
+
+  const cloudinaryUrl = optimizeCloudinaryImageUrl(normalizedUrl, width)
+  const googleHostedUrl = optimizeGoogleHostedImageUrl(cloudinaryUrl, width)
+
+  return optimizeGenericImageUrl(googleHostedUrl, width)
+}
+
+export const getResponsiveImageProps = (imageUrl, widths = [1600]) => {
+  if (!imageUrl || /^data:/i.test(String(imageUrl))) {
+    return {
+      src: getOptimizedImageUrl(imageUrl),
+      srcSet: undefined,
+    }
+  }
+
+  const sortedWidths = Array.from(
+    new Set(widths.filter((value) => Number.isFinite(value) && value > 0)),
+  ).sort((left, right) => left - right)
+
+  if (!sortedWidths.length) {
+    return {
+      src: getOptimizedImageUrl(imageUrl),
+      srcSet: undefined,
+    }
+  }
+
+  return {
+    src: getOptimizedImageUrl(imageUrl, sortedWidths[sortedWidths.length - 1]),
+    srcSet: sortedWidths
+      .map((currentWidth) => `${getOptimizedImageUrl(imageUrl, currentWidth)} ${currentWidth}w`)
+      .join(', '),
   }
 }
 

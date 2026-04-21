@@ -1,0 +1,15 @@
+Options -MultiViews
+RewriteEngine On
+
+# Redirect the legacy singular route to the canonical plural route.
+RewriteRule ^event/?$ /events [R=301,L,NC]
+RewriteRule ^event/(.+)$ /events/$1 [R=301,L,NC]
+
+# Let Apache serve real files and folders normally.
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Make client-side routes reload into the app shell instead of a server 404.
+RewriteRule ^ index.html [L]
+ErrorDocument 404 /index.html

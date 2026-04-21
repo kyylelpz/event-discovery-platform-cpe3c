@@ -6,7 +6,7 @@ import {
   HeartIcon,
   MapPinIcon,
 } from '../ui/Icons.jsx'
-import { formatEventSchedule, getOptimizedImageUrl } from '../../utils/formatters.js'
+import { formatEventSchedule, getResponsiveImageProps } from '../../utils/formatters.js'
 
 function EventCard({
   event,
@@ -20,6 +20,7 @@ function EventCard({
   const isSaved = interactions.saved.includes(event.id)
   const isAttending = interactions.attending.includes(event.id)
   const scheduleLabel = formatEventSchedule(event)
+  const eventImage = getResponsiveImageProps(event.image, [640, 960, 1400])
 
   return (
     <article className="event-card">
@@ -29,7 +30,9 @@ function EventCard({
         style={{ cursor: 'pointer' }}
       >
         <img
-          src={getOptimizedImageUrl(event.image, 1200)}
+          src={eventImage.src}
+          srcSet={eventImage.srcSet}
+          sizes="(max-width: 720px) 100vw, (max-width: 1200px) 50vw, 33vw"
           alt={event.imageLabel}
           loading="lazy"
           decoding="async"
