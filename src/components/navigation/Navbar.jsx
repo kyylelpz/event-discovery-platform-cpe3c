@@ -20,6 +20,7 @@ import { formatCalendarMonth, isSameCalendarDate, parseEventDate } from '../../u
 function Navbar({
   currentPath,
   onNavigate,
+  onGoToDashboard,
   searchTerm,
   onSearchChange,
   searchResults,
@@ -40,7 +41,7 @@ function Navbar({
   return (
     <header className="topbar">
       <div className="topbar__desktop">
-        <button className="brandmark" type="button" onClick={() => onNavigate(routes.events)}>
+        <button className="brandmark" type="button" onClick={onGoToDashboard}>
           <span className="brandmark__logo-frame" aria-hidden="true">
             <img className="brandmark__logo" src={brandLogo} alt="" />
           </span>
@@ -110,6 +111,7 @@ function Navbar({
       <MobileNavbar
         currentPath={currentPath}
         onNavigate={onNavigate}
+        onGoToDashboard={onGoToDashboard}
         searchTerm={searchTerm}
         onSearchChange={onSearchChange}
         searchResults={searchResults}
@@ -131,6 +133,7 @@ function Navbar({
 function MobileNavbar({
   currentPath,
   onNavigate,
+  onGoToDashboard,
   searchTerm,
   onSearchChange,
   searchResults,
@@ -153,7 +156,7 @@ function MobileNavbar({
   return (
     <details className="topbar__mobile" open={false}>
       <summary>
-        <button className="brandmark" type="button" onClick={() => onNavigate(routes.events)}>
+        <button className="brandmark" type="button" onClick={onGoToDashboard}>
           <span className="brandmark__logo-frame" aria-hidden="true">
             <img className="brandmark__logo" src={brandLogo} alt="" />
           </span>

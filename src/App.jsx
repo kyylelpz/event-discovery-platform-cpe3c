@@ -379,6 +379,11 @@ function App() {
   const navProps = {
     currentPath: pathname === '/' ? routes.events : pathname,
     onNavigate: navigate,
+    onGoToDashboard: () => {
+      setCurrentEventsPage(1)
+      setSelectedCalendarDate(null)
+      navigate(routes.events)
+    },
     searchTerm,
     onSearchChange: handleSearchChange,
     searchResults,
@@ -479,7 +484,7 @@ function App() {
     page = (
       <EventDiscoveryPage
         featuredEvent={featuredEvent}
-        events={paginatedEvents}
+        events={isCalendarDateMode ? sortedEvents : paginatedEvents}
         filteredCount={filteredEvents.length}
         currentPage={activeEventPage}
         totalPages={totalEventPages}
