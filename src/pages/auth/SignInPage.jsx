@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { PrimaryButton } from '../../components/ui/Button.jsx'
 import { API_BASE_URL } from '../../services/apiBase.js'
-import { getSignupEmailError, signIn, signUp } from '../../services/authService.js'
+import { getEmailValidationError, signIn, signUp } from '../../services/authService.js'
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap');
@@ -280,13 +280,11 @@ function SignInPage({ onAuthSuccess }) {
       return
     }
 
-    if (isSignUp) {
-      const emailError = getSignupEmailError(normalizedEmail)
+    const emailError = getEmailValidationError(normalizedEmail)
 
-      if (emailError) {
-        setError(emailError)
-        return
-      }
+    if (emailError) {
+      setError(emailError)
+      return
     }
 
     if (isSignUp && password !== confirmPassword) {
@@ -359,7 +357,7 @@ function SignInPage({ onAuthSuccess }) {
                 placeholder="you@example.com"
                 autoComplete="email"
                 inputMode="email"
-                pattern={isSignUp ? '^[^\\s@]+@[^\\s@]+\\.com$' : undefined}
+                pattern="^[^\\s@]+@[^\\s@]+\\.com$"
                 autoFocus
               />
             </div>
