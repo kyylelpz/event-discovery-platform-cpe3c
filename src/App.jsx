@@ -495,7 +495,6 @@ function App() {
         selectedCalendarDate={selectedCalendarDate}
         onClearCalendarDate={() => setSelectedCalendarDate(null)}
         onNavigate={navigate}
-        currentUser={currentUser}
         {...sharedPageProps}
       />
     )

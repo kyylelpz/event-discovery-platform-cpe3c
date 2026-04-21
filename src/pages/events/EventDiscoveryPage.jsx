@@ -35,7 +35,7 @@ function EventDiscoveryPage({
         <section className="section-block">
           <div className="section-block__heading">
             <h2>Browse by Category</h2>
-            <p>Explore events that match your interests.</p>
+            <p>Explore events by category and discover what is happening next.</p>
           </div>
           <CategoryHighlight value={selectedCategory} onCategoryClick={onCategoryChange} />
         </section>
