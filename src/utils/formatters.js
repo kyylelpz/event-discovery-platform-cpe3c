@@ -562,6 +562,16 @@ export const buildGoogleMapsSearchUrl = (query) => {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(normalizedQuery)}`
 }
 
+export const buildGoogleMapsEmbedUrl = (query) => {
+  const normalizedQuery = typeof query === 'string' ? query.trim() : ''
+
+  if (!normalizedQuery) {
+    return ''
+  }
+
+  return `https://www.google.com/maps?q=${encodeURIComponent(normalizedQuery)}&z=15&output=embed`
+}
+
 export const getResponsiveImageProps = (imageUrl, widths = [1600]) => {
   if (!imageUrl || typeof imageUrl !== 'string' || /^data:/i.test(String(imageUrl))) {
     return {
@@ -589,20 +599,41 @@ export const getResponsiveImageProps = (imageUrl, widths = [1600]) => {
   }
 }
 
+const escapeSvgText = (value) =>
+  String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+
+const truncateSvgText = (value, maxLength) => {
+  const normalizedValue = String(value || '').replace(/\s+/g, ' ').trim()
+
+  if (!normalizedValue || normalizedValue.length <= maxLength) {
+    return normalizedValue
+  }
+
+  return `${normalizedValue.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`
+}
+
 export const createPosterDataUri = ({ title, location, category }) => {
+  const safeCategory = escapeSvgText(truncateSvgText(category || 'Community', 22))
+  const safeTitle = escapeSvgText(truncateSvgText(title || 'Event preview', 68))
+  const safeLocation = escapeSvgText(truncateSvgText(location || 'Philippines', 96))
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="800" height="520" viewBox="0 0 800 520" fill="none">
       <rect width="800" height="520" rx="40" fill="${palette.background}"/>
       <rect x="32" y="32" width="736" height="456" rx="28" fill="${palette.background}" stroke="${palette.neutral}" stroke-width="4"/>
       <rect x="64" y="64" width="148" height="32" rx="16" fill="${palette.accent}"/>
       <text x="138" y="85" font-family="Avenir, Avenir Next, sans-serif" font-size="16" font-weight="700" text-anchor="middle" fill="${palette.background}">
-        ${category}
+        ${safeCategory}
       </text>
       <text x="64" y="180" font-family="Avenir, Avenir Next, sans-serif" font-size="54" font-weight="800" fill="${palette.text}">
-        ${title}
+        ${safeTitle}
       </text>
       <text x="64" y="360" font-family="Avenir, Avenir Next, sans-serif" font-size="22" font-weight="500" fill="${palette.muted}">
-        ${location}
+        ${safeLocation}
       </text>
       <line x1="64" y1="404" x2="736" y2="404" stroke="${palette.neutral}" stroke-width="3"/>
       <text x="64" y="450" font-family="Avenir, Avenir Next, sans-serif" font-size="18" font-weight="500" fill="${palette.accent}">
