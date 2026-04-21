@@ -491,6 +491,15 @@ const optimizeGenericImageUrl = (imageUrl, width) => {
 
   try {
     const url = new URL(imageUrl)
+    const isKnownResizableHost =
+      /(images\.ctfassets\.net|images\.prismic\.io|images\.contentstack\.io|cdn\.shopify\.com)$/i.test(
+        url.hostname,
+      )
+
+    if (!isKnownResizableHost) {
+      return imageUrl
+    }
+
     let updated = false
 
     updated = updateNumericSearchParams(
@@ -512,11 +521,11 @@ const optimizeGenericImageUrl = (imageUrl, width) => {
 }
 
 export const getOptimizedImageUrl = (imageUrl, width = 1600) => {
-  if (!imageUrl) {
+  if (!imageUrl || typeof imageUrl !== 'string') {
     return ''
   }
 
-  const normalizedUrl = normalizeImageProtocol(imageUrl)
+  const normalizedUrl = normalizeImageProtocol(imageUrl.trim())
 
   if (/^data:/i.test(normalizedUrl)) {
     return normalizedUrl
@@ -543,8 +552,18 @@ export const getOptimizedImageUrl = (imageUrl, width = 1600) => {
   return optimizeGenericImageUrl(googleHostedUrl, width)
 }
 
+export const buildGoogleMapsSearchUrl = (query) => {
+  const normalizedQuery = typeof query === 'string' ? query.trim() : ''
+
+  if (!normalizedQuery) {
+    return ''
+  }
+
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(normalizedQuery)}`
+}
+
 export const getResponsiveImageProps = (imageUrl, widths = [1600]) => {
-  if (!imageUrl || /^data:/i.test(String(imageUrl))) {
+  if (!imageUrl || typeof imageUrl !== 'string' || /^data:/i.test(String(imageUrl))) {
     return {
       src: getOptimizedImageUrl(imageUrl),
       srcSet: undefined,

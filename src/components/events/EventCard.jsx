@@ -21,6 +21,16 @@ function EventCard({
   const isAttending = interactions.attending.includes(event.id)
   const scheduleLabel = formatEventSchedule(event)
   const eventImage = getResponsiveImageProps(event.image, [640, 960, 1400])
+  const locationHref = event.mapUrl
+  const handleImageError = (eventObject) => {
+    if (!event.fallbackImage || eventObject.currentTarget.dataset.fallbackApplied === 'true') {
+      return
+    }
+
+    eventObject.currentTarget.dataset.fallbackApplied = 'true'
+    eventObject.currentTarget.src = event.fallbackImage
+    eventObject.currentTarget.srcset = ''
+  }
 
   return (
     <article className="event-card">
@@ -36,6 +46,7 @@ function EventCard({
           alt={event.imageLabel}
           loading="lazy"
           decoding="async"
+          onError={handleImageError}
         />
 
         <div className="event-card__actions-overlay">
@@ -90,7 +101,19 @@ function EventCard({
           </p>
           <p>
             <MapPinIcon />
-            <span>{event.location}</span>
+            {locationHref ? (
+              <a
+                className="event-card__location-link"
+                href={locationHref}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(eventObject) => eventObject.stopPropagation()}
+              >
+                {event.location}
+              </a>
+            ) : (
+              <span>{event.location}</span>
+            )}
           </p>
         </div>
 
