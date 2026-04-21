@@ -11,8 +11,12 @@ const normalizeExternalUrl = (value) =>
 
 const invalidEventImagePatterns = [
   /googleapis\.com\/maps/i,
+  /maps\.google/i,
   /staticmap/i,
   /maps\.gstatic/i,
+  /gstatic\.com\/map/i,
+  /streetview/i,
+  /encrypted-tbn/i,
   /placehold/i,
 ]
 
@@ -122,7 +126,7 @@ const isUsableEventImage = (imageUrl) =>
 const pickImageUrl = (...values) => {
   const candidates = Array.from(new Set(values.flatMap((value) => collectImageCandidates(value))))
 
-  return candidates.find((candidate) => isUsableEventImage(candidate)) || candidates[0] || ''
+  return candidates.find((candidate) => isUsableEventImage(candidate)) || ''
 }
 
 const joinUniqueText = (...values) => {

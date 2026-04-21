@@ -3,13 +3,18 @@ import { PrimaryButton } from '../../components/ui/Button.jsx'
 import CategoryTag from '../../components/ui/CategoryTag.jsx'
 import UserAvatar from '../../components/ui/UserAvatar.jsx'
 import {
+  ArrowRightIcon,
   BookmarkIcon,
   CalendarIcon,
   HeartIcon,
   MapPinIcon,
   ShareIcon,
 } from '../../components/ui/Icons.jsx'
-import { formatEventSchedule, getResponsiveImageProps } from '../../utils/formatters.js'
+import {
+  buildGoogleMapsEmbedUrl,
+  formatEventSchedule,
+  getResponsiveImageProps,
+} from '../../utils/formatters.js'
 
 function EventDetailPage({
   event,
@@ -26,6 +31,8 @@ function EventDetailPage({
   const scheduleLabel = formatEventSchedule(event)
   const detailImage = getResponsiveImageProps(event.image, [960, 1600, 2400])
   const locationHref = event.mapUrl
+  const mapQuery = event.mapLabel || event.location
+  const mapEmbedUrl = buildGoogleMapsEmbedUrl(mapQuery)
   const handleImageError = (eventObject) => {
     if (!event.fallbackImage || eventObject.currentTarget.dataset.fallbackApplied === 'true') {
       return
@@ -76,19 +83,41 @@ function EventDetailPage({
 
             <article className="detail-section">
               <h3>Location</h3>
-              {locationHref ? (
-                <a
-                  className="detail-place-card detail-place-card--interactive"
-                  href={locationHref}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <MapPinIcon />
-                  <div>
-                    <strong>{event.location}</strong>
-                    <p>Open in Google Maps</p>
+              {mapEmbedUrl ? (
+                <div className="detail-map">
+                  <div className="detail-map__frame">
+                    <iframe
+                      className="detail-map__embed"
+                      title={`Map for ${event.title}`}
+                      src={mapEmbedUrl}
+                      loading="lazy"
+                      allowFullScreen
+                      referrerPolicy="no-referrer-when-downgrade"
+                    />
                   </div>
-                </a>
+
+                  <div className="detail-map__summary">
+                    <div className="detail-place-card">
+                      <MapPinIcon />
+                      <div>
+                        <strong>{event.location}</strong>
+                        <p>Explore the area here, then continue in Google Maps for directions.</p>
+                      </div>
+                    </div>
+
+                    {locationHref ? (
+                      <a
+                        className="button button--primary detail-map__cta"
+                        href={locationHref}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <span>Continue in Google Maps</span>
+                        <ArrowRightIcon />
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
               ) : (
                 <div className="detail-place-card">
                   <MapPinIcon />
