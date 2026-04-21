@@ -147,9 +147,9 @@ function App() {
   }
 
   const route = resolveRoute(pathname)
-  const allEvents = mergeEvents(seedEvents, remoteEvents, createdEvents)
+  const allEvents = mergeEvents(remoteEvents, createdEvents)
   const normalizedSearch = deferredSearchTerm.trim().toLowerCase()
-  const featuredPool = allEvents.length ? allEvents : seedEvents
+  const featuredPool = allEvents
   const isCalendarDateMode = Boolean(selectedCalendarDate)
   const availableDateCounts = useMemo(() => {
     return allEvents.reduce((counts, event) => {

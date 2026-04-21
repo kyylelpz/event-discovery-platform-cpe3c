@@ -1,4 +1,3 @@
-import { seedEvents } from '../data/mockData.js'
 import { API_BASE_URL } from './apiBase.js'
 import { createPosterDataUri } from '../utils/formatters.js'
 
@@ -93,10 +92,7 @@ export const loadEventsByLocation = async (location) => {
   } catch (error) {
     console.warn('Falling back to mock events:', error)
     return {
-      events:
-        location === 'All Philippines'
-          ? seedEvents
-          : seedEvents.filter((event) => event.province === location),
+      events: [],
       mode: 'mock',
     }
   }
