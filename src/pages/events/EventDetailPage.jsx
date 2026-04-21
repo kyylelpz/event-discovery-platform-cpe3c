@@ -9,7 +9,7 @@ import {
   MapPinIcon,
   ShareIcon,
 } from '../../components/ui/Icons.jsx'
-import { formatEventDate } from '../../utils/formatters.js'
+import { formatEventSchedule } from '../../utils/formatters.js'
 
 function EventDetailPage({
   event,
@@ -23,9 +23,7 @@ function EventDetailPage({
   const isSaved = interactions.saved.includes(event.id)
   const isAttending = interactions.attending.includes(event.id)
   const isHearted = interactions.hearted.includes(event.id)
-  const scheduleLabel = event.timeLabel
-    ? `${formatEventDate(event.startDate)} | ${event.timeLabel}`
-    : formatEventDate(event.startDate)
+  const scheduleLabel = formatEventSchedule(event)
 
   return (
     <div className="page-stack page-stack--detail">
