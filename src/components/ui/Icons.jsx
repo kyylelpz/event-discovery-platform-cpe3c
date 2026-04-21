@@ -105,6 +105,18 @@ export function ArrowRightIcon({ className = '' }) {
   )
 }
 
+export function LayoutGridIcon({ className = '' }) {
+  return createIcon(
+    <>
+      <rect x="4" y="4" width="6" height="6" rx="1.2" />
+      <rect x="14" y="4" width="6" height="6" rx="1.2" />
+      <rect x="4" y="14" width="6" height="6" rx="1.2" />
+      <rect x="14" y="14" width="6" height="6" rx="1.2" />
+    </>,
+    className,
+  )
+}
+
 export function HeartIcon({ className = '', filled = false }) {
   return (
     <svg

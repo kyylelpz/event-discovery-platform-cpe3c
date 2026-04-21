@@ -10,16 +10,14 @@ function EventDiscoveryPage({
   currentPage,
   totalPages,
   onPageChange,
-  categoryOptions,
   dateFilterOptions,
   selectedCategory,
   selectedDateFilter,
+  selectedSort,
   onCategoryChange,
   onDateFilterChange,
+  onSortChange,
   selectedLocation,
-  isLoadingEvents,
-  feedMode,
-  totalEvents,
   ...sharedPageProps
 }) {
   return (
@@ -31,12 +29,12 @@ function EventDiscoveryPage({
           <h2>Browse by Category</h2>
           <p>Explore events that match your interests.</p>
         </div>
-        <CategoryHighlight onCategoryClick={onCategoryChange} />
+        <CategoryHighlight value={selectedCategory} onCategoryClick={onCategoryChange} />
       </section>
 
       <section className="section-block">
         <div className="section-block__topline">
-          <div>
+          <div className="section-block__topline-copy">
             <h2>{selectedCategory === 'All Events' ? 'Upcoming Events' : selectedCategory}</h2>
             <p>
               {selectedLocation === 'All Philippines'
@@ -44,7 +42,7 @@ function EventDiscoveryPage({
                 : `Events in ${selectedLocation}`}
             </p>
           </div>
-          <span>
+          <span className="section-block__count">
             {filteredCount === 0
               ? '0 events'
               : `${Math.min(events.length, filteredCount)} shown of ${filteredCount}`}
@@ -52,25 +50,65 @@ function EventDiscoveryPage({
         </div>
 
         <FilterTabs
-          options={categoryOptions}
-          value={selectedCategory}
-          onChange={onCategoryChange}
-        />
-        <FilterTabs
           options={dateFilterOptions}
           value={selectedDateFilter}
           onChange={onDateFilterChange}
         />
 
-        <div className="status-note">
-          <span>
-            {isLoadingEvents
-              ? 'Refreshing events for your selected location.'
-              : feedMode === 'live'
-                ? 'Showing backend-fed events.'
-                : 'Showing curated preview data.'}
-          </span>
-          <span>{totalEvents} total events in the current catalog</span>
+        <div className="listing-toolbar">
+          {filteredCount > 0 && totalPages > 1 ? (
+            <nav className="pagination" aria-label="Events pagination">
+              <p className="pagination__summary">
+                Page {currentPage} of {totalPages}
+              </p>
+              <div className="pagination__controls">
+                <button
+                  type="button"
+                  className="pagination__button"
+                  onClick={() => onPageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </button>
+
+                <div className="pagination__pages">
+                  {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
+                    <button
+                      key={pageNumber}
+                      type="button"
+                      className={`pagination__button ${
+                        pageNumber === currentPage ? 'pagination__button--active' : ''
+                      }`}
+                      onClick={() => onPageChange(pageNumber)}
+                      aria-current={pageNumber === currentPage ? 'page' : undefined}
+                    >
+                      {pageNumber}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  className="pagination__button"
+                  onClick={() => onPageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </button>
+              </div>
+            </nav>
+          ) : (
+            <div />
+          )}
+
+          <div className="sort-controls">
+            <span className="sort-controls__label">Sort by</span>
+            <FilterTabs
+              options={['Nearest date', 'Relevance']}
+              value={selectedSort}
+              onChange={onSortChange}
+            />
+          </div>
         </div>
 
         <EventList
@@ -79,49 +117,6 @@ function EventDiscoveryPage({
           emptyCopy="Try another province in the Philippines, widen your date range, or clear the search term."
           {...sharedPageProps}
         />
-
-        {filteredCount > 0 && totalPages > 1 ? (
-          <nav className="pagination" aria-label="Events pagination">
-            <p className="pagination__summary">
-              Page {currentPage} of {totalPages}
-            </p>
-            <div className="pagination__controls">
-              <button
-                type="button"
-                className="pagination__button"
-                onClick={() => onPageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-              >
-                Previous
-              </button>
-
-              <div className="pagination__pages">
-                {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
-                  <button
-                    key={pageNumber}
-                    type="button"
-                    className={`pagination__button ${
-                      pageNumber === currentPage ? 'pagination__button--active' : ''
-                    }`}
-                    onClick={() => onPageChange(pageNumber)}
-                    aria-current={pageNumber === currentPage ? 'page' : undefined}
-                  >
-                    {pageNumber}
-                  </button>
-                ))}
-              </div>
-
-              <button
-                type="button"
-                className="pagination__button"
-                onClick={() => onPageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-              >
-                Next
-              </button>
-            </div>
-          </nav>
-        ) : null}
       </section>
     </div>
   )
