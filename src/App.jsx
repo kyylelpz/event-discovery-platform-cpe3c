@@ -42,7 +42,7 @@ import {
   matchesDateFilter,
   parseEventDate,
 } from './utils/formatters.js'
-import { normalizeRoutePath, resolveRoute, routes } from './utils/routing.js'
+import { normalizeRoutePath, resolveRoute, routes, slugify } from './utils/routing.js'
 
 const EVENTS_PER_PAGE = 15
 
@@ -51,6 +51,18 @@ const mergeEvents = (...eventGroups) => {
   eventGroups.flat().forEach((event) => merged.set(event.id, event))
   return [...merged.values()]
 }
+
+const getUserProfileSlug = (user) => {
+  const baseValue =
+    user?.username ||
+    user?.name ||
+    String(user?.email || '').split('@')[0] ||
+    'me'
+
+  return slugify(String(baseValue).trim() || 'me') || 'me'
+}
+
+const getUserProfilePath = (user) => routes.profile(getUserProfileSlug(user))
 
 function App() {
   const [pathname, setPathname] = useState(() => normalizeRoutePath(window.location.pathname))
@@ -135,9 +147,16 @@ function App() {
         }
 
         if ([401, 403, 404].includes(error?.status)) {
-          clearSession()
-          setCurrentUser(null)
-          setShowInterests(false)
+          if (isHostedAuthEnvironment()) {
+            clearSession()
+            setCurrentUser(null)
+            setShowInterests(false)
+            return
+          }
+
+          const fallbackSession = { ...currentUser, authProvider: 'local' }
+          setCurrentUser(fallbackSession)
+          setSession(fallbackSession)
           return
         }
 
@@ -201,7 +220,7 @@ function App() {
   const handleInterestsDone = async (interests) => {
     if (currentUser) {
       await saveInterests(currentUser.email, interests)
-      setCurrentUser((prev) => ({ ...prev, interests }))
+      setCurrentUser((prev) => (prev ? { ...prev, interests } : prev))
     }
     setShowInterests(false)
     navigate(routes.events)
@@ -373,12 +392,24 @@ function App() {
 
   const showSearchResults = isSearchFocused && normalizedSearch.length > 0
   const currentEvent = allEvents.find((event) => event.id === route.params?.eventId)
-  const activeProfile =
-    featuredUsers.find((user) => user.username === route.params?.username) ||
-    featuredUsers[0]
+  const isViewingCurrentUserProfile =
+    route.key === 'profile' &&
+    currentUser &&
+    ['me', getUserProfileSlug(currentUser)].includes(route.params?.username)
+  const activeProfile = isViewingCurrentUserProfile
+    ? {
+        ...currentUser,
+        username: currentUser.username || getUserProfileSlug(currentUser),
+      }
+    : featuredUsers.find((user) => user.username === route.params?.username) || featuredUsers[0]
 
   const createdByProfile = allEvents.filter((e) => e.createdBy === activeProfile.username)
-  const savedByUser = allEvents.filter((e) => interactions.saved.includes(e.id))
+  const savedByUser = isViewingCurrentUserProfile
+    ? allEvents.filter((e) => interactions.saved.includes(e.id))
+    : []
+  const likedByUser = isViewingCurrentUserProfile
+    ? allEvents.filter((e) => interactions.hearted.includes(e.id))
+    : []
   const relatedEvents = currentEvent
     ? allEvents.filter((e) =>
         e.id !== currentEvent.id &&
@@ -437,6 +468,7 @@ function App() {
           location: dbEvent.location,
           province: formData.province,
           host: currentUser?.name || 'Community Host',
+          createdBy: currentUser ? getUserProfileSlug(currentUser) : '',
           description: dbEvent.description || '',
           attendeeCount: 1,
           savedCount: 1,
@@ -500,6 +532,14 @@ function App() {
       navigate(routes.events)
     },
     currentUser,
+    onOpenProfile: () => {
+      if (!currentUser) {
+        navigate(routes.signin)
+        return
+      }
+
+      navigate(getUserProfilePath(currentUser))
+    },
     onSignOut: handleSignOut,
   }
 
@@ -548,6 +588,8 @@ function App() {
         user={activeProfile}
         createdEvents={createdByProfile}
         savedEvents={savedByUser}
+        likedEvents={likedByUser}
+        isCurrentUser={isViewingCurrentUserProfile}
         activeTab={activeProfileTab}
         onTabChange={setActiveProfileTab}
         {...sharedPageProps}

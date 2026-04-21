@@ -44,6 +44,7 @@ function Navbar({
   onCalendarDateChange,
   onCalendarDateClear,
   currentUser,
+  onOpenProfile,
   onSignOut,
 }) {
   const isActive = (target) =>
@@ -111,7 +112,11 @@ function Navbar({
           </SecondaryButton>
 
           {currentUser ? (
-            <ProfileMenu currentUser={currentUser} onSignOut={onSignOut} />
+            <ProfileMenu
+              currentUser={currentUser}
+              onOpenProfile={onOpenProfile}
+              onSignOut={onSignOut}
+            />
           ) : (
             <SecondaryButton
               isActive={isActive(routes.signin)}
@@ -143,6 +148,7 @@ function Navbar({
         onCalendarDateChange={onCalendarDateChange}
         onCalendarDateClear={onCalendarDateClear}
         currentUser={currentUser}
+        onOpenProfile={onOpenProfile}
         onSignOut={onSignOut}
       />
     </header>
@@ -168,6 +174,7 @@ function MobileNavbar({
   onCalendarDateChange,
   onCalendarDateClear,
   currentUser,
+  onOpenProfile,
   onSignOut,
 }) {
   const isActive = (target) =>
@@ -227,7 +234,12 @@ function MobileNavbar({
 
         <div className="topbar__mobile-links">
           {currentUser ? (
-            <ProfileMenu currentUser={currentUser} onSignOut={onSignOut} mobile />
+            <ProfileMenu
+              currentUser={currentUser}
+              onOpenProfile={onOpenProfile}
+              onSignOut={onSignOut}
+              mobile
+            />
           ) : null}
 
           <SecondaryButton
@@ -257,7 +269,7 @@ function MobileNavbar({
   )
 }
 
-function ProfileMenu({ currentUser, onSignOut, mobile = false }) {
+function ProfileMenu({ currentUser, onOpenProfile, onSignOut, mobile = false }) {
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef(null)
   const interests = Array.isArray(currentUser.interests) ? currentUser.interests : []
@@ -287,13 +299,21 @@ function ProfileMenu({ currentUser, onSignOut, mobile = false }) {
       ref={menuRef}
       className={`profile-menu ${mobile ? 'profile-menu--mobile' : ''}`}
     >
-      <div className="topbar__account" aria-label={`Signed in as ${displayName}`}>
+      <button
+        type="button"
+        className="topbar__account"
+        aria-label={`Open profile for ${displayName}`}
+        onClick={() => {
+          setIsOpen(false)
+          onOpenProfile?.()
+        }}
+      >
         <UserAvatar name={displayName} imageUrl={currentUser.profilePic} size="sm" />
         <div className="topbar__account-copy">
           <strong>{displayName}</strong>
           <span>{currentUser.email}</span>
         </div>
-      </div>
+      </button>
 
       <button
         type="button"
@@ -348,6 +368,18 @@ function ProfileMenu({ currentUser, onSignOut, mobile = false }) {
                 Nothing here yet. Explore more events!
               </div>
             )}
+          </div>
+
+          <div className="profile-menu__actions">
+            <SecondaryButton
+              className="profile-menu__action"
+              onClick={() => {
+                setIsOpen(false)
+                onOpenProfile?.()
+              }}
+            >
+              Open Profile
+            </SecondaryButton>
           </div>
 
           <SecondaryButton
