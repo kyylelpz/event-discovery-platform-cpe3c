@@ -290,3 +290,74 @@ export function LaptopIcon({ className = '' }) {
     className,
   )
 }
+
+export function CodeIcon({ className = '' }) {
+  return createIcon(
+    <>
+      <path d="m8 9-4 3 4 3" />
+      <path d="m16 9 4 3-4 3" />
+      <path d="m14 5-4 14" />
+    </>,
+    className,
+  )
+}
+
+export function CompassIcon({ className = '' }) {
+  return createIcon(
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m15.5 8.5-3 7-4-4 7-3Z" />
+    </>,
+    className,
+  )
+}
+
+export function MessageCircleIcon({ className = '' }) {
+  return createIcon(
+    <>
+      <path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5 7.7 7.7 0 0 1-3.1-.6L4 20l1.7-4.5A7.5 7.5 0 1 1 20 11.5Z" />
+    </>,
+    className,
+  )
+}
+
+export function ShieldIcon({ className = '' }) {
+  return createIcon(
+    <>
+      <path d="M12 21s7-3.8 7-10V5l-7-2-7 2v6c0 6.2 7 10 7 10Z" />
+    </>,
+    className,
+  )
+}
+
+export function LightbulbIcon({ className = '' }) {
+  return createIcon(
+    <>
+      <path d="M9 18h6" />
+      <path d="M10 22h4" />
+      <path d="M12 2a6 6 0 0 0-3.7 10.7c.7.5 1.2 1.3 1.4 2.2L10 16h4l.3-1.1c.2-.9.7-1.7 1.4-2.2A6 6 0 0 0 12 2Z" />
+    </>,
+    className,
+  )
+}
+
+export function MailIcon({ className = '' }) {
+  return createIcon(
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m4 7 8 6 8-6" />
+    </>,
+    className,
+  )
+}
+
+export function HelpCircleIcon({ className = '' }) {
+  return createIcon(
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.6 9.4a2.4 2.4 0 1 1 4.2 1.6c-.7.7-1.8 1.3-1.8 2.5" />
+      <path d="M12 17h.01" />
+    </>,
+    className,
+  )
+}

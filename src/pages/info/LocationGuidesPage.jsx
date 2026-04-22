@@ -1,8 +1,10 @@
+import { CompassIcon, MapPinIcon } from '../../components/ui/Icons.jsx'
+
 const locations = [
   {
     name: 'Metro Manila',
     description:
-      'The beating heart of Philippine events — from large-scale concerts and trade expos to intimate gallery openings and food festivals across BGC, Makati, and Quezon City.',
+      'The beating heart of Philippine events - from large-scale concerts and trade expos to intimate gallery openings and food festivals across BGC, Makati, and Quezon City.',
     highlights: ['BGC Arts Center', 'SM Mall of Asia Arena', 'Quezon Memorial Circle', 'Rizal Park'],
   },
   {
@@ -27,7 +29,7 @@ const locations = [
     name: 'Laguna',
     description:
       'Home to hot springs, heritage towns, and outdoor venues perfect for retreats, team-building events, and nature-themed gatherings.',
-    highlights: ['Enchanted Kingdom', 'Hidden Valley Springs', 'Los Baños lakeside venues'],
+    highlights: ['Enchanted Kingdom', 'Hidden Valley Springs', 'Los Banos lakeside venues'],
   },
   {
     name: 'Batangas',
@@ -41,21 +43,37 @@ function LocationGuidesPage() {
   return (
     <div className="info-page">
       <section className="info-page__hero">
+        <div className="info-page__hero-icon">
+          <CompassIcon />
+        </div>
         <h1>Location Guides</h1>
         <p>
           Explore the best provinces and cities across the Philippines for hosting and
-          discovering events — each with its own character, venues, and vibe.
+          discovering events - each with its own character, venues, and vibe.
         </p>
       </section>
 
       <section className="info-page__grid">
         {locations.map((loc) => (
           <article key={loc.name} className="info-card">
-            <h2>{loc.name}</h2>
+            <div className="info-card__header">
+              <div className="info-card__icon">
+                <MapPinIcon />
+              </div>
+              <h2>{loc.name}</h2>
+            </div>
             <p>{loc.description}</p>
-            <ul style={{ marginTop: '0.75rem', paddingLeft: '1.1rem', fontSize: '0.85rem', color: '#7a7068', lineHeight: '1.8' }}>
-              {loc.highlights.map((h) => (
-                <li key={h}>{h}</li>
+            <ul
+              style={{
+                marginTop: '0.75rem',
+                paddingLeft: '1.1rem',
+                fontSize: '0.85rem',
+                color: '#7a7068',
+                lineHeight: '1.8',
+              }}
+            >
+              {loc.highlights.map((highlight) => (
+                <li key={highlight}>{highlight}</li>
               ))}
             </ul>
           </article>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { HelpCircleIcon, MailIcon, MessageCircleIcon } from '../../components/ui/Icons.jsx'
 
 const styles = `
   .contact-form {
@@ -98,10 +99,10 @@ function ContactSupportPage() {
   const [form, setForm] = useState({ name: '', email: '', topic: '', message: '' })
   const [submitted, setSubmitted] = useState(false)
 
-  const set = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }))
+  const set = (field) => (event) => setForm((prev) => ({ ...prev, [field]: event.target.value }))
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
+  const handleSubmit = (event) => {
+    event.preventDefault()
     if (!form.name || !form.email || !form.message) return
     setSubmitted(true)
   }
@@ -111,10 +112,13 @@ function ContactSupportPage() {
       <style>{styles}</style>
 
       <section className="info-page__hero">
+        <div className="info-page__hero-icon">
+          <MessageCircleIcon />
+        </div>
         <h1>Contact Support</h1>
         <p>
-          Have a question, spotted an issue, or want to share feedback? Send us
-          a message and we'll get back to you as soon as we can.
+          Have a question, spotted an issue, or want to share feedback? Send us a
+          message and we will get back to you as soon as we can.
         </p>
       </section>
 
@@ -122,23 +126,35 @@ function ContactSupportPage() {
         <div style={{ gridColumn: 'span 2' }}>
           {submitted ? (
             <div className="contact-success">
-              ✓ Thanks for reaching out! We've received your message and will
-              reply to <strong>{form.email}</strong> shortly.
+              Thanks for reaching out. We have received your message and will reply to{' '}
+              <strong>{form.email}</strong> shortly.
             </div>
           ) : (
             <form className="contact-form" onSubmit={handleSubmit} noValidate>
               <div className="contact-field">
                 <label htmlFor="c-name">Your name</label>
-                <input id="c-name" type="text" placeholder="Juan dela Cruz" value={form.name} onChange={set('name')} />
+                <input
+                  id="c-name"
+                  type="text"
+                  placeholder="Juan dela Cruz"
+                  value={form.name}
+                  onChange={set('name')}
+                />
               </div>
               <div className="contact-field">
                 <label htmlFor="c-email">Email address</label>
-                <input id="c-email" type="email" placeholder="you@example.com" value={form.email} onChange={set('email')} />
+                <input
+                  id="c-email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={form.email}
+                  onChange={set('email')}
+                />
               </div>
               <div className="contact-field">
                 <label htmlFor="c-topic">Topic</label>
                 <select id="c-topic" value={form.topic} onChange={set('topic')}>
-                  <option value="">Select a topic…</option>
+                  <option value="">Select a topic...</option>
                   <option value="event-issue">Event issue</option>
                   <option value="account">Account help</option>
                   <option value="bug">Bug report</option>
@@ -148,9 +164,18 @@ function ContactSupportPage() {
               </div>
               <div className="contact-field">
                 <label htmlFor="c-message">Message</label>
-                <textarea id="c-message" placeholder="Describe your issue or question…" value={form.message} onChange={set('message')} />
+                <textarea
+                  id="c-message"
+                  placeholder="Describe your issue or question..."
+                  value={form.message}
+                  onChange={set('message')}
+                />
               </div>
-              <button type="submit" className="contact-submit" disabled={!form.name || !form.email || !form.message}>
+              <button
+                type="submit"
+                className="contact-submit"
+                disabled={!form.name || !form.email || !form.message}
+              >
                 Send message
               </button>
             </form>
@@ -158,20 +183,30 @@ function ContactSupportPage() {
         </div>
 
         <article className="info-card">
-          <h2>Other ways to reach us</h2>
+          <div className="info-card__header">
+            <div className="info-card__icon">
+              <MailIcon />
+            </div>
+            <h2>Other ways to reach us</h2>
+          </div>
           <div className="contact-channels">
-            <span>📧 <a href="mailto:support@eventcinity.ph">support@eventcinity.ph</a></span>
-            <span>🕐 Response time: within 1–2 business days</span>
-            <span>📍 Based in the Philippines</span>
+            <span>Email: <a href="mailto:support@eventcinity.ph">support@eventcinity.ph</a></span>
+            <span>Response time: within 1-2 business days</span>
+            <span>Based in the Philippines</span>
           </div>
         </article>
 
         <article className="info-card">
-          <h2>Before you write</h2>
+          <div className="info-card__header">
+            <div className="info-card__icon">
+              <HelpCircleIcon />
+            </div>
+            <h2>Before you write</h2>
+          </div>
           <p>
-            Check the Help Center for quick answers to common questions about
-            creating events, saving listings, and managing your profile. Many
-            issues are solved in under a minute.
+            Check the Help Center for quick answers to common questions about creating
+            events, saving listings, and managing your profile. Many issues are solved in
+            under a minute.
           </p>
         </article>
       </section>
