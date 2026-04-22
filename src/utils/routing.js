@@ -29,6 +29,10 @@ export const normalizeRoutePath = (pathname) => {
     return `/events/${cleanPath.slice('/event/'.length)}`
   }
 
+  if (cleanPath === routes.locationGuides) {
+    return routes.events
+  }
+
   return cleanPath
 }
 
@@ -80,7 +84,7 @@ export const resolveRoute = (pathname) => {
   }
 
   if (cleanPath === '/location-guides') {
-    return { key: 'location-guides', params: {} }
+    return { key: 'events', params: {} }
   }
 
   if (cleanPath === '/help-center') {

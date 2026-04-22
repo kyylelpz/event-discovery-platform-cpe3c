@@ -36,7 +36,7 @@ const styles = `
     font-weight: 600;
     letter-spacing: 0.05em;
     text-transform: uppercase;
-    color: #4a4540;
+    color: var(--color-text);
   }
 
   .contact-field input,
@@ -44,12 +44,12 @@ const styles = `
   .contact-field textarea {
     width: 100%;
     padding: 0.75rem 1rem;
-    border: 1.5px solid #e2ddd8;
+    border: 1.5px solid var(--color-border);
     border-radius: 8px;
     font-family: inherit;
     font-size: 0.95rem;
-    color: #1a1714;
-    background: #faf9f7;
+    color: var(--color-text);
+    background: var(--color-input-bg);
     box-sizing: border-box;
     outline: none;
     transition: border-color 0.15s, box-shadow 0.15s;
@@ -59,9 +59,9 @@ const styles = `
   .contact-field input:focus,
   .contact-field select:focus,
   .contact-field textarea:focus {
-    border-color: #c17f4a;
+    border-color: var(--color-accent);
     box-shadow: 0 0 0 3px rgba(193,127,74,0.12);
-    background: #fff;
+    background: var(--color-input-focus-bg);
   }
 
   .contact-field textarea {
@@ -71,8 +71,8 @@ const styles = `
   .contact-submit {
     align-self: flex-start;
     padding: 0.75rem 2rem;
-    background: #1a1714;
-    color: #fff;
+    background: var(--color-text);
+    color: var(--color-bg);
     border: none;
     border-radius: 8px;
     font-family: inherit;
@@ -82,13 +82,13 @@ const styles = `
     transition: background 0.15s;
   }
 
-  .contact-submit:hover { background: #333; }
+  .contact-submit:hover { background: var(--color-accent); }
   .contact-submit:disabled { opacity: 0.5; cursor: not-allowed; }
 
   .contact-success {
-    background: #f0fdf4;
-    border: 1px solid #86efac;
-    color: #16a34a;
+    background: var(--color-success-bg);
+    border: 1px solid var(--color-success-border);
+    color: var(--color-success-text);
     border-radius: 8px;
     padding: 1rem 1.25rem;
     font-size: 0.9rem;
@@ -101,11 +101,11 @@ const styles = `
     flex-direction: column;
     gap: 0.5rem;
     font-size: 0.9rem;
-    color: #4a4540;
+    color: var(--color-text);
   }
 
   .contact-channels a {
-    color: #c17f4a;
+    color: var(--color-accent);
     text-decoration: none;
   }
 
