@@ -1448,6 +1448,33 @@
   color: var(--color-muted);
 }
 
+.profile-card__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.profile-edit-form {
+  margin-top: 24px;
+}
+
+.profile-edit-form textarea {
+  min-height: 140px;
+}
+
+.profile-card__status {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+}
+
+.profile-card__status--error {
+  border-color: #f0b6af;
+  background: #fff3f1;
+  color: #b2402c;
+}
+
 .profile-page__info-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1851,6 +1878,14 @@
   .listing-toolbar,
   .section-block__topline {
     grid-template-columns: 1fr;
+  }
+
+  .profile-card__actions {
+    justify-content: stretch;
+  }
+
+  .profile-card__actions .button {
+    width: 100%;
   }
 
   .sort-controls {

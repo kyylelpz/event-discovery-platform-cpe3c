@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { PrimaryButton } from '../../components/ui/Button.jsx'
 import { API_BASE_URL } from '../../services/apiBase.js'
 import { getEmailValidationError, signIn, signUp } from '../../services/authService.js'
+import { routes } from '../../utils/routing.js'
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap');
@@ -320,6 +321,15 @@ function SignInPage({ onAuthSuccess }) {
     setConfirmPassword('')
   }
 
+  const handleGoogleSignIn = () => {
+    const googleAuthUrl = new URL(`${API_BASE_URL}/api/auth/google`)
+    googleAuthUrl.searchParams.set(
+      'redirectTo',
+      `${window.location.origin}${routes.events}`,
+    )
+    window.location.href = googleAuthUrl.toString()
+  }
+
   return (
     <>
       <style>{styles}</style>
@@ -415,7 +425,7 @@ function SignInPage({ onAuthSuccess }) {
 
             <div className="divider">or</div>
 
-            <button type="button" className="google-btn" onClick={() => window.location.href = `${API_BASE_URL}/api/auth/google`}>
+            <button type="button" className="google-btn" onClick={handleGoogleSignIn}>
               <GoogleIcon />
               Continue with Google
             </button>

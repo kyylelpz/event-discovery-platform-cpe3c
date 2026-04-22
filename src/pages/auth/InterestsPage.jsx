@@ -1,18 +1,22 @@
 import { useState } from 'react'
+import {
+  getUsernameValidationError,
+  normalizeUsername,
+} from '../../services/authService.js'
 
 const ALL_INTERESTS = [
-  { label: 'Music', emoji: '🎵' },
-  { label: 'Art & Culture', emoji: '🎨' },
-  { label: 'Food & Drink', emoji: '🍜' },
-  { label: 'Sports', emoji: '⚽' },
-  { label: 'Tech', emoji: '💻' },
-  { label: 'Business', emoji: '💼' },
-  { label: 'Wellness', emoji: '🧘' },
-  { label: 'Education', emoji: '📚' },
-  { label: 'Community', emoji: '🤝' },
-  { label: 'Travel', emoji: '✈️' },
-  { label: 'Film & Media', emoji: '🎬' },
-  { label: 'Fashion', emoji: '👗' },
+  { label: 'Music', emoji: 'MUSIC' },
+  { label: 'Art & Culture', emoji: 'ART' },
+  { label: 'Food & Drink', emoji: 'FOOD' },
+  { label: 'Sports', emoji: 'SPORT' },
+  { label: 'Tech', emoji: 'TECH' },
+  { label: 'Business', emoji: 'BIZ' },
+  { label: 'Wellness', emoji: 'WELL' },
+  { label: 'Education', emoji: 'EDU' },
+  { label: 'Community', emoji: 'COMM' },
+  { label: 'Travel', emoji: 'TRIP' },
+  { label: 'Film & Media', emoji: 'FILM' },
+  { label: 'Fashion', emoji: 'STYLE' },
 ]
 
 const styles = `
@@ -56,6 +60,54 @@ const styles = `
     margin: 0 0 1.5rem;
   }
 
+  .interests-field {
+    display: grid;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .interests-field label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #4a4540;
+  }
+
+  .interests-field input {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border: 1.5px solid #e2ddd8;
+    border-radius: 10px;
+    background: #faf9f7;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    color: #1a1714;
+    box-sizing: border-box;
+  }
+
+  .interests-field input:focus {
+    outline: none;
+    border-color: #c17f4a;
+    box-shadow: 0 0 0 3px rgba(193, 127, 74, 0.12);
+    background: #fff;
+  }
+
+  .interests-field small {
+    color: #7a7068;
+    font-size: 0.8rem;
+  }
+
+  .interests-error {
+    margin: 0 0 1rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid #f0b6af;
+    border-radius: 10px;
+    background: #fff3f1;
+    color: #b2402c;
+    font-size: 0.85rem;
+  }
+
   .interests-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -92,7 +144,9 @@ const styles = `
   }
 
   .interest-chip .emoji {
-    font-size: 1.5rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
   }
 
   .interests-hint {
@@ -132,15 +186,45 @@ const styles = `
   }
 
   .interests-skip:hover { text-decoration: underline; }
+  .interests-skip:disabled { opacity: 0.4; cursor: not-allowed; }
 `
 
 function InterestsPage({ user, onDone }) {
-  const [selected, setSelected] = useState([])
+  const [selected, setSelected] = useState(
+    Array.isArray(user?.interests) ? user.interests : [],
+  )
+  const [username, setUsername] = useState(user?.username || '')
+  const [error, setError] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+  const normalizedUsername = normalizeUsername(username)
+  const usernameError = getUsernameValidationError(normalizedUsername)
+  const usernamePreview = normalizedUsername ? `@${normalizedUsername}` : '@your-username'
 
   const toggle = (label) => {
     setSelected((prev) =>
-      prev.includes(label) ? prev.filter((i) => i !== label) : [...prev, label]
+      prev.includes(label) ? prev.filter((interest) => interest !== label) : [...prev, label]
     )
+  }
+
+  const handleComplete = async (interests) => {
+    if (usernameError) {
+      setError(usernameError)
+      return
+    }
+
+    setError('')
+    setIsSaving(true)
+
+    try {
+      await onDone({
+        interests,
+        username: normalizedUsername,
+      })
+    } catch (saveError) {
+      setError(saveError.message || 'Unable to save your profile right now.')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -149,9 +233,26 @@ function InterestsPage({ user, onDone }) {
       <div className="interests-wrapper">
         <div className="interests-box">
           <div className="interests-header">
-            <h1>Welcome, {user.name}! 👋</h1>
-            <p>Pick the topics you care about and we'll tailor your event feed.</p>
+            <h1>Welcome, {user.name || user.username || 'there'}!</h1>
+            <p>Choose your username and pick the topics you care about for your event feed.</p>
           </div>
+
+          <div className="interests-field">
+            <label htmlFor="interest-username">Username</label>
+            <input
+              id="interest-username"
+              type="text"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              onBlur={() => setUsername((currentValue) => normalizeUsername(currentValue))}
+              placeholder="your-username"
+              autoComplete="username"
+              spellCheck="false"
+            />
+            <small>Public profile URL: {usernamePreview}</small>
+          </div>
+
+          {error ? <p className="interests-error">{error}</p> : null}
 
           <div className="interests-grid">
             {ALL_INTERESTS.map(({ label, emoji }) => (
@@ -176,16 +277,17 @@ function InterestsPage({ user, onDone }) {
           <button
             type="button"
             className="interests-submit"
-            disabled={selected.length === 0}
-            onClick={() => onDone(selected)}
+            disabled={selected.length === 0 || Boolean(usernameError) || isSaving}
+            onClick={() => handleComplete(selected)}
           >
-            Let's go →
+            {isSaving ? 'Saving...' : "Let's go ->"}
           </button>
 
           <button
             type="button"
             className="interests-skip"
-            onClick={() => onDone([])}
+            disabled={Boolean(usernameError) || isSaving}
+            onClick={() => handleComplete([])}
           >
             Skip for now
           </button>
