@@ -1021,6 +1021,7 @@
   background: rgba(45, 59, 21, 0.94);
   color: var(--color-surface);
   font-size: 0.85rem;
+  font-weight: 600;
 }
 
 .event-card__content {
@@ -1419,6 +1420,11 @@
 :root[data-theme='dark'] .people-hero__badge,
 :root[data-theme='dark'] .profile-menu__chip {
   background: rgba(217, 178, 123, 0.12);
+}
+
+:root[data-theme='dark'] .category-tag {
+  background: rgba(45, 59, 21, 0.96);
+  color: #f7f2e8;
 }
 
 .detail-panel__meta {
