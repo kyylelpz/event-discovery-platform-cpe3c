@@ -124,10 +124,69 @@ const collectImageCandidates = (value) => {
 const isUsableEventImage = (imageUrl) =>
   Boolean(imageUrl) && !invalidEventImagePatterns.some((pattern) => pattern.test(imageUrl))
 
+const getImageCandidateScore = (imageUrl) => {
+  let score = 0
+  const widthHints = Array.from(
+    imageUrl.matchAll(/(?:[?&](?:w|width|sz|s)=|=w|=s)(\d{2,4})/gi),
+  ).map((match) => Number(match[1]))
+
+  if (widthHints.length > 0) {
+    score += Math.max(...widthHints) / 400
+  }
+
+  if (/original|full|maxres|hero|banner/i.test(imageUrl)) {
+    score += 5
+  }
+
+  if (/thumbnail|thumb|small|icon/i.test(imageUrl)) {
+    score -= 5
+  }
+
+  try {
+    const url = new URL(imageUrl)
+
+    if (url.hostname.includes('images.unsplash.com')) {
+      score += 6
+    }
+
+    if (url.hostname.includes('cloudinary.com')) {
+      score += 5
+    }
+
+    if (/(googleusercontent\.com|ggpht\.com|googleapis\.com)$/i.test(url.hostname)) {
+      score += 4
+    }
+
+    if (url.hostname.includes('encrypted-tbn') || url.hostname.includes('gstatic.com')) {
+      score -= 4
+    }
+  } catch {
+    return score
+  }
+
+  return score
+}
+
 const pickImageUrl = (...values) => {
   const candidates = Array.from(new Set(values.flatMap((value) => collectImageCandidates(value))))
 
-  return candidates.find((candidate) => isUsableEventImage(candidate)) || candidates[0] || ''
+  const usableCandidates = candidates.filter((candidate) => isUsableEventImage(candidate))
+
+  if (usableCandidates.length > 0) {
+    return usableCandidates.sort(
+      (leftCandidate, rightCandidate) =>
+        getImageCandidateScore(rightCandidate) - getImageCandidateScore(leftCandidate),
+    )[0]
+  }
+
+  if (!candidates.length) {
+    return ''
+  }
+
+  return candidates.sort(
+    (leftCandidate, rightCandidate) =>
+      getImageCandidateScore(rightCandidate) - getImageCandidateScore(leftCandidate),
+  )[0]
 }
 
 const joinUniqueText = (...values) => {
@@ -249,12 +308,25 @@ export const normalizeEventRecord = (event, fallbackLocation) => {
       event.image,
       event.imageUrl,
       event.rawPayload?.image,
+      event.rawPayload?.image_url,
       event.rawPayload?.images,
+      event.rawPayload?.photos,
       event.rawPayload?.thumbnail,
       event.rawPayload?.thumbnail_url,
+      event.rawPayload?.original,
+      event.rawPayload?.large,
+      event.rawPayload?.full,
       event.logo,
       event.media,
     ) || fallbackImage
+  const eventUrl = pickText(
+    event.eventUrl,
+    event.url,
+    event.link,
+    event.rawPayload?.link,
+    event.rawPayload?.event_link,
+    event.rawPayload?.url,
+  )
 
   return {
     id:
@@ -304,6 +376,7 @@ export const normalizeEventRecord = (event, fallbackLocation) => {
     attendees: [],
     mapLabel,
     mapUrl: buildGoogleMapsSearchUrl(mapLabel),
+    eventUrl,
     createdBy: pickText(event.createdBy, event.creatorUsername, event.username),
     source: event.source || 'live',
     image: imageUrl,

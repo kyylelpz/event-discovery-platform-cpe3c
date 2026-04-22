@@ -986,6 +986,16 @@
   color: var(--color-accent);
 }
 
+.detail-source-link {
+  color: var(--color-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.detail-source-link:hover {
+  text-decoration: underline;
+}
+
 .event-card__footer {
   display: flex;
   align-items: center;
