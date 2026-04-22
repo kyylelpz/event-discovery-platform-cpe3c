@@ -138,9 +138,19 @@ const getSeededIndex = (length, seedSource) => {
   return hash % length
 }
 
-const selectFeaturedEvent = (events, interests = [], seedSource = '') => {
+const getFeaturedEventInterestLabel = (event, interestLabels = []) =>
+  interestLabels.find(
+    (interest) => scoreEventForInterests(event, normalizeInterestList([interest])) > 0,
+  ) || ''
+
+const buildFeaturedEventSlides = (
+  events,
+  interests = [],
+  interestLabels = [],
+  seedSource = '',
+) => {
   if (!Array.isArray(events) || events.length === 0) {
-    return null
+    return []
   }
 
   const scoredEvents = events
@@ -148,6 +158,11 @@ const selectFeaturedEvent = (events, interests = [], seedSource = '') => {
       event,
       interestScore: scoreEventForInterests(event, interests),
       featuredScore: Number(Boolean(event.isFeatured)),
+      randomRank: getSeededIndex(
+        Math.max(events.length * 97, 1),
+        `${seedSource}:${event.id || event.title || 'event'}`,
+      ),
+      matchedInterest: getFeaturedEventInterestLabel(event, interestLabels),
     }))
     .sort((leftEvent, rightEvent) => {
       const interestDifference = rightEvent.interestScore - leftEvent.interestScore
@@ -162,12 +177,22 @@ const selectFeaturedEvent = (events, interests = [], seedSource = '') => {
         return featuredDifference
       }
 
+      const randomDifference = leftEvent.randomRank - rightEvent.randomRank
+
+      if (randomDifference !== 0) {
+        return randomDifference
+      }
+
       return compareEventsByNearestDate(leftEvent.event, rightEvent.event)
     })
+    .map(({ event, matchedInterest }) => ({
+      event,
+      matchedInterest,
+    }))
 
-  const candidateEvents = scoredEvents
+  const startIndex = getSeededIndex(scoredEvents.length, seedSource)
 
-  return candidateEvents[getSeededIndex(candidateEvents.length, seedSource)]?.event || null
+  return [...scoredEvents.slice(startIndex), ...scoredEvents.slice(0, startIndex)]
 }
 
 const getUserProfileSlug = (user) => {
@@ -582,7 +607,6 @@ function App() {
   const handleCategoryChange = (value) => {
     setCurrentEventsPage(1)
     setSelectedCategory(value)
-    setFeaturedShuffleSeed(`${Date.now()}:${Math.random()}:${value}`)
   }
 
   const handleDateFilterChange = (value) => {
@@ -847,29 +871,18 @@ function App() {
 
   const featuredRotationSeed = [
     currentUser?.id || currentUser?.username || currentUser?.email || 'guest',
-    selectedCategory,
     featuredShuffleSeed,
   ].join(':')
-  const featuredEventCandidates = useMemo(() => {
-    if (selectedCategory === 'All Events') {
-      return allEvents
-    }
-
-    const categoryMatches = allEvents.filter((event) => event.category === selectedCategory)
-
-    return categoryMatches.length ? categoryMatches : allEvents
-  }, [allEvents, selectedCategory])
-  const featuredEvent = useMemo(
-    () => selectFeaturedEvent(featuredEventCandidates, currentUserInterests, featuredRotationSeed),
-    [featuredEventCandidates, currentUserInterests, featuredRotationSeed],
+  const featuredEventSlides = useMemo(
+    () =>
+      buildFeaturedEventSlides(
+        allEvents,
+        currentUserInterests,
+        currentUserInterestLabels,
+        featuredRotationSeed,
+      ),
+    [allEvents, currentUserInterests, currentUserInterestLabels, featuredRotationSeed],
   )
-  const featuredInterestLabel =
-    featuredEvent && currentUserInterestLabels.length
-      ? currentUserInterestLabels.find(
-          (interest) =>
-            scoreEventForInterests(featuredEvent, normalizeInterestList([interest])) > 0,
-        ) || ''
-      : ''
 
   const searchResults = !normalizedSearch
     ? []
@@ -1368,8 +1381,7 @@ function App() {
   } else {
     page = (
       <EventDiscoveryPage
-        featuredEvent={featuredEvent}
-        featuredInterestLabel={featuredInterestLabel}
+        featuredEvents={featuredEventSlides}
         events={isCalendarDateMode ? sortedEvents : paginatedEvents}
         filteredCount={filteredEvents.length}
         currentPage={activeEventPage}
