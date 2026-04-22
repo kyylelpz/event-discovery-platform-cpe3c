@@ -366,6 +366,24 @@ function AboutProgrammersPage() {
           cursor: pointer;
         }
 
+        :root[data-theme='dark'] .programmer-carousel-section {
+          border-color: rgba(217, 178, 123, 0.14);
+          background:
+            radial-gradient(circle at top left, rgba(217, 178, 123, 0.14), transparent 32%),
+            linear-gradient(135deg, rgba(20, 25, 22, 0.98), rgba(28, 34, 30, 0.96));
+          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+        }
+
+        :root[data-theme='dark'] .programmer-card {
+          border-color: rgba(217, 178, 123, 0.1);
+          background: rgba(23, 28, 25, 0.94);
+          box-shadow: 0 16px 40px rgba(0, 0, 0, 0.24);
+        }
+
+        :root[data-theme='dark'] .programmer-card__avatar {
+          background: rgba(245, 242, 238, 0.08);
+        }
+
         @media (max-width: 980px) {
           .programmer-carousel-section {
             padding: 30px;

@@ -562,12 +562,11 @@
 }
 
 .find-events-picker__day {
-  position: relative;
   display: grid;
-  align-items: start;
-  justify-items: start;
-  min-height: 54px;
-  padding: 10px 8px 8px;
+  justify-items: center;
+  align-content: space-between;
+  min-height: 58px;
+  padding: 8px 6px;
   border: 0;
   border-radius: 14px;
   background: transparent;
@@ -614,12 +613,13 @@
 }
 
 .find-events-picker__count {
-  position: absolute;
-  right: 6px;
-  top: 6px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 18px;
+  margin-top: auto;
+  padding: 0 6px;
   border-radius: 999px;
   background: rgba(45, 59, 21, 0.12);
   color: inherit;
@@ -744,9 +744,21 @@
 }
 
 .featured-event__actions {
+  display: grid;
+  gap: 18px;
+}
+
+.featured-event__primary-actions {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.featured-event__quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
