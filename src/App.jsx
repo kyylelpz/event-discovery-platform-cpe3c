@@ -261,6 +261,7 @@ function App() {
   const [activeProfileTab, setActiveProfileTab] = useState('Created Events')
   const [currentEventsPage, setCurrentEventsPage] = useState(1)
   const [isSearchFocused, setIsSearchFocused] = useState(false)
+  const [featuredShuffleSeed] = useState(() => `${Date.now()}:${Math.random()}`)
   const deferredSearchTerm = useDeferredValue(searchTerm)
   const currentUserRef = useRef(currentUser)
   const recentAuthSuccessAtRef = useRef(0)
@@ -760,7 +761,7 @@ function App() {
 
   const featuredRotationSeed = [
     currentUser?.id || currentUser?.username || currentUser?.email || 'guest',
-    new Date().toISOString().slice(0, 10),
+    featuredShuffleSeed,
   ].join(':')
   const featuredEvent = useMemo(
     () => selectFeaturedEvent(allEvents, currentUserInterests, featuredRotationSeed),
