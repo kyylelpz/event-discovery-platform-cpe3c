@@ -80,7 +80,22 @@ function EventDetailPage({
 
             <article className="detail-section">
               <h3>About this event</h3>
-              <p>{event.description}</p>
+              <p>
+                {event.description}
+                {event.eventUrl ? (
+                  <>
+                    {' '}
+                    <a
+                      className="detail-source-link"
+                      href={event.eventUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      View original listing
+                    </a>
+                  </>
+                ) : null}
+              </p>
             </article>
 
             <article className="detail-section">
