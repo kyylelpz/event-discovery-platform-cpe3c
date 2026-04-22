@@ -10,6 +10,7 @@ import {
   PlusSquareIcon,
 } from '../../components/ui/Icons.jsx'
 import { formatMemberSince } from '../../services/profileService.js'
+import { getUserDisplayName, getUserSecondaryLabel } from '../../utils/userDisplay.js'
 
 function ProfilePage({
   user,
@@ -41,8 +42,8 @@ function ProfilePage({
       ]
   const activeTabConfig = tabs.find((tab) => tab.label === activeTab) || tabs[0]
   const displayEvents = activeTabConfig.events
-  const displayName = user.name || user.username || 'Eventcinity user'
-  const usernameLabel = user.username ? `@${user.username}` : displayName
+  const displayName = getUserDisplayName(user)
+  const secondaryLabel = getUserSecondaryLabel(user)
   const locationLabel = user.location || 'Philippines'
   const emailLabel = isCurrentUser
     ? user.email || 'No email yet'
@@ -109,7 +110,7 @@ function ProfilePage({
           <div className="profile-card__intro">
             <div className="profile-card__identity">
               <h1>{displayName}</h1>
-              <p>{usernameLabel}</p>
+              {secondaryLabel ? <p>{secondaryLabel}</p> : null}
             </div>
             <div className="profile-card__meta">
               <span>
