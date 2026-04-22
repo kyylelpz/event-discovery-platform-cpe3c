@@ -5,18 +5,18 @@ import {
 } from '../../services/authService.js'
 
 const ALL_INTERESTS = [
-  { label: 'Music', emoji: 'MUSIC' },
-  { label: 'Art & Culture', emoji: 'ART' },
-  { label: 'Food & Drink', emoji: 'FOOD' },
-  { label: 'Sports', emoji: 'SPORT' },
-  { label: 'Tech', emoji: 'TECH' },
-  { label: 'Business', emoji: 'BIZ' },
-  { label: 'Wellness', emoji: 'WELL' },
-  { label: 'Education', emoji: 'EDU' },
-  { label: 'Community', emoji: 'COMM' },
-  { label: 'Travel', emoji: 'TRIP' },
-  { label: 'Film & Media', emoji: 'FILM' },
-  { label: 'Fashion', emoji: 'STYLE' },
+  { label: 'Music', emoji: '\uD83C\uDFB5' },
+  { label: 'Art & Culture', emoji: '\uD83C\uDFA8' },
+  { label: 'Food & Drink', emoji: '\uD83C\uDF5C' },
+  { label: 'Sports', emoji: '\u26BD' },
+  { label: 'Tech', emoji: '\uD83D\uDCBB' },
+  { label: 'Business', emoji: '\uD83D\uDCBC' },
+  { label: 'Wellness', emoji: '\uD83E\uDDD8' },
+  { label: 'Education', emoji: '\uD83D\uDCDA' },
+  { label: 'Community', emoji: '\uD83E\uDD1D' },
+  { label: 'Travel', emoji: '\u2708\uFE0F' },
+  { label: 'Film & Media', emoji: '\uD83C\uDFAC' },
+  { label: 'Fashion', emoji: '\uD83D\uDC57' },
 ]
 
 const styles = `
@@ -144,9 +144,7 @@ const styles = `
   }
 
   .interest-chip .emoji {
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
+    font-size: 1.5rem;
   }
 
   .interests-hint {
