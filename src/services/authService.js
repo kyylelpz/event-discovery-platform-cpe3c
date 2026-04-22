@@ -4,21 +4,47 @@ const USERS_KEY = 'eventcinity_users'
 const SESSION_KEY = 'eventcinity_session'
 const PASSWORD_ITERATIONS = 120000
 const SIGNUP_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.com$/i
+const USERNAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const textEncoder = new TextEncoder()
 
 const normalizeEmail = (value) => String(value || '').trim().toLowerCase()
 const getDefaultName = (email) => normalizeEmail(email).split('@')[0] || 'Eventcinity user'
-const getDefaultUsername = (email) =>
-  getDefaultName(email)
-    .replace(/[^a-z0-9]+/gi, '-')
+export const normalizeUsername = (value) =>
+  String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/-+/g, '-')
     .replace(/^-+|-+$/g, '')
-    .toLowerCase() || 'eventcinity-user'
+const getDefaultUsername = (email) =>
+  normalizeUsername(getDefaultName(email)) || 'eventcinity-user'
 const normalizeInterests = (values) =>
   Array.isArray(values)
     ? values
         .map((value) => String(value || '').trim())
         .filter(Boolean)
     : []
+export const getUsernameValidationError = (username) => {
+  const normalizedUsername = normalizeUsername(username)
+
+  if (!normalizedUsername) {
+    return 'Username is required.'
+  }
+
+  if (normalizedUsername.length < 3) {
+    return 'Username must be at least 3 characters long.'
+  }
+
+  if (normalizedUsername.length > 30) {
+    return 'Username can be at most 30 characters long.'
+  }
+
+  if (!USERNAME_PATTERN.test(normalizedUsername)) {
+    return 'Use lowercase letters, numbers, and single hyphens only.'
+  }
+
+  return ''
+}
 const isBrowser = typeof window !== 'undefined'
 
 export const isHostedAuthEnvironment = () => {
@@ -134,6 +160,138 @@ const isRecoverableRemoteAuthError = (error) =>
   error?.status === 502 ||
   error?.status === 503 ||
   error?.status === 504
+
+const hasOwn = (object, key) => Object.prototype.hasOwnProperty.call(object, key)
+
+const ensureUniqueLocalUsername = (username, currentEmail = '') => {
+  if (!username) {
+    return
+  }
+
+  const duplicateUser = Object.values(getUsers()).find((user) => {
+    const sameUsername = normalizeUsername(user?.username) === username
+    const sameEmail = normalizeEmail(user?.email) === normalizeEmail(currentEmail)
+
+    return sameUsername && !sameEmail
+  })
+
+  if (duplicateUser) {
+    throw new Error('That username is already in use.')
+  }
+}
+
+const normalizeProfileUpdates = (updates = {}) => {
+  const normalizedUpdates = {}
+
+  if (hasOwn(updates, 'name')) {
+    normalizedUpdates.name = String(updates.name || '').trim()
+  }
+
+  if (hasOwn(updates, 'username')) {
+    const normalizedUsername = normalizeUsername(updates.username)
+    const usernameError = getUsernameValidationError(normalizedUsername)
+
+    if (usernameError) {
+      throw new Error(usernameError)
+    }
+
+    normalizedUpdates.username = normalizedUsername
+  }
+
+  if (hasOwn(updates, 'interests')) {
+    normalizedUpdates.interests = normalizeInterests(updates.interests)
+  }
+
+  if (hasOwn(updates, 'location')) {
+    normalizedUpdates.location = String(updates.location || '').trim()
+  }
+
+  if (hasOwn(updates, 'phone') || hasOwn(updates, 'contact')) {
+    normalizedUpdates.phone = String(updates.phone ?? updates.contact ?? '').trim()
+  }
+
+  if (hasOwn(updates, 'bio')) {
+    normalizedUpdates.bio = String(updates.bio || '').trim()
+  }
+
+  if (hasOwn(updates, 'profilePic') || hasOwn(updates, 'avatar')) {
+    normalizedUpdates.profilePic = String(
+      updates.profilePic ?? updates.avatar ?? '',
+    ).trim()
+  }
+
+  return normalizedUpdates
+}
+
+const buildProfileSession = (
+  session,
+  normalizedUpdates = {},
+  remoteUser = {},
+  { completeOnboarding = false } = {},
+) => {
+  const resolvedInterests = hasOwn(remoteUser, 'interests')
+    ? normalizeInterests(remoteUser.interests)
+    : hasOwn(normalizedUpdates, 'interests')
+      ? normalizeInterests(normalizedUpdates.interests)
+      : normalizeInterests(session.interests)
+  const needsInterestsSelection =
+    completeOnboarding
+      ? false
+      : typeof remoteUser?.needsInterestsSelection === 'boolean'
+        ? remoteUser.needsInterestsSelection
+        : resolvedInterests.length === 0
+  const hasCompletedOnboarding =
+    completeOnboarding
+      ? true
+      : typeof remoteUser?.hasCompletedOnboarding === 'boolean'
+        ? remoteUser.hasCompletedOnboarding
+        : !needsInterestsSelection
+
+  return buildSession({
+    ...session,
+    id: remoteUser?.id || remoteUser?._id || session.id,
+    email: remoteUser?.email || session.email,
+    name:
+      remoteUser?.name ||
+      (hasOwn(normalizedUpdates, 'name') ? normalizedUpdates.name : session.name),
+    username:
+      remoteUser?.username ||
+      (hasOwn(normalizedUpdates, 'username')
+        ? normalizedUpdates.username
+        : session.username),
+    interests: resolvedInterests,
+    location:
+      remoteUser?.location ||
+      (hasOwn(normalizedUpdates, 'location')
+        ? normalizedUpdates.location
+        : session.location),
+    phone:
+      remoteUser?.phone ||
+      (hasOwn(normalizedUpdates, 'phone') ? normalizedUpdates.phone : session.phone),
+    bio:
+      remoteUser?.bio ||
+      (hasOwn(normalizedUpdates, 'bio') ? normalizedUpdates.bio : session.bio),
+    profilePic:
+      remoteUser?.profilePic ||
+      remoteUser?.avatar ||
+      remoteUser?.imageUrl ||
+      (hasOwn(normalizedUpdates, 'profilePic')
+        ? normalizedUpdates.profilePic
+        : session.profilePic),
+    createdAt: remoteUser?.createdAt || session.createdAt,
+    authProvider:
+      remoteUser?.authProvider ||
+      remoteUser?.provider ||
+      session.authProvider ||
+      'remote',
+    needsInterestsSelection,
+    hasCompletedOnboarding,
+    shouldShowInterestsPrompt:
+      completeOnboarding
+        ? false
+        : Boolean(session.shouldShowInterestsPrompt && needsInterestsSelection),
+  })
+}
 
 const updateRemoteProfile = async (updates) => {
   const response = await fetch(`${API_BASE_URL}/api/profile/me`, {
@@ -458,6 +616,69 @@ const syncLocalAuthMirror = async ({
   }
 }
 
+export const saveCurrentUserProfile = async (
+  updates = {},
+  { completeOnboarding = false, fallbackEmail = '' } = {},
+) => {
+  const storedSession = getSession()
+  const normalizedFallbackEmail = normalizeEmail(fallbackEmail)
+
+  if (!storedSession?.email && !normalizedFallbackEmail) {
+    throw new Error('You need to sign in first.')
+  }
+
+  const session = storedSession
+    ? buildSession(storedSession)
+    : buildSession({ email: normalizedFallbackEmail })
+  const normalizedUpdates = normalizeProfileUpdates(updates)
+
+  if (canUseLocalAuthFallback() && hasOwn(normalizedUpdates, 'username')) {
+    ensureUniqueLocalUsername(normalizedUpdates.username, session.email)
+  }
+
+  const shouldSyncRemoteProfile =
+    session.authProvider === 'remote' || isHostedAuthEnvironment()
+
+  let remoteUser = {}
+
+  if (shouldSyncRemoteProfile) {
+    try {
+      const data = await updateRemoteProfile(normalizedUpdates)
+      remoteUser = data.user || data.data?.user || data.data || {}
+    } catch (error) {
+      if (!isRecoverableRemoteAuthError(error) || !canUseLocalAuthFallback()) {
+        throw error
+      }
+
+      console.warn('Unable to sync the profile to the backend:', error)
+    }
+  }
+
+  const nextSession = buildProfileSession(session, normalizedUpdates, remoteUser, {
+    completeOnboarding,
+  })
+
+  setSession(nextSession)
+  await syncLocalAuthMirror({
+    id: nextSession.id,
+    email: nextSession.email,
+    name: nextSession.name,
+    username: nextSession.username,
+    interests: nextSession.interests,
+    authProvider: nextSession.authProvider,
+    location: nextSession.location,
+    phone: nextSession.phone,
+    bio: nextSession.bio,
+    profilePic: nextSession.profilePic,
+    createdAt: nextSession.createdAt,
+    needsInterestsSelection: nextSession.needsInterestsSelection,
+    hasCompletedOnboarding: nextSession.hasCompletedOnboarding,
+    shouldShowInterestsPrompt: nextSession.shouldShowInterestsPrompt,
+  })
+
+  return nextSession
+}
+
 export const getEmailValidationError = (email) => {
   const normalizedEmail = normalizeEmail(email)
 
@@ -673,58 +894,11 @@ export const getSession = () => {
 }
 
 export const saveInterests = async (email, interests) => {
-  const normalizedEmail = normalizeEmail(email)
-  const session = getSession()
-
-  if (canUseLocalAuthFallback()) {
-    await upsertLocalUser({
-      id: session?.id,
-      email: normalizedEmail,
-      name: session?.name,
-      username: session?.username,
-      interests,
-      authProvider: session?.authProvider || 'local',
-      location: session?.location,
-      phone: session?.phone,
-      bio: session?.bio,
-      profilePic: session?.profilePic,
-      createdAt: session?.createdAt,
-      needsInterestsSelection: false,
-      hasCompletedOnboarding: true,
-      shouldShowInterestsPrompt: false,
-    })
-  }
-
-  const shouldSyncRemoteProfile =
-    session?.authProvider === 'remote' || isHostedAuthEnvironment()
-
-  if (shouldSyncRemoteProfile) {
-    try {
-      const data = await updateRemoteProfile({ interests })
-      const remoteUser = data.user || data.data?.user || {}
-
-      if (session) {
-        const nextSession = {
-          ...session,
-          interests: Array.isArray(remoteUser.interests) ? remoteUser.interests : interests,
-          needsInterestsSelection: false,
-          hasCompletedOnboarding: true,
-          shouldShowInterestsPrompt: false,
-        }
-        localStorage.setItem(SESSION_KEY, JSON.stringify(nextSession))
-      }
-
-      return
-    } catch (error) {
-      console.warn('Unable to sync interests to the backend:', error)
-    }
-  }
-
-  if (session) {
-    session.interests = interests
-    session.needsInterestsSelection = false
-    session.hasCompletedOnboarding = true
-    session.shouldShowInterestsPrompt = false
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session))
-  }
+  return saveCurrentUserProfile(
+    { interests },
+    {
+      completeOnboarding: true,
+      fallbackEmail: email,
+    },
+  )
 }

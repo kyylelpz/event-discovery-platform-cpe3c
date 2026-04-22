@@ -30,7 +30,7 @@ import {
   getAuthRequestHeaders,
   getSession,
   isHostedAuthEnvironment,
-  saveInterests,
+  saveCurrentUserProfile,
   setSession,
   signOut,
   syncStoredUser,
@@ -106,6 +106,68 @@ const scoreEventForInterests = (event, interests = []) => {
   }, 0)
 }
 
+const compareEventsByNearestDate = (leftEvent, rightEvent) => {
+  const leftDate = parseEventDate(leftEvent.startDate)
+  const rightDate = parseEventDate(rightEvent.startDate)
+
+  if (leftDate && rightDate) {
+    return leftDate.getTime() - rightDate.getTime()
+  }
+
+  if (leftDate) return -1
+  if (rightDate) return 1
+
+  return `${leftEvent.title}`.localeCompare(`${rightEvent.title}`)
+}
+
+const getSeededIndex = (length, seedSource) => {
+  if (!length) {
+    return 0
+  }
+
+  const seed = String(seedSource || 'eventcinity')
+  let hash = 0
+
+  for (let index = 0; index < seed.length; index += 1) {
+    hash = (hash * 31 + seed.charCodeAt(index)) >>> 0
+  }
+
+  return hash % length
+}
+
+const selectFeaturedEvent = (events, interests = [], seedSource = '') => {
+  if (!Array.isArray(events) || events.length === 0) {
+    return null
+  }
+
+  const scoredEvents = events
+    .map((event) => ({
+      event,
+      interestScore: scoreEventForInterests(event, interests),
+      featuredScore: Number(Boolean(event.isFeatured)),
+    }))
+    .sort((leftEvent, rightEvent) => {
+      const interestDifference = rightEvent.interestScore - leftEvent.interestScore
+
+      if (interestDifference !== 0) {
+        return interestDifference
+      }
+
+      const featuredDifference = rightEvent.featuredScore - leftEvent.featuredScore
+
+      if (featuredDifference !== 0) {
+        return featuredDifference
+      }
+
+      return compareEventsByNearestDate(leftEvent.event, rightEvent.event)
+    })
+
+  const matchingEvents = scoredEvents.filter(({ interestScore }) => interestScore > 0)
+  const candidateEvents = (matchingEvents.length ? matchingEvents : scoredEvents).slice(0, 6)
+
+  return candidateEvents[getSeededIndex(candidateEvents.length, seedSource)]?.event || null
+}
+
 const getUserProfileSlug = (user) => {
   const baseValue =
     user?.username ||
@@ -128,6 +190,8 @@ const normalizeCommunityUser = (user = {}) => ({
   bio:
     String(user.bio || '').trim() ||
     'New to Eventcinity and ready to discover events in the community.',
+  phone: String(user.phone || user.contact || '').trim(),
+  contact: String(user.contact || user.phone || '').trim(),
   interests: Array.isArray(user.interests)
     ? user.interests.map((interest) => String(interest || '').trim()).filter(Boolean)
     : [],
@@ -199,6 +263,7 @@ function App() {
   const deferredSearchTerm = useDeferredValue(searchTerm)
   const currentUserRef = useRef(currentUser)
   const recentAuthSuccessAtRef = useRef(0)
+  const hostedSessionRestoreAttemptedRef = useRef(false)
   const {
     interactions,
     savedEvents: savedInteractionEvents,
@@ -230,6 +295,53 @@ function App() {
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
   }, [pathname])
+
+  useEffect(() => {
+    if (
+      currentUser?.email ||
+      !isHostedAuthEnvironment() ||
+      hostedSessionRestoreAttemptedRef.current
+    ) {
+      return undefined
+    }
+
+    let isActive = true
+    hostedSessionRestoreAttemptedRef.current = true
+
+    const restoreHostedSession = async () => {
+      try {
+        const profile = await fetchCurrentUserProfile({ authProvider: 'remote' })
+
+        if (!isActive || !profile?.email) {
+          return
+        }
+
+        const nextSession = {
+          ...profile,
+          authProvider: profile.authProvider || 'remote',
+          shouldShowInterestsPrompt: Boolean(profile.needsInterestsSelection),
+        }
+
+        recentAuthSuccessAtRef.current = Date.now()
+        setCurrentUser(nextSession)
+        setSession(nextSession)
+        setShowInterests(Boolean(nextSession.shouldShowInterestsPrompt))
+        void syncStoredUser(nextSession)
+      } catch (error) {
+        if (!isActive || [401, 403, 404].includes(error?.status)) {
+          return
+        }
+
+        console.warn('Unable to restore the hosted session:', error)
+      }
+    }
+
+    void restoreHostedSession()
+
+    return () => {
+      isActive = false
+    }
+  }, [currentUser?.email])
 
   useEffect(() => {
     let isActive = true
@@ -383,7 +495,15 @@ function App() {
     return () => {
       isActive = false
     }
-  }, [currentUser?.id, currentUser?.username, currentUser?.profilePic, currentUser?.bio, currentUser?.location])
+  }, [
+    currentUser?.id,
+    currentUser?.username,
+    currentUser?.profilePic,
+    currentUser?.bio,
+    currentUser?.location,
+    currentUser?.phone,
+    JSON.stringify(currentUser?.interests || []),
+  ])
 
   const navigate = (nextPath) => {
     const normalizedPath = normalizeRoutePath(nextPath)
@@ -449,23 +569,30 @@ function App() {
   }
 
   // Called after interests are picked
-  const handleInterestsDone = async (interests) => {
+  const handleInterestsDone = async ({ interests, username }) => {
     if (currentUser) {
-      await saveInterests(currentUser.email, interests)
-      setCurrentUser((prev) =>
-        prev
-          ? {
-              ...prev,
-              interests,
-              needsInterestsSelection: false,
-              hasCompletedOnboarding: true,
-              shouldShowInterestsPrompt: false,
-            }
-          : prev,
+      const nextSession = await saveCurrentUserProfile(
+        { interests, username },
+        {
+          completeOnboarding: true,
+          fallbackEmail: currentUser.email,
+        },
       )
+      setCurrentUser(nextSession)
     }
     setShowInterests(false)
     navigate(routes.events)
+  }
+
+  const handleProfileUpdate = async (updates) => {
+    const nextSession = await saveCurrentUserProfile(updates, {
+      fallbackEmail: currentUser?.email,
+    })
+
+    setCurrentUser(nextSession)
+    setCommunityUsers((prevUsers) => mergeCommunityUsers(prevUsers, [nextSession]))
+
+    return nextSession
   }
 
   const handleSignOut = () => {
@@ -505,9 +632,6 @@ function App() {
           return {
             ...user,
             email: '',
-            phone: '',
-            interests: [],
-            isPrivateProfile: true,
           }
         },
       ).sort(compareCommunityUsers),
@@ -603,19 +727,7 @@ function App() {
     return score
   }
 
-  const compareByNearestDate = (leftEvent, rightEvent) => {
-    const leftDate = parseEventDate(leftEvent.startDate)
-    const rightDate = parseEventDate(rightEvent.startDate)
-
-    if (leftDate && rightDate) {
-      return leftDate.getTime() - rightDate.getTime()
-    }
-
-    if (leftDate) return -1
-    if (rightDate) return 1
-
-    return `${leftEvent.title}`.localeCompare(`${rightEvent.title}`)
-  }
+  const compareByNearestDate = compareEventsByNearestDate
 
   const sortedEvents = [...filteredEvents].sort((leftEvent, rightEvent) => {
     if (isCalendarDateMode) {
@@ -641,27 +753,13 @@ function App() {
     activeEventPage * EVENTS_PER_PAGE,
   )
 
+  const featuredRotationSeed = [
+    currentUser?.id || currentUser?.username || currentUser?.email || 'guest',
+    new Date().toISOString().slice(0, 10),
+  ].join(':')
   const featuredEvent = useMemo(
-    () =>
-      [...allEvents].sort((leftEvent, rightEvent) => {
-        const interestDifference =
-          scoreEventForInterests(rightEvent, currentUserInterests) -
-          scoreEventForInterests(leftEvent, currentUserInterests)
-
-        if (interestDifference !== 0) {
-          return interestDifference
-        }
-
-        const featuredDifference =
-          Number(Boolean(rightEvent.isFeatured)) - Number(Boolean(leftEvent.isFeatured))
-
-        if (featuredDifference !== 0) {
-          return featuredDifference
-        }
-
-        return compareByNearestDate(leftEvent, rightEvent)
-      })[0] || null,
-    [allEvents, currentUserInterests],
+    () => selectFeaturedEvent(allEvents, currentUserInterests, featuredRotationSeed),
+    [allEvents, currentUserInterests, featuredRotationSeed],
   )
   const featuredInterestLabel =
     featuredEvent && currentUserInterestLabels.length
@@ -855,6 +953,11 @@ function App() {
   }
 
   const handleCreateEvent = async (formData) => {
+    if (!currentUser?.email) {
+      navigate(routes.signin)
+      throw new Error('Sign in to create an event.')
+    }
+
     try {
       const payload = new FormData()
       payload.append('title', formData.title)
@@ -877,6 +980,11 @@ function App() {
       const responseData = await response.json()
 
       if (!response.ok || !responseData.success) {
+        if ([401, 403].includes(response.status)) {
+          navigate(routes.signin)
+          throw new Error('Sign in to create an event.')
+        }
+
         throw new Error(responseData.message || 'Failed to create event.')
       }
 
@@ -918,11 +1026,27 @@ function App() {
         }
 
         setCreatedEvents((prev) => [newEvent, ...prev])
+        setCurrentUser((prev) =>
+          prev
+            ? {
+                ...prev,
+                createdEventsCount: Number(prev.createdEventsCount || 0) + 1,
+              }
+            : prev,
+        )
+        setCommunityUsers((prevUsers) =>
+          mergeCommunityUsers(prevUsers, [
+            {
+              ...currentUser,
+              createdEventsCount: Number(currentUser?.createdEventsCount || 0) + 1,
+            },
+          ]),
+        )
         navigate(routes.eventDetail(newEvent.id))
       }
     } catch (err) {
       console.error('Upload failed:', err.message)
-      alert('Failed to create event. Check console for details.')
+      throw err
     }
   }
 
@@ -993,12 +1117,14 @@ function App() {
   let page
 
   if (route.key === 'create-event') {
-    page = (
+    page = currentUser ? (
       <CreateEventPage
         categories={categoryOptions.filter((item) => item !== 'All Events')}
         locations={locationOptions.filter((item) => item !== 'All Philippines')}
         onCreateEvent={handleCreateEvent}
       />
+    ) : (
+      <SignInPage onAuthSuccess={handleAuthSuccess} />
     )
   } else if (route.key === 'event-detail' && currentEvent) {
     page = (
@@ -1050,6 +1176,7 @@ function App() {
           likedEvents={likedByUser}
           attendingEvents={attendingByUser}
           isCurrentUser={isViewingCurrentUserProfile}
+          onSaveProfile={handleProfileUpdate}
           activeTab={activeProfileTab}
           onTabChange={setActiveProfileTab}
           {...sharedPageProps}

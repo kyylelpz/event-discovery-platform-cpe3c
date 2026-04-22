@@ -25,7 +25,7 @@ const faqs = [
   },
   {
     q: 'How do I connect with other people?',
-    a: 'Visit the People page to browse community members and hosts. Public profiles highlight basic community info and created events, while private interests and activity stay visible only to the account owner.',
+    a: 'Visit the People page to browse community members and hosts. Public profiles highlight bio, interests, contact details, and created events, while private activity like bookmarks and attendance stays visible only to the account owner.',
   },
   {
     q: 'What do I do if an event has incorrect information?',

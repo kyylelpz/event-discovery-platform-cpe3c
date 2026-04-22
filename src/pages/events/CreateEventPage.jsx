@@ -24,6 +24,8 @@ function CreateEventPage({ categories, locations, onCreateEvent }) {
   const [formValues, setFormValues] = useState(initialForm)
   const [errors, setErrors] = useState({})
   const [hasSubmitted, setHasSubmitted] = useState(false)
+  const [submissionError, setSubmissionError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const titleWordCount = countWords(formValues.title)
   const descriptionLength = formValues.description.trim().length
@@ -144,21 +146,31 @@ function CreateEventPage({ categories, locations, onCreateEvent }) {
     setFormValues(initialForm)
     setErrors({})
     setHasSubmitted(false)
+    setSubmissionError('')
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
     const nextErrors = validateForm(formValues)
 
     setHasSubmitted(true)
     setErrors(nextErrors)
+    setSubmissionError('')
 
     if (Object.values(nextErrors).some(Boolean)) {
       return
     }
 
-    onCreateEvent(formValues)
-    handleReset()
+    setIsSubmitting(true)
+
+    try {
+      await onCreateEvent(formValues)
+      handleReset()
+    } catch (submitError) {
+      setSubmissionError(submitError.message || 'Unable to create your event right now.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -317,18 +329,23 @@ function CreateEventPage({ categories, locations, onCreateEvent }) {
             <PrimaryButton
               type="submit"
               className="form-actions__primary"
-              disabled={!isFormValid}
+              disabled={!isFormValid || isSubmitting}
             >
-              Create Event
+              {isSubmitting ? 'Creating Event...' : 'Create Event'}
             </PrimaryButton>
             <SecondaryButton
               type="button"
               className="form-actions__secondary"
               onClick={handleReset}
+              disabled={isSubmitting}
             >
               Cancel
             </SecondaryButton>
           </div>
+
+          {submissionError ? (
+            <small className="field-error">{submissionError}</small>
+          ) : null}
         </form>
       </section>
     </div>

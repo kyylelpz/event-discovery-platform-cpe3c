@@ -30,12 +30,20 @@ const pickText = (...values) => {
 
 export const normalizePublicUser = (rawUser = {}) => ({
   id: String(rawUser.id || rawUser._id || '').trim(),
+  email: pickText(rawUser.email).toLowerCase(),
   name: pickText(rawUser.name, rawUser.username) || 'Eventcinity user',
   username: pickText(rawUser.username),
   location: pickText(rawUser.location) || 'Philippines',
   bio:
     pickText(rawUser.bio) ||
     'New to Eventcinity and ready to discover events in the community.',
+  phone: pickText(rawUser.phone, rawUser.contact),
+  contact: pickText(rawUser.contact, rawUser.phone),
+  interests: Array.isArray(rawUser.interests)
+    ? rawUser.interests
+        .map((interest) => pickText(interest))
+        .filter(Boolean)
+    : [],
   profilePic: pickText(rawUser.profilePic, rawUser.avatar, rawUser.imageUrl),
   avatar: pickText(rawUser.avatar, rawUser.profilePic, rawUser.imageUrl),
   createdAt: pickText(rawUser.createdAt),
