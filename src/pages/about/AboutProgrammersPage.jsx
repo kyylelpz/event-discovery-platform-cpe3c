@@ -119,7 +119,7 @@ function AboutProgrammersPage() {
 
   return (
     <div className="info-page programmer-carousel-page">
-      <section className="info-page__hero programmer-carousel-page__hero">
+      <section className="info-page__hero info-page__hero--centered programmer-carousel-page__hero">
         <div className="info-page__hero-icon">
           <CodeIcon />
         </div>
@@ -241,7 +241,7 @@ function AboutProgrammersPage() {
         .programmer-carousel-section {
           display: grid;
           gap: 18px;
-          padding: 28px;
+          padding: 40px;
           width: 100%;
           border: 1px solid rgba(45, 59, 21, 0.1);
           border-radius: 32px;
@@ -364,7 +364,7 @@ function AboutProgrammersPage() {
 
         @media (max-width: 980px) {
           .programmer-carousel-section {
-            padding: 22px;
+            padding: 30px;
           }
 
           .programmer-card {
@@ -378,7 +378,7 @@ function AboutProgrammersPage() {
           }
 
           .programmer-carousel-section {
-            padding: 18px;
+            padding: 22px;
             border-radius: 24px;
           }
 

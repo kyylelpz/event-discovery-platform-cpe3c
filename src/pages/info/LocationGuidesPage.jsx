@@ -42,7 +42,7 @@ const locations = [
 function LocationGuidesPage() {
   return (
     <div className="info-page">
-      <section className="info-page__hero">
+      <section className="info-page__hero info-page__hero--centered">
         <div className="info-page__hero-icon">
           <CompassIcon />
         </div>
