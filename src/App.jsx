@@ -241,6 +241,37 @@ const compareCommunityUsers = (leftUser, rightUser) => {
   return String(leftUser.name || '').localeCompare(String(rightUser.name || ''))
 }
 
+const scoreUserForInterests = (user, interests = []) => {
+  if (!interests.length || !user) {
+    return 0
+  }
+
+  const userInterests = normalizeInterestList(user.interests)
+  const searchableText = [user.name, user.username, user.location, user.bio]
+    .join(' ')
+    .toLowerCase()
+
+  return interests.reduce((score, interest) => {
+    if (!interest) {
+      return score
+    }
+
+    if (userInterests.includes(interest)) {
+      return score + 10
+    }
+
+    if (userInterests.some((userInterest) => userInterest.includes(interest) || interest.includes(userInterest))) {
+      return score + 6
+    }
+
+    if (searchableText.includes(interest)) {
+      return score + 2
+    }
+
+    return score
+  }, 0)
+}
+
 function App() {
   const [theme, setTheme] = useState(() => {
     if (typeof window === 'undefined') {
@@ -676,15 +707,31 @@ function App() {
   )
   const connectPeople = useMemo(
     () =>
-      communityDirectory.filter((user) => {
+      [...communityDirectory.filter((user) => {
         const isCurrentUserEntry =
           (currentUser?.id && user.id === currentUser.id) ||
           (currentUser?.username && user.username === currentUser.username) ||
           (currentUserEmail && user.email === currentUserEmail)
 
         return !isCurrentUserEntry
+      })].sort((leftUser, rightUser) => {
+        const interestDifference =
+          scoreUserForInterests(rightUser, currentUserInterests) -
+          scoreUserForInterests(leftUser, currentUserInterests)
+
+        if (interestDifference !== 0) {
+          return interestDifference
+        }
+
+        return compareCommunityUsers(leftUser, rightUser)
       }),
-    [communityDirectory, currentUser?.id, currentUser?.username, currentUserEmail],
+    [
+      communityDirectory,
+      currentUser?.id,
+      currentUser?.username,
+      currentUserEmail,
+      currentUserInterests,
+    ],
   )
   const totalPeoplePages = Math.max(1, Math.ceil(connectPeople.length / PEOPLE_PER_PAGE))
   const activePeoplePage = Math.min(currentPeoplePage, totalPeoplePages)
@@ -764,6 +811,8 @@ function App() {
       if (locationText.includes(selectedLocation.toLowerCase())) score += 2
     }
 
+    score += scoreEventForInterests(event, currentUserInterests) * 2
+
     if (event.isFeatured) {
       score += 1
     }
@@ -774,6 +823,14 @@ function App() {
   const compareByNearestDate = compareEventsByNearestDate
 
   const sortedEvents = [...filteredEvents].sort((leftEvent, rightEvent) => {
+    const interestDifference =
+      scoreEventForInterests(rightEvent, currentUserInterests) -
+      scoreEventForInterests(leftEvent, currentUserInterests)
+
+    if (interestDifference !== 0) {
+      return interestDifference
+    }
+
     if (isCalendarDateMode) {
       return `${leftEvent.title}`.localeCompare(`${rightEvent.title}`)
     }

@@ -250,8 +250,38 @@
   background: rgba(45, 59, 21, 0.08);
 }
 
+.mode-toggle-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-muted);
+  opacity: 0.72;
+  transition:
+    opacity 0.2s ease,
+    color 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.mode-toggle-button:hover {
+  opacity: 1;
+  color: var(--color-text);
+  background: rgba(45, 59, 21, 0.06);
+}
+
+.mode-toggle-button svg {
+  width: 15px;
+  height: 15px;
+}
+
 .topbar__account:focus-visible,
-.profile-menu__trigger:focus-visible {
+.profile-menu__trigger:focus-visible,
+.mode-toggle-button:focus-visible {
   outline: 2px solid rgba(193, 127, 74, 0.35);
   outline-offset: 2px;
 }
@@ -469,7 +499,12 @@
   width: min(100%, 320px);
 }
 
-.find-events-picker__header,
+.find-events-picker__header {
+  display: grid;
+  gap: 6px;
+}
+
+.find-events-picker__header-row,
 .find-events-picker__footer,
 .section-block__summary {
   display: flex;
@@ -482,6 +517,12 @@
   color: var(--color-text);
   font-size: 1rem;
   font-weight: 600;
+}
+
+.find-events-picker__meta {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.84rem;
 }
 
 .find-events-picker__nav,
@@ -511,7 +552,7 @@
 .find-events-picker__grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 6px;
+  gap: 8px;
 }
 
 .find-events-picker__weekdays span {
@@ -522,9 +563,13 @@
 
 .find-events-picker__day {
   position: relative;
-  min-height: 38px;
+  display: grid;
+  align-items: start;
+  justify-items: start;
+  min-height: 54px;
+  padding: 10px 8px 8px;
   border: 0;
-  border-radius: 12px;
+  border-radius: 14px;
   background: transparent;
   color: var(--color-text);
 }
@@ -546,23 +591,44 @@
   font-weight: 600;
 }
 
+.find-events-picker__day--light {
+  background: rgba(45, 59, 21, 0.06);
+}
+
+.find-events-picker__day--medium {
+  background: rgba(45, 59, 21, 0.1);
+}
+
+.find-events-picker__day--heavy {
+  background: rgba(45, 59, 21, 0.16);
+}
+
 .find-events-picker__day--selected {
   background: var(--color-accent);
   color: var(--color-surface);
 }
 
+.find-events-picker__day-number {
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
 .find-events-picker__count {
   position: absolute;
   right: 6px;
-  bottom: 4px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
+  top: 6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
   border-radius: 999px;
   background: rgba(45, 59, 21, 0.12);
   color: inherit;
-  font-size: 0.64rem;
-  line-height: 16px;
+  font-size: 0.68rem;
+  line-height: 18px;
+}
+
+.find-events-picker__day--selected .find-events-picker__count {
+  background: rgba(255, 255, 255, 0.22);
 }
 
 .topbar__mobile {
@@ -1323,6 +1389,7 @@
 :root[data-theme='dark'] .searchbar__result:hover,
 :root[data-theme='dark'] .topbar__account:hover,
 :root[data-theme='dark'] .profile-menu__trigger:hover,
+:root[data-theme='dark'] .mode-toggle-button:hover,
 :root[data-theme='dark'] .button--secondary:hover,
 :root[data-theme='dark'] .button--secondary-active,
 :root[data-theme='dark'] .find-events-picker__nav:hover,
@@ -1987,32 +2054,6 @@
   text-align: center;
 }
 
-.footer-theme-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  margin-top: 12px;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--color-muted);
-  opacity: 0.55;
-  transition: opacity 0.2s ease, color 0.2s ease, background-color 0.2s ease;
-}
-
-.footer-theme-toggle:hover {
-  opacity: 0.8;
-  color: var(--color-text);
-  background: rgba(45, 59, 21, 0.06);
-}
-
-.footer-theme-toggle svg {
-  width: 14px;
-  height: 14px;
-}
-
 .user-avatar {
   display: inline-flex;
   align-items: center;
@@ -2119,11 +2160,23 @@
     border-top: 1px solid var(--color-border);
   }
 
-  .profile-menu--mobile {
+  .topbar__mobile-auth-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    align-items: start;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .topbar__mobile-account-row {
     width: 100%;
+  }
+
+  .profile-menu--mobile {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    width: 100%;
+    gap: 10px;
   }
 
   .profile-menu--mobile .topbar__account {

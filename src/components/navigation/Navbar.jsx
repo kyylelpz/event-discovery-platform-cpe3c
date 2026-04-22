@@ -13,9 +13,11 @@ import {
   LogInIcon,
   MapPinIcon,
   MenuIcon,
+  MoonIcon,
   MoreVerticalIcon,
   PlusSquareIcon,
   SearchIcon,
+  SunIcon,
   UserPlusIcon,
 } from '../ui/Icons.jsx'
 import SearchBar from '../ui/SearchBar.jsx'
@@ -45,6 +47,8 @@ function Navbar({
   onCalendarDateChange,
   onCalendarDateClear,
   currentUser,
+  theme,
+  onToggleTheme,
   onOpenProfile,
   onSignOut,
 }) {
@@ -115,17 +119,22 @@ function Navbar({
           {currentUser ? (
             <ProfileMenu
               currentUser={currentUser}
+              theme={theme}
+              onToggleTheme={onToggleTheme}
               onOpenProfile={onOpenProfile}
               onSignOut={onSignOut}
             />
           ) : (
-            <SecondaryButton
-              isActive={isActive(routes.signin)}
-              onClick={() => onNavigate(routes.signin)}
-            >
-              <LogInIcon />
-              <span>Sign In</span>
-            </SecondaryButton>
+            <>
+              <SecondaryButton
+                isActive={isActive(routes.signin)}
+                onClick={() => onNavigate(routes.signin)}
+              >
+                <LogInIcon />
+                <span>Sign In</span>
+              </SecondaryButton>
+              <ThemeIconButton theme={theme} onToggleTheme={onToggleTheme} />
+            </>
           )}
         </nav>
       </div>
@@ -149,6 +158,8 @@ function Navbar({
         onCalendarDateChange={onCalendarDateChange}
         onCalendarDateClear={onCalendarDateClear}
         currentUser={currentUser}
+        theme={theme}
+        onToggleTheme={onToggleTheme}
         onOpenProfile={onOpenProfile}
         onSignOut={onSignOut}
       />
@@ -175,6 +186,8 @@ function MobileNavbar({
   onCalendarDateChange,
   onCalendarDateClear,
   currentUser,
+  theme,
+  onToggleTheme,
   onOpenProfile,
   onSignOut,
 }) {
@@ -242,12 +255,16 @@ function MobileNavbar({
 
         <div className="topbar__mobile-links">
           {currentUser ? (
-            <ProfileMenu
-              currentUser={currentUser}
-              onOpenProfile={onOpenProfile}
-              onSignOut={onSignOut}
-              mobile
-            />
+            <div className="topbar__mobile-account-row">
+              <ProfileMenu
+                currentUser={currentUser}
+                theme={theme}
+                onToggleTheme={onToggleTheme}
+                onOpenProfile={onOpenProfile}
+                onSignOut={onSignOut}
+                mobile
+              />
+            </div>
           ) : null}
 
           <SecondaryButton
@@ -264,12 +281,15 @@ function MobileNavbar({
             Connect with People
           </SecondaryButton>
           {!currentUser ? (
-            <SecondaryButton
-              isActive={toggleState === routes.signin}
-              onClick={() => onNavigate(routes.signin)}
-            >
-              Sign In
-            </SecondaryButton>
+            <div className="topbar__mobile-auth-row">
+              <SecondaryButton
+                isActive={toggleState === routes.signin}
+                onClick={() => onNavigate(routes.signin)}
+              >
+                Sign In
+              </SecondaryButton>
+              <ThemeIconButton theme={theme} onToggleTheme={onToggleTheme} />
+            </div>
           ) : null}
         </div>
       </div>
@@ -277,7 +297,28 @@ function MobileNavbar({
   )
 }
 
-function ProfileMenu({ currentUser, onOpenProfile, onSignOut, mobile = false }) {
+function ThemeIconButton({ theme, onToggleTheme }) {
+  return (
+    <button
+      type="button"
+      className="mode-toggle-button"
+      onClick={onToggleTheme}
+      aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+      title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+    >
+      {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+    </button>
+  )
+}
+
+function ProfileMenu({
+  currentUser,
+  theme,
+  onToggleTheme,
+  onOpenProfile,
+  onSignOut,
+  mobile = false,
+}) {
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef(null)
   const interests = Array.isArray(currentUser.interests) ? currentUser.interests : []
@@ -332,6 +373,8 @@ function ProfileMenu({ currentUser, onOpenProfile, onSignOut, mobile = false }) 
       >
         <MoreVerticalIcon />
       </button>
+
+      <ThemeIconButton theme={theme} onToggleTheme={onToggleTheme} />
 
       {isOpen ? (
         <div className="profile-menu__panel">
@@ -441,6 +484,22 @@ function FindEventsDatePicker({
   const monthStart = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), 1)
   const calendarStart = new Date(monthStart)
   calendarStart.setDate(monthStart.getDate() - monthStart.getDay())
+  const monthEventCount = Object.entries(availableDateCounts).reduce(
+    (count, [dateKey, eventCount]) => {
+      const date = parseEventDate(dateKey)
+
+      if (
+        date &&
+        date.getFullYear() === displayMonth.getFullYear() &&
+        date.getMonth() === displayMonth.getMonth()
+      ) {
+        return count + Number(eventCount || 0)
+      }
+
+      return count
+    },
+    0,
+  )
   const dayCells = Array.from({ length: 42 }, (_, index) => {
     const day = new Date(calendarStart)
     day.setDate(calendarStart.getDate() + index)
@@ -468,31 +527,36 @@ function FindEventsDatePicker({
       {isOpen ? (
         <div className="find-events-picker__panel">
           <div className="find-events-picker__header">
-            <button
-              type="button"
-              className="find-events-picker__nav"
-              onClick={() =>
-                setOpenMonth(
-                  new Date(displayMonth.getFullYear(), displayMonth.getMonth() - 1, 1),
-                )
-              }
-              aria-label="Previous month"
-            >
-              <ChevronLeftIcon />
-            </button>
-            <strong>{formatCalendarMonth(displayMonth)}</strong>
-            <button
-              type="button"
-              className="find-events-picker__nav"
-              onClick={() =>
-                setOpenMonth(
-                  new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 1, 1),
-                )
-              }
-              aria-label="Next month"
-            >
-              <ChevronRightIcon />
-            </button>
+            <div className="find-events-picker__header-row">
+              <button
+                type="button"
+                className="find-events-picker__nav"
+                onClick={() =>
+                  setOpenMonth(
+                    new Date(displayMonth.getFullYear(), displayMonth.getMonth() - 1, 1),
+                  )
+                }
+                aria-label="Previous month"
+              >
+                <ChevronLeftIcon />
+              </button>
+              <strong>{formatCalendarMonth(displayMonth)}</strong>
+              <button
+                type="button"
+                className="find-events-picker__nav"
+                onClick={() =>
+                  setOpenMonth(
+                    new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 1, 1),
+                  )
+                }
+                aria-label="Next month"
+              >
+                <ChevronRightIcon />
+              </button>
+            </div>
+            <p className="find-events-picker__meta">
+              {monthEventCount} event{monthEventCount === 1 ? '' : 's'} this month
+            </p>
           </div>
 
           <div className="find-events-picker__weekdays">
@@ -508,6 +572,14 @@ function FindEventsDatePicker({
               const dateKey = formatDateKey(day)
               const eventCount = availableDateCounts[dateKey] || 0
               const isAvailable = eventCount > 0
+              const densityClass =
+                eventCount >= 4
+                  ? 'find-events-picker__day--heavy'
+                  : eventCount >= 2
+                    ? 'find-events-picker__day--medium'
+                    : isAvailable
+                      ? 'find-events-picker__day--light'
+                      : ''
 
               return (
                 <button
@@ -517,14 +589,14 @@ function FindEventsDatePicker({
                     isOutsideMonth ? 'find-events-picker__day--muted' : ''
                   } ${isAvailable ? 'find-events-picker__day--available' : ''} ${
                     isSelected ? 'find-events-picker__day--selected' : ''
-                  }`}
+                  } ${densityClass}`}
                   onClick={() => {
                     onDateChange(day)
                     setIsOpen(false)
                     setOpenMonth(null)
                   }}
                 >
-                  {day.getDate()}
+                  <span className="find-events-picker__day-number">{day.getDate()}</span>
                   {isAvailable ? (
                     <span className="find-events-picker__count">{eventCount}</span>
                   ) : null}

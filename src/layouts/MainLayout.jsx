@@ -6,11 +6,7 @@ function MainLayout({ navProps, children }) {
     <div className="site-shell">
       <Navbar {...navProps} />
       <main className="page-shell">{children}</main>
-      <SiteFooter
-        onNavigate={navProps.onNavigate}
-        theme={navProps.theme}
-        onToggleTheme={navProps.onToggleTheme}
-      />
+      <SiteFooter onNavigate={navProps.onNavigate} />
     </div>
   )
 }

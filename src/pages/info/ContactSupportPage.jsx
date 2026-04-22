@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { HelpCircleIcon, MailIcon, MessageCircleIcon } from '../../components/ui/Icons.jsx'
+import { getSession } from '../../services/authService.js'
+import { submitSupportRequest } from '../../services/supportService.js'
 
 const styles = `
   .contact-support-hero {
@@ -14,6 +16,7 @@ const styles = `
   .contact-support__main {
     grid-column: span 2;
     display: grid;
+    gap: 1rem;
     align-content: start;
   }
 
@@ -96,6 +99,17 @@ const styles = `
     width: 100%;
   }
 
+  .contact-error {
+    background: #fff3f1;
+    border: 1px solid #f0b6af;
+    color: #b2402c;
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    font-size: 0.9rem;
+    max-width: 560px;
+    width: 100%;
+  }
+
   .contact-channels {
     display: flex;
     flex-direction: column;
@@ -141,15 +155,36 @@ const styles = `
 `
 
 function ContactSupportPage() {
-  const [form, setForm] = useState({ name: '', email: '', topic: '', message: '' })
-  const [submitted, setSubmitted] = useState(false)
+  const session = getSession()
+  const [form, setForm] = useState(() => ({
+    name: String(session?.name || session?.username || '').trim(),
+    email: String(session?.email || '').trim().toLowerCase(),
+    topic: '',
+    message: '',
+  }))
+  const [submittedTicket, setSubmittedTicket] = useState(null)
+  const [submitError, setSubmitError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const set = (field) => (event) => setForm((prev) => ({ ...prev, [field]: event.target.value }))
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
-    if (!form.name || !form.email || !form.message) return
-    setSubmitted(true)
+    if (!form.name || !form.email || !form.message || isSubmitting) return
+
+    setIsSubmitting(true)
+    setSubmitError('')
+
+    try {
+      const submission = await submitSupportRequest(form)
+      setSubmittedTicket(submission)
+    } catch (error) {
+      setSubmitError(
+        error?.message || 'We could not save your message right now. Please try again.',
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -169,10 +204,16 @@ function ContactSupportPage() {
 
       <section className="info-page__grid contact-support-grid">
         <div className="contact-support__main">
-          {submitted ? (
+          {submitError ? <div className="contact-error">{submitError}</div> : null}
+
+          {submittedTicket ? (
             <div className="contact-success">
-              Thanks for reaching out. We have received your message and will reply to{' '}
-              <strong>{form.email}</strong> shortly.
+              Thanks for reaching out. Your message was saved as{' '}
+              <strong>{submittedTicket.ticket?.id || 'a support request'}</strong> and we
+              will reply to <strong>{form.email}</strong> shortly.
+              {submittedTicket.delivery === 'remote'
+                ? ' It was delivered to the connected support service.'
+                : ' It was stored locally on this device because no support endpoint responded.'}
             </div>
           ) : (
             <form className="contact-form" onSubmit={handleSubmit} noValidate>
@@ -219,9 +260,9 @@ function ContactSupportPage() {
               <button
                 type="submit"
                 className="contact-submit"
-                disabled={!form.name || !form.email || !form.message}
+                disabled={!form.name || !form.email || !form.message || isSubmitting}
               >
-                Send message
+                {isSubmitting ? 'Saving...' : 'Send message'}
               </button>
             </form>
           )}
