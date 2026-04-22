@@ -393,7 +393,7 @@ function App() {
           const recentlyAuthenticated =
             Date.now() - recentAuthSuccessAtRef.current < 30_000
           const shouldPreserveFreshSession =
-            recentlyAuthenticated || Boolean(activeUser.needsInterestsSelection)
+            recentlyAuthenticated && !isHostedAuthEnvironment()
 
           if (shouldPreserveFreshSession) {
             const fallbackSession = { ...activeUser, authProvider: 'local' }
@@ -543,8 +543,10 @@ function App() {
 
   // Called after sign in or sign up
   const handleAuthSuccess = (session, type) => {
+    const shouldShowInterestsPrompt =
+      type === 'new' || Boolean(session?.needsInterestsSelection)
     const nextUser =
-      type === 'new'
+      shouldShowInterestsPrompt
         ? {
             ...session,
             needsInterestsSelection: true,
@@ -560,7 +562,7 @@ function App() {
     setCurrentUser(nextUser)
     setInteractionState(buildEmptyInteractionState())
     setSession(nextUser)
-    if (type === 'new' || nextUser.shouldShowInterestsPrompt) {
+    if (nextUser.shouldShowInterestsPrompt) {
       setShowInterests(true)
       navigate(routes.events)
       return
@@ -572,16 +574,31 @@ function App() {
 
   // Called after interests are picked
   const handleInterestsDone = async ({ interests, username }) => {
-    if (currentUser) {
-      const nextSession = await saveCurrentUserProfile(
-        { interests, username },
-        {
-          completeOnboarding: true,
-          fallbackEmail: currentUser.email,
-        },
-      )
-      setCurrentUser(nextSession)
+    try {
+      if (currentUser) {
+        const nextSession = await saveCurrentUserProfile(
+          { interests, username },
+          {
+            completeOnboarding: true,
+            fallbackEmail: currentUser.email,
+          },
+        )
+        setCurrentUser(nextSession)
+      }
+    } catch (error) {
+      if ([401, 403].includes(error?.status)) {
+        recentAuthSuccessAtRef.current = 0
+        clearSession()
+        setCurrentUser(null)
+        setInteractionState(buildEmptyInteractionState())
+        setShowInterests(false)
+        navigate(routes.signin)
+        return
+      }
+
+      throw error
     }
+
     setShowInterests(false)
     navigate(routes.events)
   }
