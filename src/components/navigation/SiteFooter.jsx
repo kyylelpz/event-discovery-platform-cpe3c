@@ -1,5 +1,3 @@
-import { MoonIcon, SunIcon } from '../ui/Icons.jsx'
-
 const footerLinks = {
   'Use Eventcinity': [
     { label: 'Create Events', path: '/events/create' },
@@ -18,7 +16,7 @@ const footerLinks = {
   ],
 }
 
-function SiteFooter({ onNavigate, theme = 'light', onToggleTheme }) {
+function SiteFooter({ onNavigate }) {
   return (
     <footer className="site-footer">
       <div className="footer-grid">
@@ -53,18 +51,6 @@ function SiteFooter({ onNavigate, theme = 'light', onToggleTheme }) {
           <br />
           Developed by BulSU BS Computer Engineering A.Y. 2025-2026.
         </p>
-        <button
-          type="button"
-          className="footer-theme-toggle"
-          onClick={onToggleTheme}
-          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-        >
-          {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
-          <span className="sr-only">
-            {theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-          </span>
-        </button>
       </div>
     </footer>
   )
