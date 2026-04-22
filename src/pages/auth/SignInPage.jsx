@@ -3,10 +3,12 @@ import { PrimaryButton } from '../../components/ui/Button.jsx'
 import { API_BASE_URL } from '../../services/apiBase.js'
 import {
   getEmailValidationError,
-  getPasswordValidationError,
+  getPasswordValidationChecks,
+  getPasswordValidationErrors,
   signIn,
   signUp,
 } from '../../services/authService.js'
+import { CheckIcon, CloseIcon } from '../../components/ui/Icons.jsx'
 import { routes } from '../../utils/routing.js'
 
 const styles = `
@@ -95,6 +97,13 @@ const styles = `
     font-size: 0.875rem;
   }
 
+  .signin-error ul {
+    margin: 0;
+    padding-left: 1.1rem;
+    display: grid;
+    gap: 0.35rem;
+  }
+
   .field-group {
     display: flex;
     flex-direction: column;
@@ -160,6 +169,50 @@ const styles = `
     margin: 0;
     font-size: 0.8rem;
     line-height: 1.5;
+    color: var(--color-muted);
+  }
+
+  .password-checklist {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .password-checklist__item {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    color: var(--color-muted);
+  }
+
+  .password-checklist__item svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+
+  .password-checklist__bullet {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    border: 1.5px solid currentColor;
+    border-radius: 999px;
+    opacity: 0.55;
+  }
+
+  .password-checklist__item--valid {
+    color: var(--color-success-text);
+  }
+
+  .password-checklist__item--invalid {
+    color: var(--color-danger-text);
+  }
+
+  .password-checklist__item--pending {
     color: var(--color-muted);
   }
 
@@ -274,40 +327,71 @@ function SignInPage({ onAuthSuccess }) {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const [errors, setErrors] = useState([])
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false)
 
   const isSignUp = mode === 'signup'
+  const passwordChecks = getPasswordValidationChecks(password)
+  const confirmPasswordMatches = password.length > 0 && password === confirmPassword
+  const shouldShowChecklistState =
+    hasAttemptedSubmit || password.length > 0 || confirmPassword.length > 0
+
+  const getSignupFormErrors = () => {
+    const nextErrors = []
+    const normalizedEmail = email.trim().toLowerCase()
+    const trimmedPassword = password.trim()
+
+    if (!normalizedEmail) {
+      nextErrors.push('Email is required.')
+    } else {
+      const emailError = getEmailValidationError(normalizedEmail)
+
+      if (emailError) {
+        nextErrors.push(emailError)
+      }
+    }
+
+    if (!trimmedPassword) {
+      nextErrors.push('Password is required.')
+    } else {
+      nextErrors.push(...getPasswordValidationErrors(password))
+    }
+
+    if (!confirmPassword) {
+      nextErrors.push('Confirm your password.')
+    } else if (password !== confirmPassword) {
+      nextErrors.push('Passwords do not match.')
+    }
+
+    return [...new Set(nextErrors)]
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setError(null)
+    setHasAttemptedSubmit(true)
+    setErrors([])
 
     const normalizedEmail = email.trim().toLowerCase()
     const trimmedPassword = password.trim()
 
+    if (isSignUp) {
+      const signupErrors = getSignupFormErrors()
+
+      if (signupErrors.length) {
+        setErrors(signupErrors)
+        return
+      }
+    }
+
     if (!normalizedEmail || !trimmedPassword) {
-      setError('Fill in both fields to continue')
+      setErrors(['Fill in both fields to continue'])
       return
     }
 
     const emailError = getEmailValidationError(normalizedEmail)
 
     if (emailError) {
-      setError(emailError)
-      return
-    }
-
-    if (isSignUp) {
-      const passwordError = getPasswordValidationError(password)
-
-      if (passwordError) {
-        setError(passwordError)
-        return
-      }
-    }
-
-    if (isSignUp && password !== confirmPassword) {
-      setError('Passwords do not match')
+      setErrors([emailError])
       return
     }
 
@@ -326,7 +410,7 @@ function SignInPage({ onAuthSuccess }) {
         await onAuthSuccess(session, userType)
       }
     } catch (err) {
-      setError(err.message || 'Something went wrong. Try again.')
+      setErrors([err.message || 'Something went wrong. Try again.'])
     } finally {
       setIsLoading(false)
     }
@@ -334,7 +418,8 @@ function SignInPage({ onAuthSuccess }) {
 
   const switchMode = (next) => {
     setMode(next)
-    setError(null)
+    setErrors([])
+    setHasAttemptedSubmit(false)
     setPassword('')
     setConfirmPassword('')
   }
@@ -372,7 +457,15 @@ function SignInPage({ onAuthSuccess }) {
           </div>
 
           <form className="signin-form" onSubmit={handleSubmit} noValidate>
-            {error && <div className="signin-error" role="alert">{error}</div>}
+            {errors.length ? (
+              <div className="signin-error" role="alert">
+                <ul>
+                  {errors.map((errorMessage) => (
+                    <li key={errorMessage}>{errorMessage}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
 
             <div className="field-group">
               <label htmlFor="email">Email</label>
@@ -381,7 +474,12 @@ function SignInPage({ onAuthSuccess }) {
                 type="email"
                 required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value)
+                  if (errors.length) {
+                    setErrors([])
+                  }
+                }}
                 placeholder="you@example.com"
                 autoComplete="email"
                 inputMode="email"
@@ -404,7 +502,12 @@ function SignInPage({ onAuthSuccess }) {
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value)
+                    if (errors.length) {
+                      setErrors([])
+                    }
+                  }}
                   placeholder="........"
                   autoComplete={isSignUp ? 'new-password' : 'current-password'}
                   className="has-toggle"
@@ -414,9 +517,29 @@ function SignInPage({ onAuthSuccess }) {
                 </button>
               </div>
               {isSignUp ? (
-                <p className="field-note">
-                  Use 6+ characters with uppercase, lowercase, number, and special character.
-                </p>
+                <ul className="password-checklist" aria-label="Password requirements">
+                  {passwordChecks.map((check) => (
+                    <li
+                      key={check.id}
+                      className={`password-checklist__item ${
+                        check.isValid
+                          ? 'password-checklist__item--valid'
+                          : shouldShowChecklistState
+                            ? 'password-checklist__item--invalid'
+                            : 'password-checklist__item--pending'
+                      }`}
+                    >
+                      {check.isValid ? (
+                        <CheckIcon />
+                      ) : shouldShowChecklistState ? (
+                        <CloseIcon />
+                      ) : (
+                        <span className="password-checklist__bullet" aria-hidden="true" />
+                      )}
+                      <span>{check.label}</span>
+                    </li>
+                  ))}
+                </ul>
               ) : null}
             </div>
 
@@ -428,7 +551,12 @@ function SignInPage({ onAuthSuccess }) {
                     id="confirmPassword"
                     type={showConfirm ? 'text' : 'password'}
                     value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value)
+                      if (errors.length) {
+                        setErrors([])
+                      }
+                    }}
                     placeholder="........"
                     autoComplete="new-password"
                     className="has-toggle"
@@ -436,6 +564,24 @@ function SignInPage({ onAuthSuccess }) {
                   <button type="button" className="show-password-btn" onClick={() => setShowConfirm((value) => !value)} aria-label={showConfirm ? 'Hide password' : 'Show password'}>
                     <EyeIcon open={showConfirm} />
                   </button>
+                </div>
+                <div
+                  className={`password-checklist__item ${
+                    confirmPassword.length === 0 && !hasAttemptedSubmit
+                      ? 'password-checklist__item--pending'
+                      : confirmPasswordMatches
+                        ? 'password-checklist__item--valid'
+                        : 'password-checklist__item--invalid'
+                  }`}
+                >
+                  {confirmPasswordMatches ? (
+                    <CheckIcon />
+                  ) : confirmPassword.length === 0 && !hasAttemptedSubmit ? (
+                    <span className="password-checklist__bullet" aria-hidden="true" />
+                  ) : (
+                    <CloseIcon />
+                  )}
+                  <span>Passwords match</span>
                 </div>
               </div>
             )}

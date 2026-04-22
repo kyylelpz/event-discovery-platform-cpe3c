@@ -699,34 +699,48 @@ export const getEmailValidationError = (email) => {
 
 export const getSignupEmailError = getEmailValidationError
 
-export const getPasswordValidationError = (password) => {
+export const getPasswordValidationChecks = (password) => {
+  const rawPassword = String(password || '')
+
+  return [
+    { id: 'length', label: 'At least 6 characters', isValid: rawPassword.length >= 6 },
+    {
+      id: 'uppercase',
+      label: 'One uppercase letter',
+      isValid: PASSWORD_UPPERCASE_PATTERN.test(rawPassword),
+    },
+    {
+      id: 'lowercase',
+      label: 'One lowercase letter',
+      isValid: PASSWORD_LOWERCASE_PATTERN.test(rawPassword),
+    },
+    {
+      id: 'number',
+      label: 'One number',
+      isValid: PASSWORD_NUMBER_PATTERN.test(rawPassword),
+    },
+    {
+      id: 'special',
+      label: 'One special character',
+      isValid: PASSWORD_SPECIAL_PATTERN.test(rawPassword),
+    },
+  ]
+}
+
+export const getPasswordValidationErrors = (password) => {
   const rawPassword = String(password || '')
 
   if (!rawPassword) {
-    return 'Password is required.'
+    return ['Password is required.']
   }
 
-  if (rawPassword.length < 6) {
-    return 'Password must be at least 6 characters long.'
-  }
+  return getPasswordValidationChecks(rawPassword)
+    .filter((check) => !check.isValid)
+    .map((check) => `Password must include ${check.label.toLowerCase()}.`)
+}
 
-  if (!PASSWORD_UPPERCASE_PATTERN.test(rawPassword)) {
-    return 'Password must include at least one uppercase letter.'
-  }
-
-  if (!PASSWORD_LOWERCASE_PATTERN.test(rawPassword)) {
-    return 'Password must include at least one lowercase letter.'
-  }
-
-  if (!PASSWORD_NUMBER_PATTERN.test(rawPassword)) {
-    return 'Password must include at least one number.'
-  }
-
-  if (!PASSWORD_SPECIAL_PATTERN.test(rawPassword)) {
-    return 'Password must include at least one special character.'
-  }
-
-  return ''
+export const getPasswordValidationError = (password) => {
+  return getPasswordValidationErrors(password)[0] || ''
 }
 
 export const setSession = (session) => {

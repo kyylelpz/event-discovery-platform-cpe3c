@@ -16,6 +16,7 @@ import PeoplePage from './pages/people/PeoplePage.jsx'
 import ProfilePage from './pages/profile/ProfilePage.jsx'
 import EventPlanningPage from './pages/info/EventPlanningPage.jsx'
 import CommunityHostsPage from './pages/info/CommunityHostsPage.jsx'
+import LocationGuidesPage from './pages/info/LocationGuidesPage.jsx'
 import HelpCenterPage from './pages/info/HelpCenterPage.jsx'
 import ContactSupportPage from './pages/info/ContactSupportPage.jsx'
 import { API_BASE_URL } from './services/apiBase.js'
@@ -1291,6 +1292,8 @@ function App() {
     page = <EventPlanningPage />
   } else if (route.key === 'community-hosts') {
     page = <CommunityHostsPage />
+  } else if (route.key === 'location-guides') {
+    page = <LocationGuidesPage />
   } else if (route.key === 'help-center') {
     page = <HelpCenterPage />
   } else if (route.key === 'contact-support') {
