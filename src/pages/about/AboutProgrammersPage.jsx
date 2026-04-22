@@ -61,6 +61,34 @@ function AboutProgrammersPage() {
     setIsAutoScrollPaused(true)
   }
 
+  const syncLoopSize = () => {
+    const carousel = carouselRef.current
+    const track = trackRef.current
+    const primarySet = primarySetRef.current
+
+    if (!carousel || !track || !primarySet) {
+      return
+    }
+
+    const computedStyles = window.getComputedStyle(track)
+    const gap = Number.parseFloat(computedStyles.columnGap || computedStyles.gap || '0') || 0
+    const previousLoopSize = loopSizeRef.current
+    const nextLoopSize = primarySet.scrollWidth + gap
+
+    if (!nextLoopSize) {
+      return
+    }
+
+    const normalizedPosition = normalizeScroll(
+      carousel.scrollLeft,
+      previousLoopSize || nextLoopSize,
+    )
+
+    loopSizeRef.current = nextLoopSize
+    carousel.scrollLeft = normalizedPosition
+    setSliderValue(Math.round((normalizedPosition / nextLoopSize) * SLIDER_MAX))
+  }
+
   const scheduleAutoResume = () => {
     window.clearTimeout(resumeTimerRef.current)
     resumeTimerRef.current = window.setTimeout(() => {
@@ -69,39 +97,13 @@ function AboutProgrammersPage() {
   }
 
   useEffect(() => {
-    const updateLoopSize = () => {
-      const carousel = carouselRef.current
-      const track = trackRef.current
-      const primarySet = primarySetRef.current
-
-      if (!carousel || !track || !primarySet) {
-        return
-      }
-
-      const computedStyles = window.getComputedStyle(track)
-      const gap = Number.parseFloat(computedStyles.columnGap || computedStyles.gap || '0') || 0
-      const previousLoopSize = loopSizeRef.current
-      const nextLoopSize = primarySet.scrollWidth + gap
-
-      if (!nextLoopSize) {
-        return
-      }
-
-      const normalizedPosition = normalizeScroll(
-        carousel.scrollLeft,
-        previousLoopSize || nextLoopSize,
-      )
-
-      loopSizeRef.current = nextLoopSize
-      carousel.scrollLeft = normalizedPosition
-      setSliderValue(Math.round((normalizedPosition / nextLoopSize) * SLIDER_MAX))
-    }
-
-    updateLoopSize()
-    window.addEventListener('resize', updateLoopSize)
+    syncLoopSize()
+    window.addEventListener('resize', syncLoopSize)
+    window.addEventListener('load', syncLoopSize)
 
     return () => {
-      window.removeEventListener('resize', updateLoopSize)
+      window.removeEventListener('resize', syncLoopSize)
+      window.removeEventListener('load', syncLoopSize)
     }
   }, [])
 
@@ -197,24 +199,7 @@ function AboutProgrammersPage() {
       </section>
 
       <section className="programmer-carousel-section">
-        <div className="programmer-carousel-section__header">
-          <div>
-            <h2>Meet the core team</h2>
-            <p>
-              The showcase glides through each programmer slowly. Drag the slider to take
-              manual control, and the motion will resume after a short pause.
-            </p>
-          </div>
-        </div>
-
-        <div
-          ref={carouselRef}
-          className="programmer-carousel"
-          onMouseEnter={pauseAutoScroll}
-          onMouseLeave={scheduleAutoResume}
-          onFocusCapture={pauseAutoScroll}
-          onBlurCapture={scheduleAutoResume}
-        >
+        <div ref={carouselRef} className="programmer-carousel">
           <div ref={trackRef} className="programmer-carousel__track">
             {[0, 1].map((setIndex) => (
               <div
@@ -233,6 +218,7 @@ function AboutProgrammersPage() {
                           className="programmer-card__avatar"
                           src={profile.photo}
                           alt={profile.name}
+                          onLoad={syncLoopSize}
                         />
                       </div>
 
@@ -264,9 +250,6 @@ function AboutProgrammersPage() {
         </div>
 
         <div className="programmer-carousel__controls">
-          <label className="programmer-carousel__slider-label" htmlFor="programmer-carousel-slider">
-            Manual slider
-          </label>
           <input
             id="programmer-carousel-slider"
             className="programmer-carousel__slider"
@@ -275,6 +258,7 @@ function AboutProgrammersPage() {
             max={SLIDER_MAX}
             step="1"
             value={sliderValue}
+            aria-label="Programmer carousel slider"
             onChange={handleSliderChange}
           />
         </div>
@@ -313,35 +297,22 @@ function AboutProgrammersPage() {
 
         .programmer-carousel-page__hero {
           max-width: 780px;
+          margin: 0 auto;
+          text-align: center;
         }
 
         .programmer-carousel-section {
           display: grid;
           gap: 18px;
           padding: 28px;
+          width: min(100%, 1220px);
+          margin: 0 auto;
           border: 1px solid rgba(45, 59, 21, 0.1);
           border-radius: 32px;
           background:
-            radial-gradient(circle at top left, rgba(200, 168, 120, 0.18), transparent 34%),
-            linear-gradient(135deg, rgba(255, 250, 243, 0.98), rgba(252, 246, 236, 0.92));
+            radial-gradient(circle at top left, rgba(237, 237, 237, 0.65), transparent 30%),
+            linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(245, 245, 245, 0.95));
           box-shadow: 0 24px 60px rgba(71, 53, 31, 0.08);
-        }
-
-        .programmer-carousel-section__header {
-          display: flex;
-          justify-content: space-between;
-          gap: 16px;
-          align-items: end;
-        }
-
-        .programmer-carousel-section__header h2 {
-          margin: 0;
-          font-size: clamp(1.4rem, 2vw, 2rem);
-        }
-
-        .programmer-carousel-section__header p {
-          margin: 8px 0 0;
-          max-width: 680px;
         }
 
         .programmer-carousel {
@@ -448,17 +419,11 @@ function AboutProgrammersPage() {
 
         .programmer-carousel__controls {
           display: grid;
-          gap: 10px;
-        }
-
-        .programmer-carousel__slider-label {
-          font-size: 0.9rem;
-          font-weight: 600;
-          color: var(--color-text);
+          justify-items: center;
         }
 
         .programmer-carousel__slider {
-          width: 100%;
+          width: min(100%, 720px);
           accent-color: var(--color-accent);
           cursor: pointer;
         }
@@ -481,10 +446,6 @@ function AboutProgrammersPage() {
           .programmer-carousel-section {
             padding: 18px;
             border-radius: 24px;
-          }
-
-          .programmer-carousel-section__header p {
-            max-width: none;
           }
 
           .programmer-card {
