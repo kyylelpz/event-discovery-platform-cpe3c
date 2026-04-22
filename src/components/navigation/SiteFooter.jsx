@@ -7,7 +7,6 @@ const footerLinks = {
   'Plan Events': [
     { label: 'Event Planning', path: '/event-planning' },
     { label: 'Community Hosts', path: '/community-hosts' },
-    { label: 'Location Guides', path: '/location-guides' },
   ],
   Connect: [
     { label: 'Help Center', path: '/help-center' },

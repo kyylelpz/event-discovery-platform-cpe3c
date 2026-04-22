@@ -26,17 +26,18 @@ const styles = `
     align-items: center;
     justify-content: center;
     padding: 2rem 1rem;
-    background: #ffffff;
+    background: var(--color-bg);
     font-family: var(--font-sans);
   }
 
   .interests-box {
     width: 100%;
     max-width: 560px;
-    background: #fff;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
     border-radius: 16px;
     padding: 2.5rem 2rem;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+    box-shadow: var(--shadow-soft);
     box-sizing: border-box;
   }
 
@@ -48,13 +49,13 @@ const styles = `
     font-family: var(--font-display);
     font-size: 1.75rem;
     font-weight: 400;
-    color: #1a1714;
+    color: var(--color-text);
     margin: 0 0 0.4rem;
   }
 
   .interests-header p {
     font-size: 0.9rem;
-    color: #7a7068;
+    color: var(--color-muted);
     margin: 0 0 1.5rem;
   }
 
@@ -69,40 +70,40 @@ const styles = `
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: #4a4540;
+    color: var(--color-text);
   }
 
   .interests-field input {
     width: 100%;
     padding: 0.85rem 1rem;
-    border: 1.5px solid #e2ddd8;
+    border: 1.5px solid var(--color-border);
     border-radius: 10px;
-    background: #faf9f7;
+    background: var(--color-input-bg);
     font-family: var(--font-sans);
     font-size: 0.95rem;
-    color: #1a1714;
+    color: var(--color-text);
     box-sizing: border-box;
   }
 
   .interests-field input:focus {
     outline: none;
-    border-color: #c17f4a;
+    border-color: var(--color-accent);
     box-shadow: 0 0 0 3px rgba(193, 127, 74, 0.12);
-    background: #fff;
+    background: var(--color-input-focus-bg);
   }
 
   .interests-field small {
-    color: #7a7068;
+    color: var(--color-muted);
     font-size: 0.8rem;
   }
 
   .interests-error {
     margin: 0 0 1rem;
     padding: 0.85rem 1rem;
-    border: 1px solid #f0b6af;
+    border: 1px solid var(--color-danger-border);
     border-radius: 10px;
-    background: #fff3f1;
-    color: #b2402c;
+    background: var(--color-danger-bg);
+    color: var(--color-danger-text);
     font-size: 0.85rem;
   }
 
@@ -119,25 +120,25 @@ const styles = `
     align-items: center;
     gap: 0.35rem;
     padding: 1rem 0.5rem;
-    border: 1.5px solid #e2ddd8;
+    border: 1.5px solid var(--color-border);
     border-radius: 12px;
-    background: #faf9f7;
+    background: var(--color-input-bg);
     cursor: pointer;
     font-family: var(--font-sans);
     font-size: 0.85rem;
-    color: #4a4540;
+    color: var(--color-text);
     transition: all 0.15s;
   }
 
   .interest-chip:hover {
-    border-color: #c17f4a;
-    background: #fff7ed;
+    border-color: var(--color-accent);
+    background: rgba(45, 59, 21, 0.08);
   }
 
   .interest-chip.selected {
-    border-color: #c17f4a;
-    background: #fff7ed;
-    color: #c17f4a;
+    border-color: var(--color-accent);
+    background: rgba(45, 59, 21, 0.12);
+    color: var(--color-accent);
     font-weight: 500;
   }
 
@@ -147,7 +148,7 @@ const styles = `
 
   .interests-hint {
     font-size: 0.8rem;
-    color: #bbb5ae;
+    color: var(--color-muted);
     margin-bottom: 1.5rem;
     text-align: center;
   }
@@ -177,7 +178,7 @@ const styles = `
     border: none;
     font-family: var(--font-sans);
     font-size: 0.875rem;
-    color: #7a7068;
+    color: var(--color-muted);
     cursor: pointer;
   }
 

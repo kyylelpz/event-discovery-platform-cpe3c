@@ -16,7 +16,6 @@ import PeoplePage from './pages/people/PeoplePage.jsx'
 import ProfilePage from './pages/profile/ProfilePage.jsx'
 import EventPlanningPage from './pages/info/EventPlanningPage.jsx'
 import CommunityHostsPage from './pages/info/CommunityHostsPage.jsx'
-import LocationGuidesPage from './pages/info/LocationGuidesPage.jsx'
 import HelpCenterPage from './pages/info/HelpCenterPage.jsx'
 import ContactSupportPage from './pages/info/ContactSupportPage.jsx'
 import { API_BASE_URL } from './services/apiBase.js'
@@ -55,6 +54,8 @@ import {
 import { normalizeRoutePath, resolveRoute, routes, slugify } from './utils/routing.js'
 
 const EVENTS_PER_PAGE = 15
+const PEOPLE_PER_PAGE = 15
+const THEME_STORAGE_KEY = 'eventcinity_theme'
 
 const mergeEvents = (...eventGroups) => {
   const merged = new Map()
@@ -240,6 +241,19 @@ const compareCommunityUsers = (leftUser, rightUser) => {
 }
 
 function App() {
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === 'undefined') {
+      return 'light'
+    }
+
+    const storedTheme = String(window.localStorage.getItem(THEME_STORAGE_KEY) || '').trim()
+
+    if (storedTheme === 'light' || storedTheme === 'dark') {
+      return storedTheme
+    }
+
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  })
   const [pathname, setPathname] = useState(() => normalizeRoutePath(window.location.pathname))
   const [currentUser, setCurrentUser] = useState(() => getSession())
   const [showInterests, setShowInterests] = useState(
@@ -260,8 +274,11 @@ function App() {
   const [interactionState, setInteractionState] = useState(() => buildEmptyInteractionState())
   const [activeProfileTab, setActiveProfileTab] = useState('Created Events')
   const [currentEventsPage, setCurrentEventsPage] = useState(1)
+  const [currentPeoplePage, setCurrentPeoplePage] = useState(1)
   const [isSearchFocused, setIsSearchFocused] = useState(false)
-  const [featuredShuffleSeed] = useState(() => `${Date.now()}:${Math.random()}`)
+  const [featuredShuffleSeed, setFeaturedShuffleSeed] = useState(
+    () => `${Date.now()}:${Math.random()}`,
+  )
   const deferredSearchTerm = useDeferredValue(searchTerm)
   const currentUserRef = useRef(currentUser)
   const recentAuthSuccessAtRef = useRef(0)
@@ -272,6 +289,11 @@ function App() {
     likedEvents: likedInteractionEvents,
     attendingEvents: attendingInteractionEvents,
   } = interactionState
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme)
+  }, [theme])
 
   useEffect(() => {
     currentUserRef.current = currentUser
@@ -663,6 +685,12 @@ function App() {
       }),
     [communityDirectory, currentUser?.id, currentUser?.username, currentUserEmail],
   )
+  const totalPeoplePages = Math.max(1, Math.ceil(connectPeople.length / PEOPLE_PER_PAGE))
+  const activePeoplePage = Math.min(currentPeoplePage, totalPeoplePages)
+  const paginatedPeople = connectPeople.slice(
+    (activePeoplePage - 1) * PEOPLE_PER_PAGE,
+    activePeoplePage * PEOPLE_PER_PAGE,
+  )
 
   const selectedCalendarDate =
     route.key === 'events-date' ? parseEventDate(route.params?.dateKey) : null
@@ -947,6 +975,16 @@ function App() {
     }
   }, [route.key, route.params?.username])
 
+  useEffect(() => {
+    if (route.key !== 'people') {
+      setCurrentPeoplePage(1)
+    }
+  }, [route.key])
+
+  useEffect(() => {
+    setCurrentPeoplePage((currentPage) => Math.min(currentPage, totalPeoplePages))
+  }, [totalPeoplePages])
+
   const activeProfile = isViewingCurrentUserProfile
     ? {
         ...currentUser,
@@ -1111,6 +1149,7 @@ function App() {
     onNavigate: navigate,
     onGoToDashboard: () => {
       setCurrentEventsPage(1)
+      setFeaturedShuffleSeed(`${Date.now()}:${Math.random()}`)
       navigate(routes.events)
     },
     searchTerm,
@@ -1145,6 +1184,8 @@ function App() {
       navigate(routes.events)
     },
     currentUser,
+    theme,
+    onToggleTheme: () => setTheme((currentTheme) => (currentTheme === 'dark' ? 'light' : 'dark')),
     onOpenProfile: () => {
       if (!currentUser) {
         navigate(routes.signin)
@@ -1193,7 +1234,11 @@ function App() {
   } else if (route.key === 'people') {
     page = (
       <PeoplePage
-        people={connectPeople}
+        people={paginatedPeople}
+        currentPage={activePeoplePage}
+        totalPages={totalPeoplePages}
+        totalPeople={connectPeople.length}
+        onPageChange={setCurrentPeoplePage}
         onOpenProfile={(username) => navigate(routes.profile(username))}
       />
     )
@@ -1246,8 +1291,6 @@ function App() {
     page = <EventPlanningPage />
   } else if (route.key === 'community-hosts') {
     page = <CommunityHostsPage />
-  } else if (route.key === 'location-guides') {
-    page = <LocationGuidesPage />
   } else if (route.key === 'help-center') {
     page = <HelpCenterPage />
   } else if (route.key === 'contact-support') {

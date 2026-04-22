@@ -183,6 +183,14 @@
   gap: 8px;
 }
 
+.theme-toggle {
+  white-space: nowrap;
+}
+
+.theme-toggle--mobile {
+  width: 100%;
+}
+
 .topbar__account,
 .profile-menu {
   display: flex;
@@ -1291,6 +1299,55 @@
   padding: 24px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+}
+
+:root[data-theme='dark'] .topbar {
+  background: rgba(16, 20, 18, 0.94);
+}
+
+:root[data-theme='dark'] .searchbar__dropdown,
+:root[data-theme='dark'] .find-events-picker__panel,
+:root[data-theme='dark'] .profile-menu__panel,
+:root[data-theme='dark'] .icon-badge,
+:root[data-theme='dark'] .icon-box,
+:root[data-theme='dark'] .profile-menu__info-card,
+:root[data-theme='dark'] .profile-menu__empty,
+:root[data-theme='dark'] .detail-map__badge {
+  background: rgba(23, 28, 25, 0.96);
+}
+
+:root[data-theme='dark'] .profile-menu__panel,
+:root[data-theme='dark'] .detail-map__badge {
+  border-color: var(--color-border);
+}
+
+:root[data-theme='dark'] .brandmark,
+:root[data-theme='dark'] .footer-link,
+:root[data-theme='dark'] .searchbar__result,
+:root[data-theme='dark'] .detail-source-link {
+  color: var(--color-text);
+}
+
+:root[data-theme='dark'] .searchbar__result:hover,
+:root[data-theme='dark'] .topbar__account:hover,
+:root[data-theme='dark'] .profile-menu__trigger:hover,
+:root[data-theme='dark'] .button--secondary:hover,
+:root[data-theme='dark'] .button--secondary-active,
+:root[data-theme='dark'] .find-events-picker__nav:hover,
+:root[data-theme='dark'] .find-events-picker__link:hover,
+:root[data-theme='dark'] .section-block__clear:hover {
+  background: rgba(217, 178, 123, 0.14);
+}
+
+:root[data-theme='dark'] .topbar__account,
+:root[data-theme='dark'] .find-events-picker__day--available,
+:root[data-theme='dark'] .people-hero__icon,
+:root[data-theme='dark'] .info-page__hero-icon,
+:root[data-theme='dark'] .info-card__icon,
+:root[data-theme='dark'] .programmer-card__role,
+:root[data-theme='dark'] .people-hero__badge,
+:root[data-theme='dark'] .profile-menu__chip {
+  background: rgba(217, 178, 123, 0.12);
 }
 
 .detail-panel__meta {

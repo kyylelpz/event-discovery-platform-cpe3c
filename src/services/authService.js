@@ -5,6 +5,10 @@ const SESSION_KEY = 'eventcinity_session'
 const PASSWORD_ITERATIONS = 120000
 const SIGNUP_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.com$/i
 const USERNAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const PASSWORD_UPPERCASE_PATTERN = /[A-Z]/
+const PASSWORD_LOWERCASE_PATTERN = /[a-z]/
+const PASSWORD_NUMBER_PATTERN = /\d/
+const PASSWORD_SPECIAL_PATTERN = /[^A-Za-z0-9]/
 const textEncoder = new TextEncoder()
 
 const normalizeEmail = (value) => String(value || '').trim().toLowerCase()
@@ -695,6 +699,36 @@ export const getEmailValidationError = (email) => {
 
 export const getSignupEmailError = getEmailValidationError
 
+export const getPasswordValidationError = (password) => {
+  const rawPassword = String(password || '')
+
+  if (!rawPassword) {
+    return 'Password is required.'
+  }
+
+  if (rawPassword.length < 6) {
+    return 'Password must be at least 6 characters long.'
+  }
+
+  if (!PASSWORD_UPPERCASE_PATTERN.test(rawPassword)) {
+    return 'Password must include at least one uppercase letter.'
+  }
+
+  if (!PASSWORD_LOWERCASE_PATTERN.test(rawPassword)) {
+    return 'Password must include at least one lowercase letter.'
+  }
+
+  if (!PASSWORD_NUMBER_PATTERN.test(rawPassword)) {
+    return 'Password must include at least one number.'
+  }
+
+  if (!PASSWORD_SPECIAL_PATTERN.test(rawPassword)) {
+    return 'Password must include at least one special character.'
+  }
+
+  return ''
+}
+
 export const setSession = (session) => {
   try {
     const normalizedSession = buildSession(session)
@@ -726,8 +760,10 @@ export const signUp = async ({ email, password, name }) => {
     throw new Error(emailError)
   }
 
-  if (!String(password || '').trim()) {
-    throw new Error('Password is required.')
+  const passwordError = getPasswordValidationError(password)
+
+  if (passwordError) {
+    throw new Error(passwordError)
   }
 
   const fallbackName = String(name || '').trim() || getDefaultName(normalizedEmail)

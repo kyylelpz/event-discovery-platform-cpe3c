@@ -1,7 +1,12 @@
 import { useState } from 'react'
 import { PrimaryButton } from '../../components/ui/Button.jsx'
 import { API_BASE_URL } from '../../services/apiBase.js'
-import { getEmailValidationError, signIn, signUp } from '../../services/authService.js'
+import {
+  getEmailValidationError,
+  getPasswordValidationError,
+  signIn,
+  signUp,
+} from '../../services/authService.js'
 import { routes } from '../../utils/routing.js'
 
 const styles = `
@@ -11,19 +16,18 @@ const styles = `
     align-items: center;
     justify-content: center;
     padding: 2rem 1rem;
-    background: #ffffff;
+    background: var(--color-bg);
     font-family: var(--font-sans);
   }
 
   .signin-box {
     width: 100%;
     max-width: 420px;
-    background: #fff;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
     border-radius: 16px;
     padding: 2.5rem 2rem;
-    box-shadow:
-      0 1px 2px rgba(0,0,0,0.04),
-      0 4px 24px rgba(0,0,0,0.10);
+    box-shadow: var(--shadow-soft);
     box-sizing: border-box;
   }
 
@@ -35,21 +39,21 @@ const styles = `
     font-family: var(--font-display);
     font-size: 2rem;
     font-weight: 400;
-    color: #1a1714;
+    color: var(--color-text);
     margin: 0 0 0.4rem;
     line-height: 1.1;
   }
 
   .signin-header p {
     font-size: 0.9rem;
-    color: #7a7068;
+    color: var(--color-muted);
     margin: 0;
     line-height: 1.5;
   }
 
   .auth-tabs {
     display: flex;
-    background: #f5f2ee;
+    background: rgba(45, 59, 21, 0.08);
     border-radius: 10px;
     padding: 4px;
     margin-bottom: 1.5rem;
@@ -65,14 +69,14 @@ const styles = `
     font-family: var(--font-sans);
     font-size: 0.875rem;
     font-weight: 500;
-    color: #7a7068;
+    color: var(--color-muted);
     cursor: pointer;
     transition: background 0.15s, color 0.15s;
   }
 
   .auth-tab.active {
-    background: #fff;
-    color: #1a1714;
+    background: var(--color-surface);
+    color: var(--color-text);
     box-shadow: 0 1px 3px rgba(0,0,0,0.10);
   }
 
@@ -83,9 +87,9 @@ const styles = `
   }
 
   .signin-error {
-    background: #fff3f3;
-    border: 1px solid #fbbfbf;
-    color: #c0392b;
+    background: var(--color-danger-bg);
+    border: 1px solid var(--color-danger-border);
+    color: var(--color-danger-text);
     border-radius: 8px;
     padding: 0.75rem 1rem;
     font-size: 0.875rem;
@@ -108,12 +112,12 @@ const styles = `
     font-weight: 500;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: #4a4540;
+    color: var(--color-text);
   }
 
   .forgot-link {
     font-size: 0.8rem;
-    color: #c17f4a;
+    color: var(--color-accent);
     text-decoration: none;
     background: none;
     border: none;
@@ -131,12 +135,12 @@ const styles = `
   .field-group input {
     width: 100%;
     padding: 0.75rem 1rem;
-    border: 1.5px solid #e2ddd8;
+    border: 1.5px solid var(--color-border);
     border-radius: 8px;
     font-family: var(--font-sans);
     font-size: 0.95rem;
-    color: #1a1714;
-    background: #faf9f7;
+    color: var(--color-text);
+    background: var(--color-input-bg);
     transition: border-color 0.15s, box-shadow 0.15s;
     box-sizing: border-box;
     outline: none;
@@ -144,12 +148,19 @@ const styles = `
 
   .field-group input.has-toggle { padding-right: 3rem; }
 
-  .field-group input::placeholder { color: #bbb5ae; }
+  .field-group input::placeholder { color: var(--color-muted); }
 
   .field-group input:focus {
-    border-color: #c17f4a;
+    border-color: var(--color-accent);
     box-shadow: 0 0 0 3px rgba(193, 127, 74, 0.12);
-    background: #fff;
+    background: var(--color-input-focus-bg);
+  }
+
+  .field-note {
+    margin: 0;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--color-muted);
   }
 
   .show-password-btn {
@@ -160,20 +171,20 @@ const styles = `
     background: none;
     border: none;
     cursor: pointer;
-    color: #9e968e;
+    color: var(--color-muted);
     padding: 0.25rem;
     display: flex;
     align-items: center;
     transition: color 0.15s;
   }
 
-  .show-password-btn:hover { color: #4a4540; }
+  .show-password-btn:hover { color: var(--color-text); }
 
   .divider {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    color: #bbb5ae;
+    color: var(--color-muted);
     font-size: 0.8rem;
   }
 
@@ -182,7 +193,7 @@ const styles = `
     content: '';
     flex: 1;
     height: 1px;
-    background: #e2ddd8;
+    background: var(--color-border);
   }
 
   .google-btn {
@@ -192,21 +203,21 @@ const styles = `
     gap: 0.6rem;
     width: 100%;
     padding: 0.75rem 1rem;
-    border: 1.5px solid #e2ddd8;
+    border: 1.5px solid var(--color-border);
     border-radius: 8px;
-    background: #fff;
+    background: var(--color-surface);
     font-family: var(--font-sans);
     font-size: 0.95rem;
     font-weight: 500;
-    color: #1a1714;
+    color: var(--color-text);
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
     box-sizing: border-box;
   }
 
   .google-btn:hover {
-    background: #faf9f7;
-    border-color: #c17f4a;
+    background: var(--color-input-bg);
+    border-color: var(--color-accent);
     box-shadow: 0 0 0 3px rgba(193, 127, 74, 0.08);
   }
 
@@ -214,13 +225,13 @@ const styles = `
     text-align: center;
     margin-top: 1.25rem;
     font-size: 0.875rem;
-    color: #7a7068;
+    color: var(--color-muted);
   }
 
   .auth-footer button {
     background: none;
     border: none;
-    color: #c17f4a;
+    color: var(--color-accent);
     font-family: var(--font-sans);
     font-size: 0.875rem;
     font-weight: 500;
@@ -284,6 +295,15 @@ function SignInPage({ onAuthSuccess }) {
     if (emailError) {
       setError(emailError)
       return
+    }
+
+    if (isSignUp) {
+      const passwordError = getPasswordValidationError(password)
+
+      if (passwordError) {
+        setError(passwordError)
+        return
+      }
     }
 
     if (isSignUp && password !== confirmPassword) {
@@ -393,6 +413,11 @@ function SignInPage({ onAuthSuccess }) {
                   <EyeIcon open={showPassword} />
                 </button>
               </div>
+              {isSignUp ? (
+                <p className="field-note">
+                  Use 6+ characters with uppercase, lowercase, number, and special character.
+                </p>
+              ) : null}
             </div>
 
             {isSignUp && (

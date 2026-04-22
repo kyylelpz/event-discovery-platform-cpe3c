@@ -2,8 +2,17 @@ import { PrimaryButton } from '../../components/ui/Button.jsx'
 import { UsersIcon } from '../../components/ui/Icons.jsx'
 import UserAvatar from '../../components/ui/UserAvatar.jsx'
 
-function PeoplePage({ people, onOpenProfile }) {
+function PeoplePage({
+  people,
+  currentPage = 1,
+  totalPages = 1,
+  totalPeople = 0,
+  onPageChange,
+  onOpenProfile,
+}) {
   const hasPeople = Array.isArray(people) && people.length > 0
+  const rangeStart = hasPeople ? (currentPage - 1) * 15 + 1 : 0
+  const rangeEnd = hasPeople ? rangeStart + people.length - 1 : 0
 
   return (
     <div className="people-page">
@@ -20,6 +29,49 @@ function PeoplePage({ people, onOpenProfile }) {
           <span>Public profile details travel with each account</span>
         </div>
       </section>
+
+      {totalPages > 1 ? (
+        <nav className="pagination" aria-label="People pagination">
+          <p className="pagination__summary">
+            Showing {rangeStart}-{rangeEnd} of {totalPeople} people
+          </p>
+          <div className="pagination__controls">
+            <button
+              type="button"
+              className="pagination__button"
+              onClick={() => onPageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </button>
+
+            <div className="pagination__pages">
+              {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
+                <button
+                  key={pageNumber}
+                  type="button"
+                  className={`pagination__button ${
+                    pageNumber === currentPage ? 'pagination__button--active' : ''
+                  }`}
+                  onClick={() => onPageChange(pageNumber)}
+                  aria-current={pageNumber === currentPage ? 'page' : undefined}
+                >
+                  {pageNumber}
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              className="pagination__button"
+              onClick={() => onPageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
+          </div>
+        </nav>
+      ) : null}
 
       <section className="people-grid">
         {hasPeople ? (
