@@ -52,7 +52,11 @@ function SiteFooter({ onNavigate }) {
       </div>
 
       <div className="footer-bottom">
-        <p>© 2026 Eventcinity. All rights reserved.</p>
+        <p>
+          © 2026 Eventcinity. All rights reserved.
+          <br />
+          Developed by BulSU BS Computer Engineering A.Y. 2025-2026.
+        </p>
       </div>
     </footer>
   )
