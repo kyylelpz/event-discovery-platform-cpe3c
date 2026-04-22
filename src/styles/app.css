@@ -1301,7 +1301,7 @@
 .detail-panel__meta-item {
   display: grid;
   grid-template-columns: 18px 1fr;
-  align-items: center;
+  align-items: start;
   gap: 12px;
 }
 
@@ -1312,7 +1312,7 @@
 }
 
 .detail-panel__meta-item > svg {
-  margin-top: 0;
+  margin-top: 2px;
 }
 
 .detail-panel__meta-content p,
