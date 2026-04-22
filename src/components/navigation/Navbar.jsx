@@ -4,6 +4,7 @@ import brandLogo from '../../assets/eventcinity-logo.png'
 import { PrimaryButton, SecondaryButton } from '../ui/Button.jsx'
 import UserAvatar from '../ui/UserAvatar.jsx'
 import { formatMemberSince } from '../../services/profileService.js'
+import { getUserDisplayName, getUserSecondaryLabel } from '../../utils/userDisplay.js'
 import {
   CalendarIcon,
   CloseIcon,
@@ -273,8 +274,8 @@ function ProfileMenu({ currentUser, onOpenProfile, onSignOut, mobile = false }) 
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef(null)
   const interests = Array.isArray(currentUser.interests) ? currentUser.interests : []
-  const displayName = currentUser.name || currentUser.username || 'Eventcinity user'
-  const usernameLabel = currentUser.username ? `@${currentUser.username}` : displayName
+  const displayName = getUserDisplayName(currentUser)
+  const secondaryLabel = getUserSecondaryLabel(currentUser)
   const joinedLabel = formatMemberSince(currentUser.createdAt)
   const phoneLabel = currentUser.phone || 'Nothing here yet. Explore more events!'
   const bioLabel = currentUser.bio || 'Nothing here yet. Explore more events!'
@@ -331,7 +332,7 @@ function ProfileMenu({ currentUser, onOpenProfile, onSignOut, mobile = false }) 
             <UserAvatar name={displayName} imageUrl={currentUser.profilePic} size="lg" />
             <div className="profile-menu__identity">
               <h3>{displayName}</h3>
-              <p>{usernameLabel}</p>
+              {secondaryLabel ? <p>{secondaryLabel}</p> : null}
               <span>{currentUser.email}</span>
             </div>
           </div>
