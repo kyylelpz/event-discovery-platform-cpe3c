@@ -1632,6 +1632,11 @@
   gap: 14px;
 }
 
+.info-page__hero--centered {
+  justify-items: center;
+  text-align: center;
+}
+
 .info-page__hero-icon,
 .info-card__icon {
   width: 52px;
