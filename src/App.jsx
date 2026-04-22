@@ -250,7 +250,6 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All Events')
   const [selectedDateFilter, setSelectedDateFilter] = useState('Any time')
-  const [selectedSort, setSelectedSort] = useState('Nearest date')
   const [remoteEvents, setRemoteEvents] = useState([])
   const [createdEvents, setCreatedEvents] = useState([])
   const [profileCreatedEvents, setProfileCreatedEvents] = useState([])
@@ -536,11 +535,6 @@ function App() {
     setSelectedDateFilter(value)
   }
 
-  const handleSortChange = (value) => {
-    setCurrentEventsPage(1)
-    setSelectedSort(value)
-  }
-
   // Called after sign in or sign up
   const handleAuthSuccess = (session, type) => {
     const shouldShowInterestsPrompt =
@@ -752,15 +746,6 @@ function App() {
   const sortedEvents = [...filteredEvents].sort((leftEvent, rightEvent) => {
     if (isCalendarDateMode) {
       return `${leftEvent.title}`.localeCompare(`${rightEvent.title}`)
-    }
-
-    if (selectedSort === 'Relevance') {
-      const relevanceDifference =
-        scoreEventRelevance(rightEvent) - scoreEventRelevance(leftEvent)
-
-      if (relevanceDifference !== 0) {
-        return relevanceDifference
-      }
     }
 
     return compareByNearestDate(leftEvent, rightEvent)
@@ -1279,10 +1264,8 @@ function App() {
         dateFilterOptions={dateFilterOptions}
         selectedCategory={selectedCategory}
         selectedDateFilter={selectedDateFilter}
-        selectedSort={selectedSort}
         onCategoryChange={handleCategoryChange}
         onDateFilterChange={handleDateFilterChange}
-        onSortChange={handleSortChange}
         selectedLocation={selectedLocation}
         selectedCalendarDate={selectedCalendarDate}
         onClearCalendarDate={() => navigate(routes.events)}

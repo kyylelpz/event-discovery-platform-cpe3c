@@ -15,10 +15,8 @@ function EventDiscoveryPage({
   dateFilterOptions,
   selectedCategory,
   selectedDateFilter,
-  selectedSort,
   onCategoryChange,
   onDateFilterChange,
-  onSortChange,
   selectedLocation,
   selectedCalendarDate,
   onClearCalendarDate,
@@ -90,62 +88,47 @@ function EventDiscoveryPage({
           />
         ) : null}
 
-        {!isCalendarDateMode ? (
-          <div className="listing-toolbar">
-            {filteredCount > 0 && totalPages > 1 ? (
-              <nav className="pagination" aria-label="Events pagination">
-                <p className="pagination__summary">
-                  Page {currentPage} of {totalPages}
-                </p>
-                <div className="pagination__controls">
+        {!isCalendarDateMode && filteredCount > 0 && totalPages > 1 ? (
+          <nav className="pagination" aria-label="Events pagination">
+            <p className="pagination__summary">
+              Page {currentPage} of {totalPages}
+            </p>
+            <div className="pagination__controls">
+              <button
+                type="button"
+                className="pagination__button"
+                onClick={() => onPageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </button>
+
+              <div className="pagination__pages">
+                {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
                   <button
+                    key={pageNumber}
                     type="button"
-                    className="pagination__button"
-                    onClick={() => onPageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
+                    className={`pagination__button ${
+                      pageNumber === currentPage ? 'pagination__button--active' : ''
+                    }`}
+                    onClick={() => onPageChange(pageNumber)}
+                    aria-current={pageNumber === currentPage ? 'page' : undefined}
                   >
-                    Previous
+                    {pageNumber}
                   </button>
+                ))}
+              </div>
 
-                  <div className="pagination__pages">
-                    {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
-                      <button
-                        key={pageNumber}
-                        type="button"
-                        className={`pagination__button ${
-                          pageNumber === currentPage ? 'pagination__button--active' : ''
-                        }`}
-                        onClick={() => onPageChange(pageNumber)}
-                        aria-current={pageNumber === currentPage ? 'page' : undefined}
-                      >
-                        {pageNumber}
-                      </button>
-                    ))}
-                  </div>
-
-                  <button
-                    type="button"
-                    className="pagination__button"
-                    onClick={() => onPageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                  >
-                    Next
-                  </button>
-                </div>
-              </nav>
-            ) : (
-              <div />
-            )}
-
-            <div className="sort-controls">
-              <span className="sort-controls__label">Sort by</span>
-              <FilterTabs
-                options={['Nearest date', 'Relevance']}
-                value={selectedSort}
-                onChange={onSortChange}
-              />
+              <button
+                type="button"
+                className="pagination__button"
+                onClick={() => onPageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </button>
             </div>
-          </div>
+          </nav>
         ) : null}
 
         <EventList

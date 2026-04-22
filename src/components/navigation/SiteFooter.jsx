@@ -1,7 +1,7 @@
 const footerLinks = {
   'Use Eventcinity': [
     { label: 'Create Events', path: '/events/create' },
-    { label: 'Discover Events', path: '/events' },
+    { label: 'Upcoming Events', path: '/events' },
     { label: 'Connect with People', path: '/people' },
   ],
   'Plan Events': [
@@ -22,10 +22,7 @@ function SiteFooter({ onNavigate }) {
       <div className="footer-grid">
         <div className="footer-brand">
           <h2>Eventcinity</h2>
-          <p>
-            Discover and create unforgettable experiences across the Philippines with a
-            calmer, more editorial event browsing flow.
-          </p>
+          <p>Explore, discover and create phenomenal events in the vicinity of the Philippines.</p>
         </div>
 
         {Object.entries(footerLinks).map(([title, links]) => (
