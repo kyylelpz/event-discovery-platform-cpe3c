@@ -1,6 +1,7 @@
 import { API_BASE_URL } from './apiBase.js'
 import { getAuthRequestHeaders } from './authService.js'
-import { buildGoogleMapsSearchUrl, createPosterDataUri } from '../utils/formatters.js'
+import eventPlaceholderImage from '../assets/eventcinity-event-placeholder.png'
+import { buildGoogleMapsSearchUrl } from '../utils/formatters.js'
 
 const getFallbackLocationLabel = (fallbackLocation) =>
   fallbackLocation === 'All Philippines'
@@ -20,6 +21,7 @@ const invalidEventImagePatterns = [
   /encrypted-tbn/i,
   /placehold/i,
 ]
+const MIN_ACCEPTABLE_EVENT_IMAGE_SCORE = 2
 
 const pickValue = (...values) => {
   for (const value of values) {
@@ -142,6 +144,10 @@ const getImageCandidateScore = (imageUrl) => {
     score -= 5
   }
 
+  if (/\.(?:avif|gif|jpe?g|png|webp)(?:[?#]|$)/i.test(imageUrl)) {
+    score += 2
+  }
+
   try {
     const url = new URL(imageUrl)
 
@@ -173,20 +179,28 @@ const pickImageUrl = (...values) => {
   const usableCandidates = candidates.filter((candidate) => isUsableEventImage(candidate))
 
   if (usableCandidates.length > 0) {
-    return usableCandidates.sort(
+    const bestCandidate = usableCandidates.sort(
       (leftCandidate, rightCandidate) =>
         getImageCandidateScore(rightCandidate) - getImageCandidateScore(leftCandidate),
     )[0]
+
+    return getImageCandidateScore(bestCandidate) >= MIN_ACCEPTABLE_EVENT_IMAGE_SCORE
+      ? bestCandidate
+      : ''
   }
 
   if (!candidates.length) {
     return ''
   }
 
-  return candidates.sort(
+  const bestCandidate = candidates.sort(
     (leftCandidate, rightCandidate) =>
       getImageCandidateScore(rightCandidate) - getImageCandidateScore(leftCandidate),
   )[0]
+
+  return getImageCandidateScore(bestCandidate) >= MIN_ACCEPTABLE_EVENT_IMAGE_SCORE
+    ? bestCandidate
+    : ''
 }
 
 const joinUniqueText = (...values) => {
@@ -296,11 +310,7 @@ export const normalizeEventRecord = (event, fallbackLocation) => {
     event.date,
     event.date_label,
   )
-  const fallbackImage = createPosterDataUri({
-    title,
-    location: locationLabel,
-    category,
-  })
+  const fallbackImage = eventPlaceholderImage
   const mapLabel =
     joinUniqueText(venueLabel, addressLabel, locationLabel) || getFallbackLocationLabel(fallbackLocation)
   const imageUrl =
