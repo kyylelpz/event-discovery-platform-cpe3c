@@ -13,11 +13,9 @@ import {
   LogInIcon,
   MapPinIcon,
   MenuIcon,
-  MoonIcon,
   MoreVerticalIcon,
   PlusSquareIcon,
   SearchIcon,
-  SunIcon,
   UserPlusIcon,
 } from '../ui/Icons.jsx'
 import SearchBar from '../ui/SearchBar.jsx'
@@ -47,8 +45,6 @@ function Navbar({
   onCalendarDateChange,
   onCalendarDateClear,
   currentUser,
-  theme,
-  onToggleTheme,
   onOpenProfile,
   onSignOut,
 }) {
@@ -101,10 +97,6 @@ function Navbar({
         </div>
 
         <nav className="topbar__nav" aria-label="Primary">
-          <SecondaryButton className="theme-toggle" onClick={onToggleTheme}>
-            {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
-            <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
-          </SecondaryButton>
           <SecondaryButton
             isActive={isActive(routes.createEvent)}
             onClick={() => onNavigate(routes.createEvent)}
@@ -157,8 +149,6 @@ function Navbar({
         onCalendarDateChange={onCalendarDateChange}
         onCalendarDateClear={onCalendarDateClear}
         currentUser={currentUser}
-        theme={theme}
-        onToggleTheme={onToggleTheme}
         onOpenProfile={onOpenProfile}
         onSignOut={onSignOut}
       />
@@ -185,8 +175,6 @@ function MobileNavbar({
   onCalendarDateChange,
   onCalendarDateClear,
   currentUser,
-  theme,
-  onToggleTheme,
   onOpenProfile,
   onSignOut,
 }) {
@@ -253,11 +241,6 @@ function MobileNavbar({
         />
 
         <div className="topbar__mobile-links">
-          <SecondaryButton className="theme-toggle theme-toggle--mobile" onClick={onToggleTheme}>
-            {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
-            <span>{theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}</span>
-          </SecondaryButton>
-
           {currentUser ? (
             <ProfileMenu
               currentUser={currentUser}
