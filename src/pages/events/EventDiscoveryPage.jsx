@@ -30,7 +30,11 @@ function EventDiscoveryPage({
         <FeaturedEvent
           event={featuredEvent}
           matchedInterest={featuredInterestLabel}
+          interactions={sharedPageProps.interactions}
           onViewDetails={sharedPageProps.onOpenEvent}
+          onToggleHeart={sharedPageProps.onToggleHeart}
+          onToggleSave={sharedPageProps.onToggleSave}
+          onToggleAttend={sharedPageProps.onToggleAttend}
         />
       ) : null}
 

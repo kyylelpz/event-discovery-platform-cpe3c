@@ -1,13 +1,32 @@
 import { PrimaryButton } from '../ui/Button.jsx'
-import { ArrowRightIcon, CalendarIcon, MapPinIcon } from '../ui/Icons.jsx'
+import {
+  ArrowRightIcon,
+  BookmarkIcon,
+  CalendarIcon,
+  CheckIcon,
+  HeartIcon,
+  MapPinIcon,
+} from '../ui/Icons.jsx'
 import CategoryTag from '../ui/CategoryTag.jsx'
 import { formatEventSchedule, getResponsiveImageProps } from '../../utils/formatters.js'
 
-function FeaturedEvent({ event, matchedInterest, onViewDetails }) {
+function FeaturedEvent({
+  event,
+  matchedInterest,
+  interactions,
+  onViewDetails,
+  onToggleHeart,
+  onToggleSave,
+  onToggleAttend,
+}) {
   if (!event) {
     return null
   }
 
+  const eventId = String(event?.id || '').trim()
+  const isHearted = interactions?.hearted?.includes(eventId)
+  const isSaved = interactions?.saved?.includes(eventId)
+  const isAttending = interactions?.attending?.includes(eventId)
   const scheduleLabel = formatEventSchedule(event)
   const featuredImage = getResponsiveImageProps(event.image)
   const locationHref = event.mapUrl
@@ -54,10 +73,46 @@ function FeaturedEvent({ event, matchedInterest, onViewDetails }) {
         </div>
 
         <div className="featured-event__actions">
-          <PrimaryButton onClick={() => onViewDetails(event.id)}>
-            <span>View Event Details</span>
-            <ArrowRightIcon />
-          </PrimaryButton>
+          <div className="featured-event__primary-actions">
+            <PrimaryButton onClick={() => onViewDetails(event.id)}>
+              <span>View Event Details</span>
+              <ArrowRightIcon />
+            </PrimaryButton>
+
+            <button
+              type="button"
+              className={`attend-chip ${isAttending ? 'attend-chip--active' : ''}`}
+              onClick={() => onToggleAttend(event)}
+            >
+              {isAttending ? <CheckIcon /> : null}
+              <span>{isAttending ? 'Attending' : 'Attend'}</span>
+            </button>
+          </div>
+
+          <div className="featured-event__quick-actions" aria-label="Featured event actions">
+            <button
+              type="button"
+              className="icon-box"
+              onClick={() => onToggleHeart(event)}
+              aria-label="Like featured event"
+            >
+              <HeartIcon
+                className={isHearted ? 'icon-accent icon-filled' : ''}
+                filled={Boolean(isHearted)}
+              />
+            </button>
+            <button
+              type="button"
+              className="icon-box"
+              onClick={() => onToggleSave(event)}
+              aria-label="Save featured event"
+            >
+              <BookmarkIcon
+                className={isSaved ? 'icon-accent icon-filled' : ''}
+                filled={Boolean(isSaved)}
+              />
+            </button>
+          </div>
 
           {matchedInterest ? (
             <p className="status-note">

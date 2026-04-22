@@ -4,14 +4,154 @@ import { provinces } from '../data/mockData.js'
 
 let communityUsersApiMode = 'unknown'
 let publicProfileApiMode = 'unknown'
-const GENERATED_COMMUNITY_USER_COUNT = 36
+const GENERATED_COMMUNITY_USER_COUNT = 50
 const GENERATED_FIRST_NAMES = [
-  'Ava', 'Nico', 'Dana', 'Luis', 'Mia', 'Carlo', 'Ivy', 'Jules', 'Kara', 'Paolo',
-  'Sage', 'Toni', 'Lara', 'Eli', 'Noah', 'Celine', 'Rafa', 'Aya',
+  'Alya',
+  'Andrea',
+  'Angela',
+  'Bea',
+  'Bianca',
+  'Carla',
+  'Carlo',
+  'Cass',
+  'Celine',
+  'Chesca',
+  'Daniel',
+  'Dana',
+  'Dani',
+  'Ella',
+  'Eli',
+  'Franco',
+  'Gab',
+  'Hana',
+  'Ivy',
+  'Janna',
+  'Jules',
+  'Kai',
+  'Kara',
+  'Lara',
+  'Lea',
+  'Luis',
+  'Mara',
+  'Marco',
+  'Mia',
+  'Miguel',
+  'Nadine',
+  'Nico',
+  'Noah',
+  'Paolo',
+  'Rafa',
+  'Rina',
+  'Sam',
+  'Sofia',
+  'Theo',
+  'Toni',
+  'Trina',
+  'Vince',
+  'Yana',
+  'Zia',
 ]
 const GENERATED_LAST_NAMES = [
-  'Dizon', 'Garcia', 'Mendoza', 'Lopez', 'Ramos', 'Fernandez', 'Navarro', 'Salonga',
-  'Castillo', 'Soriano', 'Torres', 'Villanueva', 'Gutierrez', 'Delos Santos',
+  'Dela Cruz',
+  'Garcia',
+  'Reyes',
+  'Ramos',
+  'Mendoza',
+  'Santos',
+  'Flores',
+  'Gonzales',
+  'Bautista',
+  'Villanueva',
+  'Fernandez',
+  'Cruz',
+  'De Guzman',
+  'Lopez',
+  'Perez',
+  'Castillo',
+  'Francisco',
+  'Rivera',
+  'Aquino',
+  'Castro',
+  'Sanchez',
+  'Torres',
+  'De Leon',
+  'Domingo',
+  'Martinez',
+  'Rodriguez',
+  'Santiago',
+  'Soriano',
+  'Delos Santos',
+  'Diaz',
+  'Hernandez',
+  'Tolentino',
+  'Valdez',
+  'Ramirez',
+  'Morales',
+  'Mercado',
+  'Tan',
+  'Aguilar',
+  'Navarro',
+  'Manalo',
+  'Gomez',
+  'Dizon',
+  'Del Rosario',
+  'Javier',
+  'Corpuz',
+  'Gutierrez',
+  'Salvador',
+  'Velasco',
+  'Miranda',
+  'David',
+  'Salazar',
+  'Ferrer',
+  'Alvarez',
+  'Sarmiento',
+  'Pascual',
+  'Lim',
+  'Delos Reyes',
+  'Marquez',
+  'Jimenez',
+  'Cortez',
+  'Antonio',
+  'Agustin',
+  'Rosales',
+  'Manuel',
+  'Mariano',
+  'Evangelista',
+  'Pineda',
+  'Enriquez',
+  'Ocampo',
+  'Alcantara',
+  'Pascua',
+  'De Vera',
+  'Romero',
+  'De Jesus',
+  'Dela Pena',
+  'Valencia',
+  'Ignacio',
+  'Vergara',
+  'Padilla',
+  'Angeles',
+  'Espiritu',
+  'Fuentes',
+  'Legaspi',
+  'Canete',
+  'Peralta',
+  'Vargas',
+  'Cabrera',
+  'Fajardo',
+  'Gonzaga',
+  'Espinosa',
+  'Guevarra',
+  'Samson',
+  'Ortega',
+  'Molina',
+  'Serrano',
+  'Chavez',
+  'Briones',
+  'Medina',
+  'Palma',
+  'Tamayo',
 ]
 const GENERATED_INTERESTS = [
   'Music',
@@ -58,6 +198,29 @@ const normalizeUsernameValue = (value) =>
     .replace(/-+/g, '-')
     .replace(/^-+|-+$/g, '')
 
+const createSeededRandom = (seedSource) => {
+  let seed = Number(seedSource || 1) >>> 0
+
+  return () => {
+    seed = (seed * 1664525 + 1013904223) >>> 0
+    return seed / 4294967296
+  }
+}
+
+const pickFromList = (items, random) =>
+  items[Math.floor(random() * items.length) % items.length]
+
+const pickUniqueInterests = (random) => {
+  const targetCount = 2 + Math.floor(random() * 3)
+  const selectedInterests = new Set()
+
+  while (selectedInterests.size < targetCount) {
+    selectedInterests.add(pickFromList(GENERATED_INTERESTS, random))
+  }
+
+  return [...selectedInterests]
+}
+
 export const normalizePublicUser = (rawUser = {}) => ({
   id: String(rawUser.id || rawUser._id || '').trim(),
   email: pickText(rawUser.email).toLowerCase(),
@@ -88,19 +251,15 @@ const buildGeneratedCommunityUsers = (existingUsers = []) => {
   let seedIndex = 0
 
   while (generatedUsers.length < GENERATED_COMMUNITY_USER_COUNT) {
-    const firstName = GENERATED_FIRST_NAMES[seedIndex % GENERATED_FIRST_NAMES.length]
-    const lastName =
-      GENERATED_LAST_NAMES[
-        Math.floor(seedIndex / GENERATED_FIRST_NAMES.length) % GENERATED_LAST_NAMES.length
-      ]
-    const location = provinces[seedIndex % provinces.length]
+    const random = createSeededRandom((seedIndex + 1) * 97 + existingUsers.length * 13)
+    const firstName = pickFromList(GENERATED_FIRST_NAMES, random)
+    const lastName = pickFromList(GENERATED_LAST_NAMES, random)
+    const location = pickFromList(provinces, random)
+    const interests = pickUniqueInterests(random)
+    const createdEventsCount = 1 + Math.floor(random() * 6)
     const username = normalizeUsernameValue(`${firstName}-${lastName}-${seedIndex + 1}`)
 
     if (!reservedUsernames.has(username)) {
-      const interests = Array.from({ length: 3 }, (_, offset) =>
-        GENERATED_INTERESTS[(seedIndex + offset * 3) % GENERATED_INTERESTS.length],
-      )
-
       generatedUsers.push(
         normalizePublicUser({
           id: `generated-user-${seedIndex + 1}`,
@@ -108,10 +267,10 @@ const buildGeneratedCommunityUsers = (existingUsers = []) => {
           name: `${firstName} ${lastName}`,
           username,
           location,
-          bio: `${firstName} curates ${interests[0].toLowerCase()}, ${interests[1].toLowerCase()}, and ${interests[2].toLowerCase()} plans around ${location}.`,
+          bio: `${firstName} curates ${interests.map((interest) => interest.toLowerCase()).join(', ')} plans around ${location}.`,
           interests,
           createdAt: new Date(2025, seedIndex % 12, (seedIndex % 27) + 1).toISOString(),
-          createdEventsCount: (seedIndex % 5) + 1,
+          createdEventsCount,
         }),
       )
 
