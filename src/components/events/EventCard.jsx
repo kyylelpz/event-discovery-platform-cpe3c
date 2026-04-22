@@ -97,15 +97,15 @@ function EventCard({
         </button>
 
         <div className="event-card__meta">
-          <p>
+          <p className="event-meta-item">
             <CalendarIcon />
-            <span>{scheduleLabel}</span>
+            <span className="event-meta-item__content">{scheduleLabel}</span>
           </p>
-          <p>
+          <p className="event-meta-item">
             <MapPinIcon />
             {locationHref ? (
               <a
-                className="event-card__location-link"
+                className="event-meta-item__content event-card__location-link"
                 href={locationHref}
                 target="_blank"
                 rel="noreferrer"
@@ -114,7 +114,7 @@ function EventCard({
                 {event.location}
               </a>
             ) : (
-              <span>{event.location}</span>
+              <span className="event-meta-item__content">{event.location}</span>
             )}
           </p>
         </div>

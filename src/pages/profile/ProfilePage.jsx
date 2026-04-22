@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import EventList from '../../components/events/EventList.jsx'
 import { PrimaryButton, SecondaryButton } from '../../components/ui/Button.jsx'
 import UserAvatar from '../../components/ui/UserAvatar.jsx'
@@ -59,10 +59,12 @@ function ProfilePage({
       ? 'This community member has not marked any public attending events yet.'
       : 'This community member has not shared anything here yet.'
 
-  useEffect(() => {
+  const handleStartEdit = () => {
     setDraftPhone(user.phone || user.contact || '')
     setDraftBio(user.bio || '')
-  }, [user.phone, user.contact, user.bio])
+    setError('')
+    setIsEditing(true)
+  }
 
   const handleCancelEdit = () => {
     setDraftPhone(user.phone || user.contact || '')
@@ -105,7 +107,7 @@ function ProfilePage({
           />
 
           <div className="profile-card__intro">
-            <div>
+            <div className="profile-card__identity">
               <h1>{displayName}</h1>
               <p>{usernameLabel}</p>
             </div>
@@ -126,7 +128,7 @@ function ProfilePage({
         {isCurrentUser ? (
           <div className="profile-card__actions">
             {!isEditing ? (
-              <SecondaryButton onClick={() => setIsEditing(true)}>
+              <SecondaryButton onClick={handleStartEdit}>
                 Edit Profile
               </SecondaryButton>
             ) : null}
@@ -173,12 +175,12 @@ function ProfilePage({
         ) : null}
 
         <div className="profile-page__info-grid">
-          <article className="info-card">
+          <article className="info-card profile-page__info-card">
             <h2>Contact</h2>
             <p>{contactLabel}</p>
           </article>
 
-          <article className="info-card">
+          <article className="info-card profile-page__info-card">
             <h2>Bio</h2>
             <p>{bioLabel}</p>
           </article>

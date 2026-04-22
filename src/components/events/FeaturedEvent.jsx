@@ -32,15 +32,15 @@ function FeaturedEvent({ event, matchedInterest, onViewDetails }) {
         </div>
 
         <div className="featured-event__meta">
-          <div>
+          <div className="event-meta-item">
             <CalendarIcon />
-            <span>{scheduleLabel}</span>
+            <span className="event-meta-item__content">{scheduleLabel}</span>
           </div>
-          <div>
+          <div className="event-meta-item">
             <MapPinIcon />
             {locationHref ? (
               <a
-                className="featured-event__location-link"
+                className="event-meta-item__content featured-event__location-link"
                 href={locationHref}
                 target="_blank"
                 rel="noreferrer"
@@ -48,7 +48,7 @@ function FeaturedEvent({ event, matchedInterest, onViewDetails }) {
                 {event.location}
               </a>
             ) : (
-              <span>{event.location}</span>
+              <span className="event-meta-item__content">{event.location}</span>
             )}
           </div>
         </div>

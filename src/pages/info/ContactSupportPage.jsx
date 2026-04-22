@@ -7,11 +7,22 @@ const styles = `
     text-align: center;
   }
 
+  .contact-support-grid {
+    align-items: start;
+  }
+
+  .contact-support__main {
+    grid-column: span 2;
+    display: grid;
+    align-content: start;
+  }
+
   .contact-form {
     display: flex;
     flex-direction: column;
     gap: 1.1rem;
     max-width: 560px;
+    width: 100%;
   }
 
   .contact-field {
@@ -82,6 +93,7 @@ const styles = `
     padding: 1rem 1.25rem;
     font-size: 0.9rem;
     max-width: 560px;
+    width: 100%;
   }
 
   .contact-channels {
@@ -100,6 +112,7 @@ const styles = `
   .contact-side-card {
     align-content: start;
     gap: 12px;
+    height: 100%;
     padding-top: 28px;
     padding-bottom: 28px;
   }
@@ -119,6 +132,12 @@ const styles = `
   }
 
   .contact-channels a:hover { text-decoration: underline; }
+
+  @media (max-width: 1200px) {
+    .contact-support__main {
+      grid-column: auto;
+    }
+  }
 `
 
 function ContactSupportPage() {
@@ -148,8 +167,8 @@ function ContactSupportPage() {
         </p>
       </section>
 
-      <section className="info-page__grid">
-        <div style={{ gridColumn: 'span 2' }}>
+      <section className="info-page__grid contact-support-grid">
+        <div className="contact-support__main">
           {submitted ? (
             <div className="contact-success">
               Thanks for reaching out. We have received your message and will reply to{' '}

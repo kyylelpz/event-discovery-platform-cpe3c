@@ -31,7 +31,7 @@ function PeoplePage({ people, onOpenProfile }) {
                   imageUrl={person.profilePic || person.avatar}
                   size="lg"
                 />
-                <div>
+                <div className="person-card__copy">
                   <h2>{person.name}</h2>
                   <p>{person.location}</p>
                 </div>
@@ -53,7 +53,7 @@ function PeoplePage({ people, onOpenProfile }) {
         ) : (
           <article className="person-card">
             <div className="person-card__header">
-              <div>
+              <div className="person-card__copy">
                 <h2>No other accounts yet</h2>
                 <p>The connect dashboard will fill up as more users sign in.</p>
               </div>
