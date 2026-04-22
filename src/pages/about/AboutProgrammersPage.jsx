@@ -233,9 +233,7 @@ function AboutProgrammersPage() {
         }
 
         .programmer-carousel-page__hero {
-          max-width: 780px;
-          margin: 0 auto;
-          text-align: center;
+          margin: 0;
         }
 
         .programmer-carousel-section {

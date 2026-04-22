@@ -1,4 +1,4 @@
-import { PrimaryButton, SecondaryButton } from '../../components/ui/Button.jsx'
+import { PrimaryButton } from '../../components/ui/Button.jsx'
 import { UsersIcon } from '../../components/ui/Icons.jsx'
 import UserAvatar from '../../components/ui/UserAvatar.jsx'
 
@@ -47,9 +47,6 @@ function PeoplePage({ people, onOpenProfile }) {
                 <PrimaryButton onClick={() => onOpenProfile(person.username)}>
                   View Profile
                 </PrimaryButton>
-                <SecondaryButton onClick={() => onOpenProfile(person.username)}>
-                  Open Account
-                </SecondaryButton>
               </div>
             </article>
           ))

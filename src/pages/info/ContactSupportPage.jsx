@@ -2,6 +2,11 @@ import { useState } from 'react'
 import { HelpCircleIcon, MailIcon, MessageCircleIcon } from '../../components/ui/Icons.jsx'
 
 const styles = `
+  .contact-support-hero {
+    justify-items: center;
+    text-align: center;
+  }
+
   .contact-form {
     display: flex;
     flex-direction: column;
@@ -92,6 +97,27 @@ const styles = `
     text-decoration: none;
   }
 
+  .contact-side-card {
+    align-content: start;
+    gap: 12px;
+    padding-top: 28px;
+    padding-bottom: 28px;
+  }
+
+  .contact-side-card .info-card__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .contact-side-card .info-card__icon {
+    flex: 0 0 auto;
+  }
+
+  .contact-side-card .info-card__header h2 {
+    line-height: 1.2;
+  }
+
   .contact-channels a:hover { text-decoration: underline; }
 `
 
@@ -111,7 +137,7 @@ function ContactSupportPage() {
     <div className="info-page">
       <style>{styles}</style>
 
-      <section className="info-page__hero">
+      <section className="info-page__hero contact-support-hero">
         <div className="info-page__hero-icon">
           <MessageCircleIcon />
         </div>
@@ -182,7 +208,7 @@ function ContactSupportPage() {
           )}
         </div>
 
-        <article className="info-card">
+        <article className="info-card contact-side-card">
           <div className="info-card__header">
             <div className="info-card__icon">
               <MailIcon />
@@ -196,7 +222,7 @@ function ContactSupportPage() {
           </div>
         </article>
 
-        <article className="info-card">
+        <article className="info-card contact-side-card">
           <div className="info-card__header">
             <div className="info-card__icon">
               <HelpCircleIcon />

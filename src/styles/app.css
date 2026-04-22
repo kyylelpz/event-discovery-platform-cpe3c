@@ -1606,8 +1606,14 @@
 }
 
 .person-card__actions {
+  display: flex;
+  justify-content: center;
   margin-top: auto;
   padding-top: 8px;
+}
+
+.person-card__actions .button {
+  width: auto;
 }
 
 .signin-card {
@@ -1630,6 +1636,7 @@
 .info-page__hero {
   display: grid;
   gap: 14px;
+  width: 100%;
 }
 
 .info-page__hero--centered {
