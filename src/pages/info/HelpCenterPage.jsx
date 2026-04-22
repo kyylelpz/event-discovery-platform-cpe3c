@@ -1,4 +1,4 @@
-import { HelpCircleIcon, SearchIcon } from '../../components/ui/Icons.jsx'
+import { ChevronRightIcon, HelpCircleIcon, SearchIcon } from '../../components/ui/Icons.jsx'
 
 const faqs = [
   {
@@ -49,17 +49,20 @@ function HelpCenterPage() {
         </p>
       </section>
 
-      <section className="info-page__grid">
+      <section className="help-center__list">
         {faqs.map((faq) => (
-          <article key={faq.q} className="info-card">
-            <div className="info-card__header">
-              <div className="info-card__icon">
+          <details key={faq.q} className="info-card help-center__item">
+            <summary className="help-center__toggle">
+              <div className="info-card__icon help-center__question-icon">
                 <SearchIcon />
               </div>
               <h2>{faq.q}</h2>
+              <ChevronRightIcon className="help-center__chevron" />
+            </summary>
+            <div className="help-center__answer">
+              <p>{faq.a}</p>
             </div>
-            <p>{faq.a}</p>
-          </article>
+          </details>
         ))}
       </section>
     </div>

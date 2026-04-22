@@ -32,6 +32,7 @@
 
 html {
   background: var(--color-bg);
+  font-family: var(--font-sans);
 }
 
 body {
@@ -47,6 +48,23 @@ input,
 select,
 textarea {
   font: inherit;
+  font-family: inherit;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+span,
+a,
+label,
+small,
+strong,
+li {
+  font-family: inherit;
 }
 
 button {

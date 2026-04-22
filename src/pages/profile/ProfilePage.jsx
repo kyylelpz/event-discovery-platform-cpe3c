@@ -113,13 +113,13 @@ function ProfilePage({
               {secondaryLabel ? <p>{secondaryLabel}</p> : null}
             </div>
             <div className="profile-card__meta">
-              <span>
+              <span className="profile-card__meta-item">
                 <MapPinIcon />
-                {locationLabel}
+                <span className="profile-card__meta-item-text">{locationLabel}</span>
               </span>
-              <span>
+              <span className="profile-card__meta-item">
                 <CalendarIcon />
-                Joined {joinedLabel}
+                <span className="profile-card__meta-item-text">Joined {joinedLabel}</span>
               </span>
             </div>
             <p className="profile-page__email">{emailLabel}</p>
@@ -219,7 +219,10 @@ function ProfilePage({
               onClick={() => onTabChange(tab.label)}
             >
               {tab.icon}
-              {tab.label} ({tab.events.length})
+              <span className="profile-tab__label">
+                <span>{tab.label}</span>
+                <span>({tab.events.length})</span>
+              </span>
             </button>
           ))}
         </div>

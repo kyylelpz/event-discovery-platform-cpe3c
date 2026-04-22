@@ -160,7 +160,7 @@ function ContactSupportPage() {
         <article className="info-card">
           <h2>Other ways to reach us</h2>
           <div className="contact-channels">
-            <span>📧 <a href="mailto:support@eventcinity.ph">support@eventcinity.ph</a></span>
+            <span>📧 <a href="mailto:support@eventcinity.com">support@eventcinity.com</a></span>
             <span>🕐 Response time: within 1–2 business days</span>
             <span>📍 Based in the Philippines</span>
           </div>
