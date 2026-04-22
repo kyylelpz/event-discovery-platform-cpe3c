@@ -9,6 +9,7 @@ import resumeBautista from '../../assets/resume/resume-bautista.pdf'
 import resumeBernal from '../../assets/resume/resume-bernal.pdf'
 import resumeFrancisco from '../../assets/resume/resume-francisco.pdf'
 import resumeLopez from '../../assets/resume/resume-lopez.pdf'
+import { CheckIcon, CodeIcon, CompassIcon, LaptopIcon } from '../../components/ui/Icons.jsx'
 import { programmerProfiles } from '../../data/sitePages.js'
 
 const SLIDER_MAX = 1000
@@ -119,6 +120,9 @@ function AboutProgrammersPage() {
   return (
     <div className="info-page programmer-carousel-page">
       <section className="info-page__hero programmer-carousel-page__hero">
+        <div className="info-page__hero-icon">
+          <CodeIcon />
+        </div>
         <h1>About the Programmers</h1>
         <p>
           Meet the team behind Eventcinity - five developers who built the platform from
@@ -184,7 +188,12 @@ function AboutProgrammersPage() {
 
       <section className="info-page__grid">
         <article className="info-card">
-          <h2>Project focus</h2>
+          <div className="info-card__header">
+            <div className="info-card__icon">
+              <CompassIcon />
+            </div>
+            <h2>Project focus</h2>
+          </div>
           <p>
             Eventcinity is designed as a calmer alternative to louder event discovery
             interfaces, combining clean browsing, social actions, and a scalable path
@@ -192,14 +201,24 @@ function AboutProgrammersPage() {
           </p>
         </article>
         <article className="info-card">
-          <h2>Current stack</h2>
+          <div className="info-card__header">
+            <div className="info-card__icon">
+              <LaptopIcon />
+            </div>
+            <h2>Current stack</h2>
+          </div>
           <p>
             The project uses a Vite React frontend with modular JSX components and a
             backend-ready structure that can grow into fuller API and auth workflows.
           </p>
         </article>
         <article className="info-card">
-          <h2>Built with care</h2>
+          <div className="info-card__header">
+            <div className="info-card__icon">
+              <CheckIcon />
+            </div>
+            <h2>Built with care</h2>
+          </div>
           <p>
             Every layer - from the UI to the database - was handled by a dedicated team
             member, keeping responsibilities clear and the codebase easy to maintain and
@@ -223,8 +242,7 @@ function AboutProgrammersPage() {
           display: grid;
           gap: 18px;
           padding: 28px;
-          width: min(100%, 1220px);
-          margin: 0 auto;
+          width: 100%;
           border: 1px solid rgba(45, 59, 21, 0.1);
           border-radius: 32px;
           background:
@@ -253,6 +271,8 @@ function AboutProgrammersPage() {
           flex: 0 0 clamp(280px, 28vw, 350px);
           gap: 14px;
           padding: 24px;
+          justify-items: center;
+          text-align: center;
           border: 1px solid rgba(45, 59, 21, 0.1);
           border-radius: 28px;
           background: rgba(255, 255, 255, 0.9);
@@ -290,6 +310,7 @@ function AboutProgrammersPage() {
           width: max-content;
           min-height: 32px;
           align-items: center;
+          justify-content: center;
           padding: 0 12px;
           border-radius: 999px;
           font-size: 0.78rem;

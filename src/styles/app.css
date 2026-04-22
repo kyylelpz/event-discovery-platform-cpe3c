@@ -1632,6 +1632,28 @@
   gap: 14px;
 }
 
+.info-page__hero-icon,
+.info-card__icon {
+  width: 52px;
+  height: 52px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 18px;
+  color: var(--color-accent);
+  background: rgba(45, 59, 21, 0.08);
+}
+
+.info-page__hero-icon svg,
+.info-card__icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.info-card__header {
+  display: grid;
+  gap: 14px;
+}
+
 .info-page__hero h1,
 .info-card h2 {
   margin: 0;
