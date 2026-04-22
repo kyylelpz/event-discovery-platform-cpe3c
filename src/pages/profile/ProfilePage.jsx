@@ -35,7 +35,10 @@ function ProfilePage({
         { label: 'Favorites', events: likedEvents, icon: <HeartIcon /> },
         { label: 'Attending', events: attendingEvents, icon: <CalendarIcon /> },
       ]
-    : [{ label: 'Created Events', events: createdEvents, icon: <PlusSquareIcon /> }]
+    : [
+        { label: 'Created Events', events: createdEvents, icon: <PlusSquareIcon /> },
+        { label: 'Attending', events: attendingEvents, icon: <CalendarIcon /> },
+      ]
   const activeTabConfig = tabs.find((tab) => tab.label === activeTab) || tabs[0]
   const displayEvents = activeTabConfig.events
   const displayName = user.name || user.username || 'Eventcinity user'
@@ -52,7 +55,9 @@ function ProfilePage({
   const joinedLabel = user.joinedDate || formatMemberSince(user.createdAt)
   const emptyCopy = isCurrentUser
     ? 'This area fills in from your own account activity and hosted events.'
-    : 'This community member has not shared anything here yet.'
+    : activeTabConfig?.label === 'Attending'
+      ? 'This community member has not marked any public attending events yet.'
+      : 'This community member has not shared anything here yet.'
 
   useEffect(() => {
     setDraftPhone(user.phone || user.contact || '')

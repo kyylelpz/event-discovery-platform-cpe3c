@@ -41,7 +41,7 @@ function PeoplePage({ people, onOpenProfile }) {
                 @{person.username} - {person.createdEventsCount || 0} hosted events
               </p>
               <p className="person-card__meta">
-                Open the profile to view public bio, interests, and contact details.
+                Open the profile to view public bio, interests, contact details, and attending events.
               </p>
               <div className="person-card__actions">
                 <PrimaryButton onClick={() => onOpenProfile(person.username)}>

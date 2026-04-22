@@ -36,10 +36,6 @@ function CreateEventPage({ categories, locations, onCreateEvent }) {
         return 'Event Title is required.'
       }
 
-      if (countWords(value) < 5) {
-        return 'Event Title must have at least 5 words.'
-      }
-
       if (countWords(value) > 15) {
         return 'Event Title can have at most 15 words.'
       }
@@ -50,10 +46,6 @@ function CreateEventPage({ categories, locations, onCreateEvent }) {
 
       if (!trimmedValue) {
         return 'Description is required.'
-      }
-
-      if (trimmedValue.length < 150) {
-        return 'Description must be at least 150 characters.'
       }
 
       if (trimmedValue.length > 500) {
@@ -92,8 +84,6 @@ function CreateEventPage({ categories, locations, onCreateEvent }) {
     province: validateField('province', values.province, values),
     category: validateField('category', values.category, values),
   })
-
-  const isFormValid = !Object.values(validateForm(formValues)).some(Boolean)
 
   const updateField = (field, value) => {
     setFormValues((currentValues) => {
@@ -211,7 +201,7 @@ function CreateEventPage({ categories, locations, onCreateEvent }) {
               aria-invalid={Boolean(errors.title)}
             />
             <small className="field-hint">
-              {titleWordCount}/15 words. Minimum 5 words required.
+              {titleWordCount}/15 words.
             </small>
             {errors.title ? <small className="field-error">{errors.title}</small> : null}
           </label>
@@ -230,7 +220,7 @@ function CreateEventPage({ categories, locations, onCreateEvent }) {
               aria-invalid={Boolean(errors.description)}
             />
             <small className="field-hint">
-              {descriptionLength}/500 characters. Minimum 150 characters required.
+              {descriptionLength}/500 characters.
             </small>
             {errors.description ? (
               <small className="field-error">{errors.description}</small>
@@ -329,7 +319,7 @@ function CreateEventPage({ categories, locations, onCreateEvent }) {
             <PrimaryButton
               type="submit"
               className="form-actions__primary"
-              disabled={!isFormValid || isSubmitting}
+              disabled={isSubmitting}
             >
               {isSubmitting ? 'Creating Event...' : 'Create Event'}
             </PrimaryButton>

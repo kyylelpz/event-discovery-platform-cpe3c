@@ -411,10 +411,13 @@
 .featured-event__meta svg,
 .detail-panel__meta svg,
 .event-card__meta svg,
+.detail-place-card svg,
+.detail-map__badge svg,
 .profile-card__meta svg,
 .people-hero__icon svg {
   width: 16px;
   height: 16px;
+  flex-shrink: 0;
 }
 
 .button--primary {
@@ -639,11 +642,24 @@
 
 .featured-event__meta div,
 .event-card__meta p,
-.detail-panel__meta > div,
 .profile-card__meta span {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
+}
+
+.featured-event__meta div,
+.event-card__meta p,
+.profile-card__meta span,
+.detail-place-card {
+  line-height: 1.45;
+}
+
+.featured-event__meta svg,
+.event-card__meta svg,
+.profile-card__meta svg,
+.detail-place-card svg {
+  margin-top: 3px;
 }
 
 .featured-event__actions {
@@ -1221,6 +1237,10 @@
   font-weight: 600;
 }
 
+.detail-map__badge svg {
+  margin-top: 1px;
+}
+
 .detail-map__embed {
   display: block;
   width: 100%;
@@ -1260,7 +1280,7 @@
 }
 
 .detail-panel__meta > div > svg {
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
 .detail-panel__meta span {

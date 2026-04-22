@@ -349,3 +349,44 @@ export const updateInteractionState = async (event, nextState) => {
     return buildLocalInteractionState(event, nextState)
   }
 }
+
+export const fetchPublicAttendingEvents = async (username) => {
+  const normalizedUsername = String(username || '').trim()
+
+  if (!normalizedUsername) {
+    return []
+  }
+
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/interactions/public/${encodeURIComponent(normalizedUsername)}/attending`,
+      {
+        credentials: 'include',
+        headers: {
+          Accept: 'application/json',
+        },
+      },
+    )
+    const data = await readResponseData(response)
+
+    if (!response.ok || data?.success === false) {
+      const error = new Error(data.message || 'Unable to load public attending events.')
+      error.status = response.status
+      throw error
+    }
+
+    const records = Array.isArray(data?.data?.records)
+      ? data.data.records
+      : Array.isArray(data?.records)
+        ? data.records
+        : []
+
+    return records.map((record) => mapInteractionRecordToEvent(record))
+  } catch (error) {
+    if (!isRecoverableInteractionError(error)) {
+      throw error
+    }
+
+    return []
+  }
+}

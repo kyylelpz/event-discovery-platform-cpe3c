@@ -37,6 +37,7 @@ import {
 } from './services/authService.js'
 import {
   buildEmptyInteractionState,
+  fetchPublicAttendingEvents,
   fetchInteractionState,
   updateInteractionState,
 } from './services/interactionService.js'
@@ -253,6 +254,7 @@ function App() {
   const [remoteEvents, setRemoteEvents] = useState([])
   const [createdEvents, setCreatedEvents] = useState([])
   const [profileCreatedEvents, setProfileCreatedEvents] = useState([])
+  const [profileAttendingEvents, setProfileAttendingEvents] = useState([])
   const [communityUsers, setCommunityUsers] = useState([])
   const [activePublicProfile, setActivePublicProfile] = useState(null)
   const [isPublicProfileLoading, setIsPublicProfileLoading] = useState(false)
@@ -659,6 +661,7 @@ function App() {
     remoteEvents,
     createdEvents,
     profileCreatedEvents,
+    profileAttendingEvents,
   )
   const normalizedSearch = deferredSearchTerm.trim().toLowerCase()
   const isCalendarDateMode = Boolean(selectedCalendarDate)
@@ -892,6 +895,55 @@ function App() {
     }
   }, [route.key, route.params?.username, isViewingCurrentUserProfile, currentUser?.email])
 
+  useEffect(() => {
+    if (route.key !== 'profile') {
+      setProfileAttendingEvents([])
+      return undefined
+    }
+
+    const requestedUsername = String(route.params?.username || '').trim()
+    const shouldLoadPublicAttending =
+      requestedUsername && requestedUsername !== 'me' && !isViewingCurrentUserProfile
+
+    if (!shouldLoadPublicAttending) {
+      setProfileAttendingEvents([])
+      return undefined
+    }
+
+    let isActive = true
+
+    const loadPublicAttendingEvents = async () => {
+      try {
+        const events = await fetchPublicAttendingEvents(requestedUsername)
+
+        if (!isActive) {
+          return
+        }
+
+        setProfileAttendingEvents(events)
+      } catch (error) {
+        if (!isActive) {
+          return
+        }
+
+        console.warn('Unable to load public attending events for the selected profile:', error)
+        setProfileAttendingEvents([])
+      }
+    }
+
+    void loadPublicAttendingEvents()
+
+    return () => {
+      isActive = false
+    }
+  }, [route.key, route.params?.username, isViewingCurrentUserProfile])
+
+  useEffect(() => {
+    if (route.key === 'profile') {
+      setActiveProfileTab('Created Events')
+    }
+  }, [route.key, route.params?.username])
+
   const activeProfile = isViewingCurrentUserProfile
     ? {
         ...currentUser,
@@ -908,7 +960,7 @@ function App() {
     : []
   const attendingByUser = isViewingCurrentUserProfile
     ? attendingInteractionEvents
-    : []
+    : profileAttendingEvents
   const relatedEvents = currentEvent
     ? allEvents.filter((e) =>
         e.id !== currentEvent.id &&
