@@ -165,8 +165,7 @@ const selectFeaturedEvent = (events, interests = [], seedSource = '') => {
       return compareEventsByNearestDate(leftEvent.event, rightEvent.event)
     })
 
-  const matchingEvents = scoredEvents.filter(({ interestScore }) => interestScore > 0)
-  const candidateEvents = (matchingEvents.length ? matchingEvents : scoredEvents).slice(0, 6)
+  const candidateEvents = scoredEvents
 
   return candidateEvents[getSeededIndex(candidateEvents.length, seedSource)]?.event || null
 }
@@ -583,6 +582,7 @@ function App() {
   const handleCategoryChange = (value) => {
     setCurrentEventsPage(1)
     setSelectedCategory(value)
+    setFeaturedShuffleSeed(`${Date.now()}:${Math.random()}:${value}`)
   }
 
   const handleDateFilterChange = (value) => {
@@ -847,11 +847,21 @@ function App() {
 
   const featuredRotationSeed = [
     currentUser?.id || currentUser?.username || currentUser?.email || 'guest',
+    selectedCategory,
     featuredShuffleSeed,
   ].join(':')
+  const featuredEventCandidates = useMemo(() => {
+    if (selectedCategory === 'All Events') {
+      return allEvents
+    }
+
+    const categoryMatches = allEvents.filter((event) => event.category === selectedCategory)
+
+    return categoryMatches.length ? categoryMatches : allEvents
+  }, [allEvents, selectedCategory])
   const featuredEvent = useMemo(
-    () => selectFeaturedEvent(allEvents, currentUserInterests, featuredRotationSeed),
-    [allEvents, currentUserInterests, featuredRotationSeed],
+    () => selectFeaturedEvent(featuredEventCandidates, currentUserInterests, featuredRotationSeed),
+    [featuredEventCandidates, currentUserInterests, featuredRotationSeed],
   )
   const featuredInterestLabel =
     featuredEvent && currentUserInterestLabels.length

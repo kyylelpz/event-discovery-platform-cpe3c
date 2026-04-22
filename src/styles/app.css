@@ -819,8 +819,43 @@
 
 .category-highlight {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.category-highlight__viewport {
+  overflow: hidden;
+}
+
+.category-highlight__track {
+  display: flex;
   gap: 10px;
+  overflow-x: auto;
+  padding: 4px;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+}
+
+.category-highlight__track::-webkit-scrollbar {
+  display: none;
+}
+
+.category-highlight__nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.category-highlight__nav:hover {
+  background: rgba(45, 59, 21, 0.08);
 }
 
 .category-highlight__item {
@@ -829,6 +864,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
+  flex: 0 0 clamp(120px, 18vw, 150px);
   min-height: 100px;
   padding: 14px 8px;
   border: 1px solid var(--color-border);
@@ -836,6 +872,7 @@
   background: var(--color-surface);
   color: var(--color-text);
   text-align: center;
+  scroll-snap-align: center;
   transition:
     background-color 0.2s ease,
     border-color 0.2s ease,
@@ -1403,6 +1440,7 @@
 :root[data-theme='dark'] .topbar__account:hover,
 :root[data-theme='dark'] .profile-menu__trigger:hover,
 :root[data-theme='dark'] .mode-toggle-button:hover,
+:root[data-theme='dark'] .category-highlight__nav:hover,
 :root[data-theme='dark'] .button--secondary:hover,
 :root[data-theme='dark'] .button--secondary-active,
 :root[data-theme='dark'] .find-events-picker__nav:hover,
@@ -2242,6 +2280,10 @@
   .person-card__actions,
   .profile-card__meta {
     grid-template-columns: 1fr;
+  }
+
+  .category-highlight {
+    grid-template-columns: auto minmax(0, 1fr) auto;
   }
 
   .section-block__topline,
