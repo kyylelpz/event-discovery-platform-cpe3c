@@ -1,17 +1,11 @@
-import { useEffect, useRef } from 'react'
 import EventList from '../../components/events/EventList.jsx'
 import FeaturedEvent from '../../components/events/FeaturedEvent.jsx'
-import CategoryHighlight, {
-  highlightedCategories,
-} from '../../components/ui/CategoryHighlight.jsx'
+import CategoryHighlight from '../../components/ui/CategoryHighlight.jsx'
 import FilterTabs from '../../components/ui/FilterTabs.jsx'
 import { formatEventDateHeading } from '../../utils/formatters.js'
 
-const CATEGORY_ROTATION_INTERVAL_MS = 5000
-
 function EventDiscoveryPage({
-  featuredEvent,
-  featuredInterestLabel,
+  featuredEvents,
   events,
   filteredCount,
   currentPage,
@@ -28,34 +22,12 @@ function EventDiscoveryPage({
   ...sharedPageProps
 }) {
   const isCalendarDateMode = Boolean(selectedCalendarDate)
-  const categoryChangeRef = useRef(onCategoryChange)
-
-  useEffect(() => {
-    categoryChangeRef.current = onCategoryChange
-  }, [onCategoryChange])
-
-  useEffect(() => {
-    if (isCalendarDateMode || highlightedCategories.length < 2) {
-      return undefined
-    }
-
-    const rotationTimer = window.setInterval(() => {
-      const currentIndex = Math.max(0, highlightedCategories.indexOf(selectedCategory))
-      const nextCategory =
-        highlightedCategories[(currentIndex + 1) % highlightedCategories.length]
-
-      categoryChangeRef.current(nextCategory)
-    }, CATEGORY_ROTATION_INTERVAL_MS)
-
-    return () => window.clearInterval(rotationTimer)
-  }, [isCalendarDateMode, selectedCategory])
 
   return (
     <div className="page-stack">
       {!isCalendarDateMode ? (
         <FeaturedEvent
-          event={featuredEvent}
-          matchedInterest={featuredInterestLabel}
+          events={featuredEvents}
           interactions={sharedPageProps.interactions}
           onViewDetails={sharedPageProps.onOpenEvent}
           onToggleHeart={sharedPageProps.onToggleHeart}
@@ -68,10 +40,7 @@ function EventDiscoveryPage({
         <section className="section-block">
           <div className="section-block__heading">
             <h2>Browse by Category</h2>
-            <p>
-              Explore events by category and discover what is happening next. Categories
-              auto-slide every 5 seconds, and you can still click any category anytime.
-            </p>
+            <p>Explore events by category and discover what is happening next.</p>
           </div>
           <CategoryHighlight value={selectedCategory} onCategoryClick={onCategoryChange} />
         </section>
