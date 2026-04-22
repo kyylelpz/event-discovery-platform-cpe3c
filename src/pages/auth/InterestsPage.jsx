@@ -20,8 +20,6 @@ const ALL_INTERESTS = [
 ]
 
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap');
-
   .interests-wrapper {
     min-height: 100vh;
     display: flex;
@@ -29,7 +27,7 @@ const styles = `
     justify-content: center;
     padding: 2rem 1rem;
     background: #ffffff;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-sans);
   }
 
   .interests-box {
@@ -47,7 +45,7 @@ const styles = `
   }
 
   .interests-header h1 {
-    font-family: 'DM Serif Display', serif;
+    font-family: var(--font-display);
     font-size: 1.75rem;
     font-weight: 400;
     color: #1a1714;
@@ -80,7 +78,7 @@ const styles = `
     border: 1.5px solid #e2ddd8;
     border-radius: 10px;
     background: #faf9f7;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-sans);
     font-size: 0.95rem;
     color: #1a1714;
     box-sizing: border-box;
@@ -125,7 +123,7 @@ const styles = `
     border-radius: 12px;
     background: #faf9f7;
     cursor: pointer;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-sans);
     font-size: 0.85rem;
     color: #4a4540;
     transition: all 0.15s;
@@ -161,7 +159,7 @@ const styles = `
     color: #fff;
     border: none;
     border-radius: 8px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-sans);
     font-size: 0.95rem;
     font-weight: 500;
     cursor: pointer;
@@ -177,7 +175,7 @@ const styles = `
     padding: 0.6rem;
     background: none;
     border: none;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-sans);
     font-size: 0.875rem;
     color: #7a7068;
     cursor: pointer;

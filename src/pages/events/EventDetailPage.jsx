@@ -155,16 +155,16 @@ function EventDetailPage({
           <aside className="detail-layout__sidebar">
             <div className="detail-panel">
               <div className="detail-panel__meta">
-                <div>
+                <div className="detail-panel__meta-item">
                   <CalendarIcon />
-                  <div>
+                  <div className="detail-panel__meta-content">
                     <p>Date & Time</p>
                     <strong>{scheduleLabel}</strong>
                   </div>
                 </div>
-                <div>
+                <div className="detail-panel__meta-item">
                   <MapPinIcon />
-                  <div>
+                  <div className="detail-panel__meta-content">
                     <p>Venue</p>
                     {locationHref ? (
                       <a

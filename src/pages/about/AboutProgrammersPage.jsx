@@ -263,13 +263,16 @@ function AboutProgrammersPage() {
           display: flex;
           gap: 24px;
           width: max-content;
+          align-items: stretch;
         }
 
         .programmer-card {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
           flex: 0 0 clamp(280px, 28vw, 350px);
           gap: 14px;
           padding: 24px;
-          justify-items: center;
           text-align: center;
           border: 1px solid rgba(45, 59, 21, 0.1);
           border-radius: 28px;
@@ -327,6 +330,8 @@ function AboutProgrammersPage() {
           margin: 0;
           color: var(--color-muted);
           line-height: 1.75;
+          width: 100%;
+          flex: 1;
           min-height: 112px;
         }
 
@@ -341,6 +346,7 @@ function AboutProgrammersPage() {
           color: var(--color-surface);
           font-weight: 600;
           text-decoration: none;
+          margin-top: auto;
           transition: transform 0.2s ease, opacity 0.2s ease;
         }
 

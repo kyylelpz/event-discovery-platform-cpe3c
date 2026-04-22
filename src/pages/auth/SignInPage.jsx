@@ -5,8 +5,6 @@ import { getEmailValidationError, signIn, signUp } from '../../services/authServ
 import { routes } from '../../utils/routing.js'
 
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap');
-
   .signin-wrapper {
     min-height: 100vh;
     display: flex;
@@ -14,7 +12,7 @@ const styles = `
     justify-content: center;
     padding: 2rem 1rem;
     background: #ffffff;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-sans);
   }
 
   .signin-box {
@@ -34,7 +32,7 @@ const styles = `
   }
 
   .signin-header h1 {
-    font-family: 'DM Serif Display', serif;
+    font-family: var(--font-display);
     font-size: 2rem;
     font-weight: 400;
     color: #1a1714;
@@ -64,7 +62,7 @@ const styles = `
     border: none;
     border-radius: 7px;
     background: transparent;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-sans);
     font-size: 0.875rem;
     font-weight: 500;
     color: #7a7068;
@@ -120,7 +118,7 @@ const styles = `
     background: none;
     border: none;
     cursor: pointer;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-sans);
     padding: 0;
   }
 
@@ -135,7 +133,7 @@ const styles = `
     padding: 0.75rem 1rem;
     border: 1.5px solid #e2ddd8;
     border-radius: 8px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-sans);
     font-size: 0.95rem;
     color: #1a1714;
     background: #faf9f7;
@@ -197,7 +195,7 @@ const styles = `
     border: 1.5px solid #e2ddd8;
     border-radius: 8px;
     background: #fff;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-sans);
     font-size: 0.95rem;
     font-weight: 500;
     color: #1a1714;
@@ -223,7 +221,7 @@ const styles = `
     background: none;
     border: none;
     color: #c17f4a;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-sans);
     font-size: 0.875rem;
     font-weight: 500;
     cursor: pointer;

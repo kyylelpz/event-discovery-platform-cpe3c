@@ -63,15 +63,7 @@ function LocationGuidesPage() {
               <h2>{loc.name}</h2>
             </div>
             <p>{loc.description}</p>
-            <ul
-              style={{
-                marginTop: '0.75rem',
-                paddingLeft: '1.1rem',
-                fontSize: '0.85rem',
-                color: '#7a7068',
-                lineHeight: '1.8',
-              }}
-            >
+            <ul className="location-guides__highlights">
               {loc.highlights.map((highlight) => (
                 <li key={highlight}>{highlight}</li>
               ))}
@@ -79,6 +71,14 @@ function LocationGuidesPage() {
           </article>
         ))}
       </section>
+
+      <style>{`
+        .location-guides__highlights {
+          gap: 10px;
+          margin-top: 4px;
+          font-size: 0.9rem;
+        }
+      `}</style>
     </div>
   )
 }

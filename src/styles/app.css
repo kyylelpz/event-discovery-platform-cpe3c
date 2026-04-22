@@ -18,6 +18,8 @@
   display: flex;
   flex-direction: column;
   gap: 32px;
+  width: 100%;
+  align-items: stretch;
 }
 
 .topbar {
@@ -287,7 +289,7 @@
 .profile-menu__section h4 {
   margin: 0;
   color: var(--color-text);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
 }
 
 .profile-menu__identity h3 {
@@ -640,26 +642,39 @@
   gap: 12px;
 }
 
-.featured-event__meta div,
-.event-card__meta p,
+.event-meta-item,
 .profile-card__meta span {
   display: flex;
   align-items: flex-start;
   gap: 10px;
 }
 
-.featured-event__meta div,
-.event-card__meta p,
+.event-meta-item,
 .profile-card__meta span,
 .detail-place-card {
   line-height: 1.45;
 }
 
-.featured-event__meta svg,
-.event-card__meta svg,
+.event-meta-item > svg,
 .profile-card__meta svg,
 .detail-place-card svg {
   margin-top: 3px;
+}
+
+.event-meta-item {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 12px;
+}
+
+.event-meta-item__content {
+  display: block;
+  min-width: 0;
+}
+
+.event-meta-item > svg {
+  margin-top: 0;
 }
 
 .featured-event__actions {
@@ -689,10 +704,13 @@
 .form-panel,
 .profile-card,
 .people-hero,
-.signin-card {
+.signin-card,
+.info-card,
+.person-card {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  align-content: start;
 }
 
 .section-block__heading,
@@ -959,11 +977,10 @@
 
 .event-card__meta p {
   margin: 0;
-  align-items: flex-start;
   font-size: 0.95rem;
 }
 
-.event-card__meta span {
+.event-card__meta .event-meta-item__content {
   display: -webkit-box;
   overflow: hidden;
   line-height: 1.45;
@@ -1281,25 +1298,35 @@
   gap: 24px;
 }
 
-.detail-panel__meta > div {
+.detail-panel__meta-item {
   display: grid;
   grid-template-columns: 18px 1fr;
-  align-items: start;
+  align-items: center;
   gap: 12px;
 }
 
-.detail-panel__meta > div > div {
+.detail-panel__meta-content {
   display: grid;
   gap: 2px;
+  min-width: 0;
 }
 
-.detail-panel__meta > div > svg {
-  margin-top: 3px;
+.detail-panel__meta-item > svg {
+  margin-top: 0;
 }
 
-.detail-panel__meta span {
+.detail-panel__meta-content p,
+.detail-panel__meta-content strong,
+.detail-panel__meta-content a {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.detail-panel__meta-content a,
+.detail-panel__meta-content strong {
   display: block;
   margin-top: 4px;
+  min-width: 0;
   color: var(--color-text);
 }
 
@@ -1469,6 +1496,11 @@
   color: var(--color-muted);
 }
 
+.profile-card__identity {
+  display: grid;
+  gap: 4px;
+}
+
 .profile-card__bio,
 .person-card__bio,
 .people-hero p,
@@ -1513,6 +1545,16 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 24px;
+  align-items: stretch;
+}
+
+.profile-page__info-card {
+  justify-content: flex-start;
+}
+
+.profile-page__info-card h2,
+.profile-page__info-card p {
+  margin: 0;
 }
 
 .profile-page__interest-section {
@@ -1587,6 +1629,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 24px;
+  align-items: stretch;
 }
 
 .person-card {
@@ -1596,6 +1639,8 @@
   padding: 28px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+  align-items: stretch;
+  gap: 18px;
 }
 
 .person-card__header h2 {
@@ -1603,9 +1648,15 @@
   font-size: 1.4rem;
 }
 
+.person-card__copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
 .person-card__header p,
 .person-card__meta {
-  margin: 4px 0 0;
+  margin: 0;
 }
 
 .person-card__bio {
@@ -1613,6 +1664,10 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
   overflow: hidden;
+}
+
+.person-card__meta {
+  line-height: 1.65;
 }
 
 .person-card__actions {
@@ -1647,6 +1702,7 @@
   display: grid;
   gap: 14px;
   width: 100%;
+  align-content: start;
 }
 
 .info-page__hero--centered {
@@ -1693,11 +1749,16 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 24px;
+  align-items: stretch;
 }
 
 .info-card {
   display: grid;
   gap: 16px;
+  height: 100%;
+  justify-items: start;
+  align-content: start;
+  grid-template-rows: auto 1fr;
 }
 
 .info-card__list {
@@ -1706,6 +1767,33 @@
   color: var(--color-muted);
   display: grid;
   gap: 10px;
+}
+
+.info-card__header {
+  align-content: start;
+}
+
+.info-card__header h2,
+.info-card h2,
+.info-card p,
+.info-card ul,
+.info-card ol {
+  margin: 0;
+}
+
+.info-card h2 {
+  line-height: 1.25;
+}
+
+.info-card p,
+.info-card li {
+  line-height: 1.7;
+}
+
+.info-card ul,
+.info-card ol {
+  padding-left: 1.1rem;
+  color: var(--color-muted);
 }
 
 .programmer-card__role {
