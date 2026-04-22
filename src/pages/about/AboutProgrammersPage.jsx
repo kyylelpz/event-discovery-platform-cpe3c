@@ -11,8 +11,6 @@ import resumeFrancisco from '../../assets/resume/resume-francisco.pdf'
 import resumeLopez from '../../assets/resume/resume-lopez.pdf'
 import { programmerProfiles } from '../../data/sitePages.js'
 
-const AUTO_SCROLL_SPEED = 24
-const AUTO_RESUME_DELAY = 5000
 const SLIDER_MAX = 1000
 
 const roleColors = {
@@ -31,79 +29,54 @@ const programmerAssets = {
   francisco: { photo: imageFrancisco, resume: resumeFrancisco },
 }
 
-const programmers = programmerProfiles.map((profile) => ({
-  ...profile,
-  photo: programmerAssets[profile.id]?.photo || '',
-  resume: programmerAssets[profile.id]?.resume || '',
-}))
+const getSurname = (name) => String(name || '').trim().split(/\s+/).at(-1)?.toLowerCase() || ''
 
-const normalizeScroll = (position, loopSize) => {
-  if (!loopSize) {
-    return 0
-  }
+const programmers = [...programmerProfiles]
+  .sort((leftProfile, rightProfile) => {
+    const surnameDifference = getSurname(leftProfile.name).localeCompare(getSurname(rightProfile.name))
 
-  return ((position % loopSize) + loopSize) % loopSize
-}
+    if (surnameDifference !== 0) {
+      return surnameDifference
+    }
+
+    return String(leftProfile.name || '').localeCompare(String(rightProfile.name || ''))
+  })
+  .map((profile) => ({
+    ...profile,
+    photo: programmerAssets[profile.id]?.photo || '',
+    resume: programmerAssets[profile.id]?.resume || '',
+  }))
 
 function AboutProgrammersPage() {
   const carouselRef = useRef(null)
-  const trackRef = useRef(null)
-  const primarySetRef = useRef(null)
-  const loopSizeRef = useRef(0)
-  const resumeTimerRef = useRef(null)
-  const animationFrameRef = useRef(null)
-  const previousFrameTimeRef = useRef(0)
+  const maxScrollRef = useRef(0)
   const [sliderValue, setSliderValue] = useState(0)
-  const [isAutoScrollPaused, setIsAutoScrollPaused] = useState(false)
 
-  const pauseAutoScroll = () => {
-    window.clearTimeout(resumeTimerRef.current)
-    setIsAutoScrollPaused(true)
-  }
-
-  const syncLoopSize = () => {
+  const syncSliderBounds = () => {
     const carousel = carouselRef.current
-    const track = trackRef.current
-    const primarySet = primarySetRef.current
 
-    if (!carousel || !track || !primarySet) {
+    if (!carousel) {
       return
     }
 
-    const computedStyles = window.getComputedStyle(track)
-    const gap = Number.parseFloat(computedStyles.columnGap || computedStyles.gap || '0') || 0
-    const previousLoopSize = loopSizeRef.current
-    const nextLoopSize = primarySet.scrollWidth + gap
+    const nextMaxScroll = Math.max(0, carousel.scrollWidth - carousel.clientWidth)
+    maxScrollRef.current = nextMaxScroll
 
-    if (!nextLoopSize) {
-      return
-    }
+    const nextSliderValue = nextMaxScroll
+      ? Math.round((carousel.scrollLeft / nextMaxScroll) * SLIDER_MAX)
+      : 0
 
-    const normalizedPosition = normalizeScroll(
-      carousel.scrollLeft,
-      previousLoopSize || nextLoopSize,
-    )
-
-    loopSizeRef.current = nextLoopSize
-    carousel.scrollLeft = normalizedPosition
-    setSliderValue(Math.round((normalizedPosition / nextLoopSize) * SLIDER_MAX))
-  }
-
-  const scheduleAutoResume = () => {
-    window.clearTimeout(resumeTimerRef.current)
-    resumeTimerRef.current = window.setTimeout(() => {
-      setIsAutoScrollPaused(false)
-    }, AUTO_RESUME_DELAY)
+    setSliderValue(nextSliderValue)
   }
 
   useEffect(() => {
-    syncLoopSize()
-    window.addEventListener('resize', syncLoopSize)
-    window.addEventListener('load', syncLoopSize)
+    syncSliderBounds()
+    window.addEventListener('resize', syncSliderBounds)
+    window.addEventListener('load', syncSliderBounds)
 
     return () => {
-      window.removeEventListener('resize', syncLoopSize)
-      window.removeEventListener('load', syncLoopSize)
+      window.removeEventListener('resize', syncSliderBounds)
+      window.removeEventListener('load', syncSliderBounds)
     }
   }, [])
 
@@ -115,15 +88,10 @@ function AboutProgrammersPage() {
     }
 
     const syncSlider = () => {
-      const loopSize = loopSizeRef.current
-
-      if (!loopSize) {
-        return
-      }
-
-      const nextValue = Math.round(
-        (normalizeScroll(carousel.scrollLeft, loopSize) / loopSize) * SLIDER_MAX,
-      )
+      const maxScroll = maxScrollRef.current
+      const nextValue = maxScroll
+        ? Math.round((carousel.scrollLeft / maxScroll) * SLIDER_MAX)
+        : 0
 
       setSliderValue((currentValue) => (currentValue === nextValue ? currentValue : nextValue))
     }
@@ -136,56 +104,16 @@ function AboutProgrammersPage() {
     }
   }, [])
 
-  useEffect(() => {
-    const animate = (timestamp) => {
-      const carousel = carouselRef.current
-      const loopSize = loopSizeRef.current
-
-      if (!previousFrameTimeRef.current) {
-        previousFrameTimeRef.current = timestamp
-      }
-
-      const elapsed = timestamp - previousFrameTimeRef.current
-      previousFrameTimeRef.current = timestamp
-
-      if (carousel && loopSize && !isAutoScrollPaused) {
-        carousel.scrollLeft += (AUTO_SCROLL_SPEED * elapsed) / 1000
-
-        if (carousel.scrollLeft >= loopSize) {
-          carousel.scrollLeft -= loopSize
-        }
-      }
-
-      animationFrameRef.current = window.requestAnimationFrame(animate)
-    }
-
-    animationFrameRef.current = window.requestAnimationFrame(animate)
-
-    return () => {
-      window.cancelAnimationFrame(animationFrameRef.current)
-      previousFrameTimeRef.current = 0
-    }
-  }, [isAutoScrollPaused])
-
-  useEffect(() => {
-    return () => {
-      window.clearTimeout(resumeTimerRef.current)
-    }
-  }, [])
-
   const handleSliderChange = (event) => {
     const nextValue = Number(event.target.value)
     const carousel = carouselRef.current
-    const loopSize = loopSizeRef.current
+    const maxScroll = maxScrollRef.current
 
     setSliderValue(nextValue)
-    pauseAutoScroll()
 
-    if (carousel && loopSize) {
-      carousel.scrollLeft = (loopSize * nextValue) / SLIDER_MAX
+    if (carousel && maxScroll) {
+      carousel.scrollLeft = (maxScroll * nextValue) / SLIDER_MAX
     }
-
-    scheduleAutoResume()
   }
 
   return (
@@ -200,52 +128,42 @@ function AboutProgrammersPage() {
 
       <section className="programmer-carousel-section">
         <div ref={carouselRef} className="programmer-carousel">
-          <div ref={trackRef} className="programmer-carousel__track">
-            {[0, 1].map((setIndex) => (
-              <div
-                key={`set-${setIndex}`}
-                ref={setIndex === 0 ? primarySetRef : null}
-                className="programmer-carousel__set"
-                aria-hidden={setIndex === 1}
-              >
-                {programmers.map((profile) => {
-                  const colors = roleColors[profile.role] || { bg: '#f5f2ee', accent: '#7a7068' }
+          <div className="programmer-carousel__track">
+            {programmers.map((profile) => {
+              const colors = roleColors[profile.role] || { bg: '#f5f2ee', accent: '#7a7068' }
 
-                  return (
-                    <article key={`${setIndex}-${profile.id}`} className="info-card programmer-card">
-                      <div className="programmer-card__media" style={{ background: colors.bg }}>
-                        <img
-                          className="programmer-card__avatar"
-                          src={profile.photo}
-                          alt={profile.name}
-                          onLoad={syncLoopSize}
-                        />
-                      </div>
+              return (
+                <article key={profile.id} className="info-card programmer-card">
+                  <div className="programmer-card__media" style={{ background: colors.bg }}>
+                    <img
+                      className="programmer-card__avatar"
+                      src={profile.photo}
+                      alt={profile.name}
+                      onLoad={syncSliderBounds}
+                    />
+                  </div>
 
-                      <span
-                        className="programmer-card__role programmer-card__role--pill"
-                        style={{ background: colors.bg, color: colors.accent }}
-                      >
-                        {profile.role}
-                      </span>
+                  <span
+                    className="programmer-card__role programmer-card__role--pill"
+                    style={{ background: colors.bg, color: colors.accent }}
+                  >
+                    {profile.role}
+                  </span>
 
-                      <h2 className="programmer-card__name">{profile.name}</h2>
-                      <p className="programmer-card__summary">{profile.summary}</p>
+                  <h2 className="programmer-card__name">{profile.name}</h2>
+                  <p className="programmer-card__summary">{profile.summary}</p>
 
-                      <a
-                        className="programmer-card__cv"
-                        href={profile.resume}
-                        target="_blank"
-                        rel="noreferrer"
-                        tabIndex={setIndex === 1 ? -1 : undefined}
-                      >
-                        Check CV
-                      </a>
-                    </article>
-                  )
-                })}
-              </div>
-            ))}
+                  <a
+                    className="programmer-card__cv"
+                    href={profile.resume}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Check CV
+                  </a>
+                </article>
+              )
+            })}
           </div>
         </div>
 
@@ -329,11 +247,6 @@ function AboutProgrammersPage() {
           display: flex;
           gap: 24px;
           width: max-content;
-        }
-
-        .programmer-carousel__set {
-          display: flex;
-          gap: 24px;
         }
 
         .programmer-card {
