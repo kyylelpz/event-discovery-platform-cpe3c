@@ -86,6 +86,30 @@ const pickText = (...values) => {
   return ''
 }
 
+const isMachineDateLabel = (value) => {
+  const normalizedValue = String(value || '').trim()
+
+  if (!normalizedValue) {
+    return false
+  }
+
+  return /^\d{4}-\d{2}-\d{2}(?:[t\s]\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?(?:z)?)?$/i.test(
+    normalizedValue,
+  )
+}
+
+const pickRawDateLabel = (...values) => {
+  for (const value of values) {
+    const candidate = pickText(value)
+
+    if (candidate && !isMachineDateLabel(candidate)) {
+      return candidate
+    }
+  }
+
+  return ''
+}
+
 const collectImageCandidates = (value) => {
   if (!value) {
     return []
@@ -296,19 +320,19 @@ export const normalizeEventRecord = (event, fallbackLocation) => {
     event.event_dates?.end,
     '',
   )
-  const rawDate = pickText(
+  const rawDate = pickRawDateLabel(
     event.rawDate,
     event.dateText,
     event.date_range,
     event.rawPayload?.date?.when,
     event.rawPayload?.date?.text,
-    event.rawPayload?.date,
     event.event_dates?.text,
-    event.event_dates,
+    event.date_label,
+    event.when?.text,
+    event.schedule?.text,
     event.when,
     event.schedule,
     event.date,
-    event.date_label,
   )
   const fallbackImage = eventPlaceholderImage
   const venueRating = Number(
