@@ -107,6 +107,55 @@ export const parseEventDate = (dateValue) => {
   return Number.isNaN(parsedValue.getTime()) ? null : parsedValue
 }
 
+export const normalizeTimeInputValue = (timeValue) => {
+  const rawValue = String(timeValue || '').trim()
+
+  if (!rawValue) {
+    return ''
+  }
+
+  const normalizedValue = rawValue.replace(/\s+/g, ' ')
+  const twentyFourHourMatch = normalizedValue.match(/^([01]?\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/)
+
+  if (twentyFourHourMatch) {
+    const [, hours, minutes] = twentyFourHourMatch
+    return `${hours.padStart(2, '0')}:${minutes}`
+  }
+
+  const twelveHourMatch = normalizedValue.match(/^(\d{1,2}):([0-5]\d)\s*([AP]M)$/i)
+
+  if (!twelveHourMatch) {
+    return ''
+  }
+
+  const [, hoursText, minutes, meridiem] = twelveHourMatch
+  const parsedHours = Number(hoursText)
+
+  if (!Number.isInteger(parsedHours) || parsedHours < 1 || parsedHours > 12) {
+    return ''
+  }
+
+  const isPm = meridiem.toUpperCase() === 'PM'
+  const normalizedHours = parsedHours % 12 + (isPm ? 12 : 0)
+
+  return `${String(normalizedHours).padStart(2, '0')}:${minutes}`
+}
+
+export const formatTimeLabel = (timeValue) => {
+  const normalizedTimeValue = normalizeTimeInputValue(timeValue)
+
+  if (!normalizedTimeValue) {
+    return String(timeValue || '').trim()
+  }
+
+  const [hoursText, minutes] = normalizedTimeValue.split(':')
+  const parsedHours = Number(hoursText)
+  const period = parsedHours >= 12 ? 'PM' : 'AM'
+  const twelveHourValue = parsedHours % 12 || 12
+
+  return `${twelveHourValue}:${minutes} ${period}`
+}
+
 const parseLooseMonthDate = (value, fallbackYear = new Date().getFullYear()) => {
   if (!value) {
     return null

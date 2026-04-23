@@ -1,6 +1,11 @@
 import { API_BASE_URL } from './apiBase.js'
 import { getAuthRequestHeaders, getSession } from './authService.js'
-import { buildGoogleMapsSearchUrl, createPosterDataUri } from '../utils/formatters.js'
+import {
+  buildGoogleMapsSearchUrl,
+  createPosterDataUri,
+  formatTimeLabel,
+  normalizeTimeInputValue,
+} from '../utils/formatters.js'
 
 const INTERACTION_STORAGE_KEY = 'eventcinity_interactions'
 let interactionApiMode = 'unknown'
@@ -59,6 +64,7 @@ const mapInteractionRecordToEvent = (record = {}) => {
   })
   const mapLabel = pickText(location, province) || location
   const normalizedStartDate = /^\d{4}-\d{2}-\d{2}/.test(dateLabel) ? dateLabel : ''
+  const normalizedTimeValue = normalizeTimeInputValue(pickText(record.time))
 
   return {
     id: String(record.eventId || record.id || '').trim(),
@@ -66,7 +72,8 @@ const mapInteractionRecordToEvent = (record = {}) => {
     category,
     startDate: normalizedStartDate,
     rawDate: normalizedStartDate ? '' : dateLabel,
-    timeLabel: pickText(record.time),
+    timeLabel: normalizedTimeValue ? formatTimeLabel(normalizedTimeValue) : pickText(record.time),
+    timeValue: normalizedTimeValue,
     location,
     province,
     host: pickText(record.host) || 'Eventcinity',
