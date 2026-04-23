@@ -644,13 +644,9 @@
 }
 
 .featured-event__progress {
-  position: absolute;
-  top: 18px;
-  left: 18px;
-  right: 18px;
-  z-index: 3;
   display: flex;
   gap: 10px;
+  width: min(100%, 540px);
 }
 
 .featured-event__progress-segment {
@@ -706,7 +702,7 @@
 }
 
 .featured-event__content {
-  padding: 72px 48px 48px;
+  padding: 48px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -1836,6 +1832,11 @@
   gap: 10px;
 }
 
+.profile-page__connect-summary {
+  color: var(--color-muted);
+  line-height: 1.6;
+}
+
 .profile-page__connect-button {
   display: inline-flex;
   align-items: center;
@@ -1853,9 +1854,37 @@
   background: rgba(45, 59, 21, 0.08);
 }
 
+.profile-page__connect-search {
+  position: relative;
+  display: block;
+}
+
+.profile-page__connect-search svg {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  transform: translateY(-50%);
+  color: var(--color-muted);
+}
+
+.profile-page__connect-search input {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 14px 10px 42px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
 .profile-page__connect-list {
   display: grid;
   gap: 10px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .profile-page__connect-person {
@@ -1878,6 +1907,7 @@
 .profile-page__connect-person-copy {
   display: grid;
   gap: 2px;
+  min-width: 0;
 }
 
 .profile-page__connect-person-copy strong,
@@ -1891,8 +1921,63 @@
   color: var(--color-muted);
 }
 
+.profile-page__connect-person-meta {
+  margin-left: auto;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
 .profile-page__connect-empty {
   margin: 0;
+}
+
+.profile-page__notification-list {
+  display: grid;
+  gap: 10px;
+}
+
+.profile-page__notification {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: rgba(252, 252, 252, 0.72);
+  color: var(--color-text);
+  text-align: left;
+}
+
+.profile-page__notification:hover {
+  background: rgba(45, 59, 21, 0.05);
+}
+
+.profile-page__notification-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: rgba(45, 59, 21, 0.08);
+  color: var(--color-accent);
+}
+
+.profile-page__notification-copy {
+  display: grid;
+  gap: 3px;
+}
+
+.profile-page__notification-copy strong,
+.profile-page__notification-copy span {
+  line-height: 1.4;
+}
+
+.profile-page__notification-copy span {
+  color: var(--color-muted);
 }
 
 .profile-page__interest-section {

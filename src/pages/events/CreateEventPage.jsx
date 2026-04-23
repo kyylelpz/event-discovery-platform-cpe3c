@@ -22,6 +22,20 @@ const countWords = (value) => {
   return trimmed ? trimmed.split(/\s+/).length : 0
 }
 
+const getCurrentDateTimeParts = () => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = `${now.getMonth() + 1}`.padStart(2, '0')
+  const day = `${now.getDate()}`.padStart(2, '0')
+  const hours = `${now.getHours()}`.padStart(2, '0')
+  const minutes = `${now.getMinutes()}`.padStart(2, '0')
+
+  return {
+    minDate: `${year}-${month}-${day}`,
+    currentTime: `${hours}:${minutes}`,
+  }
+}
+
 function CreateEventPage({ categories, locations, onCreateEvent }) {
   const [formValues, setFormValues] = useState(initialForm)
   const [errors, setErrors] = useState({})
@@ -31,6 +45,7 @@ function CreateEventPage({ categories, locations, onCreateEvent }) {
 
   const titleWordCount = countWords(formValues.title)
   const descriptionLength = formValues.description.trim().length
+  const { minDate, currentTime } = getCurrentDateTimeParts()
 
   const validateField = (field, value, currentValues) => {
     if (field === 'title') {
@@ -65,6 +80,20 @@ function CreateEventPage({ categories, locations, onCreateEvent }) {
 
     if (field === 'time' && !value) {
       return 'Time is required.'
+    }
+
+    if (
+      (field === 'date' || field === 'time') &&
+      currentValues.date &&
+      currentValues.time
+    ) {
+      if (currentValues.date < minDate) {
+        return 'You cannot create an event on a past date.'
+      }
+
+      if (currentValues.date === minDate && currentValues.time < currentTime) {
+        return 'You cannot create an event for a past time today.'
+      }
     }
 
     if (field === 'province' && !value) {
@@ -242,6 +271,7 @@ function CreateEventPage({ categories, locations, onCreateEvent }) {
               <input
                 required
                 type="date"
+                min={minDate}
                 value={formValues.date}
                 onChange={(event) => updateField('date', event.target.value)}
                 aria-invalid={Boolean(errors.date)}
@@ -256,6 +286,7 @@ function CreateEventPage({ categories, locations, onCreateEvent }) {
               <input
                 required
                 type="time"
+                min={formValues.date === minDate ? currentTime : undefined}
                 value={formValues.time}
                 onChange={(event) => updateField('time', event.target.value)}
                 aria-invalid={Boolean(errors.time)}
