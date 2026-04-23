@@ -1,5 +1,9 @@
 import { API_BASE_URL, isLocalHostname } from './apiBase.js'
-import { normalizeProfilePrivacy } from '../utils/privacy.js'
+import {
+  normalizeProfilePrivacy,
+  resolveProfilePrivacy,
+  saveStoredProfilePrivacy,
+} from '../utils/privacy.js'
 
 const USERS_KEY = 'eventcinity_users'
 const SESSION_KEY = 'eventcinity_session'
@@ -111,6 +115,14 @@ const buildSession = ({
   followerUsernames = [],
   followingUsernames = [],
   privacy = {},
+  hideEmail,
+  emailHidden,
+  hideContact,
+  contactHidden,
+  hideFollowers,
+  followersHidden,
+  hideFollowing,
+  followingHidden,
   needsInterestsSelection = false,
   hasCompletedOnboarding,
   shouldShowInterestsPrompt = false,
@@ -135,7 +147,17 @@ const buildSession = ({
   followingUsernames: Array.isArray(followingUsernames)
     ? followingUsernames.map((value) => String(value || '').trim().toLowerCase()).filter(Boolean).filter((value, index, values) => values.indexOf(value) === index)
     : [],
-  privacy: normalizeProfilePrivacy(privacy),
+  privacy: normalizeProfilePrivacy({
+    ...normalizeProfilePrivacy(privacy),
+    ...(hideEmail !== undefined ? { hideEmail } : {}),
+    ...(emailHidden !== undefined ? { emailHidden } : {}),
+    ...(hideContact !== undefined ? { hideContact } : {}),
+    ...(contactHidden !== undefined ? { contactHidden } : {}),
+    ...(hideFollowers !== undefined ? { hideFollowers } : {}),
+    ...(followersHidden !== undefined ? { followersHidden } : {}),
+    ...(hideFollowing !== undefined ? { hideFollowing } : {}),
+    ...(followingHidden !== undefined ? { followingHidden } : {}),
+  }),
   needsInterestsSelection: Boolean(needsInterestsSelection),
   hasCompletedOnboarding:
     typeof hasCompletedOnboarding === 'boolean'
@@ -378,6 +400,14 @@ const normalizeProfileUpdates = (updates = {}) => {
 
   if (hasOwn(updates, 'privacy')) {
     normalizedUpdates.privacy = normalizeProfilePrivacy(updates.privacy)
+    normalizedUpdates.hideEmail = normalizedUpdates.privacy.hideEmail
+    normalizedUpdates.emailHidden = normalizedUpdates.privacy.hideEmail
+    normalizedUpdates.hideContact = normalizedUpdates.privacy.hideContact
+    normalizedUpdates.contactHidden = normalizedUpdates.privacy.hideContact
+    normalizedUpdates.hideFollowers = normalizedUpdates.privacy.hideFollowers
+    normalizedUpdates.followersHidden = normalizedUpdates.privacy.hideFollowers
+    normalizedUpdates.hideFollowing = normalizedUpdates.privacy.hideFollowing
+    normalizedUpdates.followingHidden = normalizedUpdates.privacy.hideFollowing
   }
 
   return normalizedUpdates
@@ -414,11 +444,9 @@ const buildProfileSession = (
     name:
       remoteUser?.name ||
       (hasOwn(normalizedUpdates, 'name') ? normalizedUpdates.name : session.name),
-    username:
-      remoteUser?.username ||
-      (hasOwn(normalizedUpdates, 'username')
-        ? normalizedUpdates.username
-        : session.username),
+    username: hasOwn(normalizedUpdates, 'username')
+      ? normalizedUpdates.username
+      : remoteUser?.username || session.username,
     interests: resolvedInterests,
     location:
       remoteUser?.location ||
@@ -438,11 +466,12 @@ const buildProfileSession = (
       (hasOwn(normalizedUpdates, 'profilePic')
         ? normalizedUpdates.profilePic
         : session.profilePic),
-    privacy: hasOwn(remoteUser, 'privacy')
-      ? normalizeProfilePrivacy(remoteUser.privacy)
-      : hasOwn(normalizedUpdates, 'privacy')
+    privacy: resolveProfilePrivacy(
+      remoteUser,
+      hasOwn(normalizedUpdates, 'privacy')
         ? normalizeProfilePrivacy(normalizedUpdates.privacy)
         : normalizeProfilePrivacy(session.privacy),
+    ),
     createdAt: remoteUser?.createdAt || session.createdAt,
     authProvider:
       remoteUser?.authProvider ||
@@ -843,6 +872,7 @@ export const syncStoredUser = async (user) => {
 
   if (user.privacy !== undefined) {
     localUserPayload.privacy = user.privacy
+    saveStoredProfilePrivacy(localUserPayload, user.privacy)
   }
 
   return upsertLocalUser(localUserPayload)
@@ -932,7 +962,7 @@ const createSessionFromAuthPayload = (data, email, fallbackName, authProvider) =
       user.imageUrl ||
       localMirror.profilePic ||
       '',
-    privacy: hasOwn(user, 'privacy') ? user.privacy : localMirror.privacy,
+    privacy: resolveProfilePrivacy(user, normalizeProfilePrivacy(localMirror.privacy)),
     createdAt: user.createdAt || localMirror.createdAt || '',
     needsInterestsSelection,
     hasCompletedOnboarding,
@@ -983,6 +1013,7 @@ const syncLocalAuthMirror = async ({
 
     if (privacy !== undefined) {
       localUserPayload.privacy = privacy
+      saveStoredProfilePrivacy(localUserPayload, privacy)
     }
 
     await upsertLocalUser(localUserPayload)
@@ -1034,6 +1065,7 @@ export const saveCurrentUserProfile = async (
   })
 
   setSession(nextSession)
+  saveStoredProfilePrivacy(nextSession, nextSession.privacy)
   await syncLocalAuthMirror({
     id: nextSession.id,
     email: nextSession.email,

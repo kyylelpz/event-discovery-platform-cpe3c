@@ -60,7 +60,11 @@ import {
   matchesDateFilter,
   parseEventDate,
 } from './utils/formatters.js'
-import { normalizeProfilePrivacy } from './utils/privacy.js'
+import {
+  normalizeProfilePrivacy,
+  resolveProfilePrivacy,
+  saveStoredProfilePrivacy,
+} from './utils/privacy.js'
 import { normalizeRoutePath, resolveRoute, routes, slugify } from './utils/routing.js'
 
 const EVENTS_PER_PAGE = 15
@@ -591,6 +595,14 @@ function App() {
   }, [currentUser])
 
   useEffect(() => {
+    if (!currentUser?.privacy) {
+      return
+    }
+
+    saveStoredProfilePrivacy(currentUser, currentUser.privacy)
+  }, [currentUser])
+
+  useEffect(() => {
     const syncPathname = () => {
       const normalizedPath = normalizeRoutePath(window.location.pathname)
 
@@ -1013,12 +1025,22 @@ function App() {
   }
 
   const handleProfileUpdate = async (updates) => {
+    const previousUsername = String(currentUser?.username || '').trim()
     const nextSession = await saveCurrentUserProfile(updates, {
       fallbackEmail: currentUser?.email,
     })
 
     setCurrentUser(nextSession)
     setCommunityUsers((prevUsers) => mergeCommunityUsers(prevUsers, [nextSession]))
+
+    if (
+      route.key === 'profile' &&
+      isViewingCurrentUserProfile &&
+      nextSession.username &&
+      nextSession.username !== previousUsername
+    ) {
+      navigate(routes.profile(nextSession.username))
+    }
 
     return nextSession
   }
@@ -1146,7 +1168,7 @@ function App() {
             }
           }
 
-          const privacy = normalizeProfilePrivacy(user.privacy)
+          const privacy = resolveProfilePrivacy(user)
 
           return {
             ...user,

@@ -1,7 +1,7 @@
 import { API_BASE_URL } from './apiBase.js'
 import { getAuthRequestHeaders, getKnownUsers, getSession } from './authService.js'
 import { provinces } from '../data/mockData.js'
-import { normalizeProfilePrivacy } from '../utils/privacy.js'
+import { resolveProfilePrivacy } from '../utils/privacy.js'
 
 let communityUsersApiMode = 'unknown'
 let publicProfileApiMode = 'unknown'
@@ -240,7 +240,7 @@ export const normalizePublicUser = (rawUser = {}) => ({
     : [],
   profilePic: pickText(rawUser.profilePic, rawUser.avatar, rawUser.imageUrl),
   avatar: pickText(rawUser.avatar, rawUser.profilePic, rawUser.imageUrl),
-  privacy: normalizeProfilePrivacy(rawUser.privacy),
+  privacy: resolveProfilePrivacy(rawUser),
   createdAt: pickText(rawUser.createdAt),
   createdEventsCount: Number(rawUser.createdEventsCount || 0),
   followersCount: Number(rawUser.followersCount || 0),
