@@ -896,6 +896,7 @@
   gap: 14px;
   align-content: end;
   padding-top: 4px;
+  padding-bottom: 12px;
 }
 
 .featured-event__status-note {
@@ -1685,6 +1686,10 @@
 :root[data-theme='dark'] .category-tag {
   background: rgba(45, 59, 21, 0.96);
   color: #f7f2e8;
+}
+
+:root[data-theme='dark'] .featured-event .category-tag {
+  background: #3b2b15;
 }
 
 .detail-panel__meta {
