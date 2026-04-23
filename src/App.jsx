@@ -537,6 +537,43 @@ const scoreUserForInterests = (user, interests = []) => {
   }, 0)
 }
 
+const buildRecommendedEvents = (
+  events,
+  interests = [],
+  excludedIds = [],
+  limit = 4,
+) => {
+  if (!Array.isArray(events) || !events.length || !interests.length) {
+    return []
+  }
+
+  const excludedIdSet = new Set(
+    excludedIds.map((value) => String(value || '').trim()).filter(Boolean),
+  )
+
+  return [...events]
+    .filter((event) => {
+      const normalizedId = String(event?.id || event?.eventId || '').trim()
+
+      if (!normalizedId || excludedIdSet.has(normalizedId) || eventHasStartedAlready(event)) {
+        return false
+      }
+
+      return scoreEventForInterests(event, interests) > 0
+    })
+    .sort((leftEvent, rightEvent) => {
+      const interestDifference =
+        scoreEventForInterests(rightEvent, interests) - scoreEventForInterests(leftEvent, interests)
+
+      if (interestDifference !== 0) {
+        return interestDifference
+      }
+
+      return compareEventsByNearestDate(leftEvent, rightEvent)
+    })
+    .slice(0, limit)
+}
+
 function App() {
   const hostedRedirectSession = typeof window !== 'undefined' ? consumeHostedAuthRedirect() : null
   const [theme, setTheme] = useState(() => {
@@ -1819,6 +1856,7 @@ function App() {
         username: currentUser.username || currentUserProfileSlug,
       }
     : activePublicProfile
+  const activeProfileInterests = normalizeInterestList(activeProfile?.interests)
   const userNotifications = useMemo(() => {
     if (!currentUser?.email) {
       return []
@@ -1922,6 +1960,31 @@ function App() {
         e.id !== resolvedEventDetail.id &&
         (e.category === resolvedEventDetail.category ||
           e.province === resolvedEventDetail.province)
+      )
+    : []
+  const recommendedEventEvents = resolvedEventDetail
+    ? buildRecommendedEvents(
+        allEvents,
+        currentUserInterests,
+        [
+          resolvedEventDetail.id,
+          resolvedEventDetail.eventId,
+          ...relatedEvents.map((event) => event.id || event.eventId),
+        ],
+        3,
+      )
+    : []
+  const recommendedProfileEvents = activeProfile
+    ? buildRecommendedEvents(
+        allEvents,
+        activeProfileInterests,
+        [
+          ...createdByProfile.map((event) => event.id || event.eventId),
+          ...savedByUser.map((event) => event.id || event.eventId),
+          ...likedByUser.map((event) => event.id || event.eventId),
+          ...attendingByUser.map((event) => event.id || event.eventId),
+        ],
+        4,
       )
     : []
   const currentResolvedEventOwnerId = String(resolvedEventDetail?.ownerId || '').trim()
@@ -2031,6 +2094,53 @@ function App() {
     )
   }
 
+  const applyInteractionCountDelta = (event, nextFlags) => {
+    const eventId = String(event?.id || event?.eventId || '').trim()
+
+    if (!eventId) {
+      return
+    }
+
+    const attendeeDelta =
+      Number(Boolean(nextFlags?.attending)) - Number(interactions.attending.includes(eventId))
+    const savedDelta =
+      Number(Boolean(nextFlags?.saved)) - Number(interactions.saved.includes(eventId))
+    const heartDelta =
+      Number(Boolean(nextFlags?.hearted)) - Number(interactions.hearted.includes(eventId))
+
+    if (!attendeeDelta && !savedDelta && !heartDelta) {
+      return
+    }
+
+    const updateEventCounts = (eventList) =>
+      eventList.map((entry) => {
+        if (!matchesEventId(entry, eventId)) {
+          return entry
+        }
+
+        return {
+          ...entry,
+          attendeeCount: Math.max(0, Number(entry.attendeeCount || 0) + attendeeDelta),
+          savedCount: Math.max(0, Number(entry.savedCount || 0) + savedDelta),
+          reactions: Math.max(0, Number(entry.reactions || 0) + heartDelta),
+        }
+      })
+
+    setRemoteEvents((prevEvents) => updateEventCounts(prevEvents))
+    setCreatedEvents((prevEvents) => updateEventCounts(prevEvents))
+    setProfileCreatedEvents((prevEvents) => updateEventCounts(prevEvents))
+    setEventDetailRecord((currentRecord) =>
+      currentRecord && matchesEventId(currentRecord, eventId)
+        ? {
+            ...currentRecord,
+            attendeeCount: Math.max(0, Number(currentRecord.attendeeCount || 0) + attendeeDelta),
+            savedCount: Math.max(0, Number(currentRecord.savedCount || 0) + savedDelta),
+            reactions: Math.max(0, Number(currentRecord.reactions || 0) + heartDelta),
+          }
+        : currentRecord,
+    )
+  }
+
   const toggleInteraction = async (key, event) => {
     if (!currentUser?.email) {
       navigate(routes.signin)
@@ -2060,6 +2170,7 @@ function App() {
 
     try {
       const nextInteractionState = await updateInteractionState(event, nextFlags)
+      applyInteractionCountDelta(event, nextFlags)
       setInteractionState(nextInteractionState)
 
       if (key === 'attending' && currentUser?.email) {
@@ -2319,6 +2430,7 @@ function App() {
         <EventDetailPage
           event={resolvedEventDetail}
           relatedEvents={relatedEvents.slice(0, 3)}
+          recommendedEvents={recommendedEventEvents}
           onNavigate={navigate}
           currentUser={currentUser}
           hostProfileUsername={eventHostProfileUsername}
@@ -2377,6 +2489,7 @@ function App() {
           savedEvents={savedByUser}
           likedEvents={likedByUser}
           attendingEvents={attendingByUser}
+          recommendedEvents={recommendedProfileEvents}
           isCurrentUser={isViewingCurrentUserProfile}
           onSaveProfile={handleProfileUpdate}
           onToggleFollow={handleToggleFollow}

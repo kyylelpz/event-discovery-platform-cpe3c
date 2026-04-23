@@ -28,6 +28,7 @@ function ProfilePage({
   isFollowing = false,
   communityUsers = [],
   onOpenProfile,
+  recommendedEvents = [],
   ...sharedPageProps
 }) {
   const [isEditing, setIsEditing] = useState(false)
@@ -232,7 +233,7 @@ function ProfilePage({
               </span>
             </div>
             <p className="profile-page__email">{emailLabel}</p>
-            {!isCurrentUser ? (
+            {!isCurrentUser && !user.isMock ? (
               <SecondaryButton
                 className="profile-card__follow"
                 onClick={() => onToggleFollow?.(user)}
@@ -422,8 +423,24 @@ function ProfilePage({
                 ? 'Nothing here yet. Explore more events!'
                 : 'This member has not added public interests yet.'}
             </div>
-          )}
+            )}
         </section>
+
+        {recommendedEvents.length ? (
+          <section className="section-block profile-page__recommendations">
+            <div className="section-block__heading">
+              <h2>Recommended For You</h2>
+              <p>Fresh picks shaped by this account&apos;s interests.</p>
+            </div>
+
+            <EventList
+              events={recommendedEvents}
+              emptyTitle="No recommendations yet"
+              emptyCopy="Recommendations will appear once interests and matching events line up."
+              {...sharedPageProps}
+            />
+          </section>
+        ) : null}
 
         <div className="profile-tabs">
           {tabs.map((tab) => (

@@ -96,7 +96,7 @@ function PeoplePage({
                 {person.followersCount || 0} followers - {person.followingCount || 0} following
               </p>
               <div className="person-card__actions">
-                {person.username && person.username !== currentUsername ? (
+                {person.username && person.username !== currentUsername && !person.isMock ? (
                   <SecondaryButton
                     onClick={() => onToggleFollow?.(person)}
                     className="person-card__follow"
@@ -113,6 +113,9 @@ function PeoplePage({
                   View Profile
                 </PrimaryButton>
               </div>
+              {person.isMock ? (
+                <p className="person-card__meta">Demo community profile</p>
+              ) : null}
             </article>
           ))
         ) : (
