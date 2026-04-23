@@ -15,7 +15,7 @@ import CategoryTag from '../ui/CategoryTag.jsx'
 import { formatEventSchedule, getResponsiveImageProps } from '../../utils/formatters.js'
 
 const FEATURED_EVENT_ROTATION_INTERVAL_MS = 5000
-const FEATURED_EVENT_TITLE_MAX_LENGTH = 56
+const FEATURED_EVENT_TITLE_MAX_LENGTH = 44
 const FEATURED_EVENT_DESCRIPTION_MAX_LENGTH = 68
 const FEATURED_EVENT_SCHEDULE_MAX_LENGTH = 42
 const FEATURED_EVENT_LOCATION_MAX_LENGTH = 38

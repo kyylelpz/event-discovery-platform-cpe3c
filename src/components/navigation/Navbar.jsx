@@ -12,6 +12,7 @@ import {
   ChevronRightIcon,
   LogInIcon,
   MapPinIcon,
+  MessageCircleIcon,
   MenuIcon,
   MoonIcon,
   MoreVerticalIcon,
