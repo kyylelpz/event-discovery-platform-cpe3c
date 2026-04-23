@@ -1298,8 +1298,8 @@ function App() {
         username: currentUser.username || currentUserProfileSlug,
       }
     : activePublicProfile
-  const profileNotifications = useMemo(() => {
-    if (!isViewingCurrentUserProfile) {
+  const userNotifications = useMemo(() => {
+    if (!currentUser?.email) {
       return []
     }
 
@@ -1331,8 +1331,8 @@ function App() {
   }, [
     attendingInteractionEvents,
     communityDirectory,
+    currentUser?.email,
     currentFollowerUsernames,
-    isViewingCurrentUserProfile,
     likedInteractionEvents,
     savedInteractionEvents,
   ])
@@ -1575,6 +1575,8 @@ function App() {
       navigate(routes.events)
     },
     currentUser,
+    notifications: userNotifications,
+    hasUnreadNotifications: userNotifications.length > 0,
     theme,
     onToggleTheme: () => setTheme((currentTheme) => (currentTheme === 'dark' ? 'light' : 'dark')),
     onOpenProfile: () => {
@@ -1585,6 +1587,7 @@ function App() {
 
       navigate(routes.profile('me'))
     },
+    onOpenEvent: (eventId) => navigate(routes.eventDetail(eventId)),
     onSignOut: handleSignOut,
   }
 
@@ -1676,7 +1679,7 @@ function App() {
             String(activeProfile?.username || '').trim().toLowerCase(),
           )}
           communityUsers={communityDirectory}
-          notifications={profileNotifications}
+          notifications={userNotifications}
           onOpenProfile={(username) => navigate(routes.profile(username))}
           activeTab={activeProfileTab}
           onTabChange={setActiveProfileTab}
