@@ -263,6 +263,9 @@ const buildVerificationRequiredResponse = (
   }
 }
 
+const isEmailDeliveryConfigurationError = (error) =>
+  String(error?.data?.code || '').startsWith('EMAIL_DELIVERY_')
+
 const normalizeVerificationCode = (value) =>
   String(value || '')
     .replace(/\D+/g, '')
@@ -285,38 +288,6 @@ const isLocalVerificationCodeExpired = (user = {}) => {
 
 const buildLocalVerificationMessage = (code, action = 'verify your email') =>
   `Local mode: use verification code ${code} to ${action}.`
-
-const buildLocalPendingUser = ({
-  email,
-  password = '',
-  name = '',
-  existingUser = {},
-  authProvider = 'local',
-}) => ({
-  ...existingUser,
-  email,
-  password,
-  name: existingUser?.name || name || getDefaultName(email),
-  interests: Array.isArray(existingUser?.interests) ? existingUser.interests : [],
-  authProvider,
-  location: String(existingUser?.location || '').trim(),
-  phone: String(existingUser?.phone || '').trim(),
-  bio: String(existingUser?.bio || '').trim(),
-  profilePic: String(existingUser?.profilePic || '').trim(),
-  createdAt: String(existingUser?.createdAt || '').trim(),
-  needsInterestsSelection:
-    typeof existingUser?.needsInterestsSelection === 'boolean'
-      ? existingUser.needsInterestsSelection
-      : true,
-  hasCompletedOnboarding:
-    typeof existingUser?.hasCompletedOnboarding === 'boolean'
-      ? existingUser.hasCompletedOnboarding
-      : false,
-  shouldShowInterestsPrompt:
-    typeof existingUser?.shouldShowInterestsPrompt === 'boolean'
-      ? existingUser.shouldShowInterestsPrompt
-      : true,
-})
 
 const buildLocalVerificationRequiredError = (email, message) => {
   const error = new Error(message || 'Verify your email to continue.')
@@ -709,30 +680,6 @@ const issueLocalVerificationCode = async (userInput, messageBuilder, preferredCo
     message: message || buildLocalVerificationMessage(verificationCode),
   }
 }
-
-const issueDevelopmentVerificationCode = async ({
-  email,
-  password = '',
-  name = '',
-  existingUser = {},
-  data = null,
-  fallbackMessage = 'Verify your email to continue.',
-  action = 'verify your email',
-}) =>
-  issueLocalVerificationCode(
-    buildLocalPendingUser({
-      email,
-      password,
-      name,
-      existingUser,
-    }),
-    (verificationCode) =>
-      `${getAuthResponseMessage(data, fallbackMessage)} ${buildLocalVerificationMessage(
-        verificationCode,
-        action,
-      )}`,
-    getAuthResponseVerificationCode(data),
-  )
 
 const completeLocalEmailVerification = async (email, user = {}) => {
   const verifiedUser = await upsertLocalUser({
@@ -1151,17 +1098,6 @@ export const signUp = async ({ email, password, name }) => {
     )
 
     if (verificationResponse) {
-      if (canUseLocalAuthFallback()) {
-        return issueDevelopmentVerificationCode({
-          email: normalizedEmail,
-          password,
-          name: fallbackName,
-          data,
-          fallbackMessage: 'A verification email was sent.',
-          action: 'verify your new account',
-        })
-      }
-
       return verificationResponse
     }
 
@@ -1198,23 +1134,15 @@ export const signUp = async ({ email, password, name }) => {
     )
 
     if (verificationError) {
-      if (canUseLocalAuthFallback()) {
-        return issueDevelopmentVerificationCode({
-          email: normalizedEmail,
-          password,
-          name: fallbackName,
-          existingUser: getUsers()[normalizedEmail] || {},
-          data: error?.data,
-          fallbackMessage: 'Verify your email to finish creating your account.',
-          action: 'verify your new account',
-        })
-      }
-
       error.message = verificationError.message
       error.data = {
         ...(error?.data && typeof error.data === 'object' ? error.data : {}),
         ...verificationError,
       }
+      throw error
+    }
+
+    if (isEmailDeliveryConfigurationError(error)) {
       throw error
     }
 
@@ -1288,23 +1216,6 @@ export const verifyEmailCode = async ({ email, code }) => {
     throw new Error('Enter the 6-digit verification code.')
   }
 
-  if (canUseLocalAuthFallback()) {
-    const localPendingUser = getUsers()[normalizedEmail]
-
-    if (
-      localPendingUser?.emailVerified === false &&
-      String(localPendingUser.verificationCode || '').trim()
-    ) {
-      if (isLocalVerificationCodeExpired(localPendingUser)) {
-        throw new Error('That verification code has expired. Request a new code and try again.')
-      }
-
-      if (normalizedCode === normalizeVerificationCode(localPendingUser.verificationCode)) {
-        return completeLocalEmailVerification(normalizedEmail, localPendingUser)
-      }
-    }
-  }
-
   try {
     const data = await requestRemoteAuth('/api/auth/verify-email', {
       email: normalizedEmail,
@@ -1338,6 +1249,10 @@ export const verifyEmailCode = async ({ email, code }) => {
     })
     return session
   } catch (error) {
+    if (isEmailDeliveryConfigurationError(error)) {
+      throw error
+    }
+
     if (!isRecoverableRemoteAuthError(error) || !canUseLocalAuthFallback()) {
       throw error
     }
@@ -1371,20 +1286,6 @@ export const verifyEmailCode = async ({ email, code }) => {
 
 export const resendEmailVerificationCode = async (email) => {
   const normalizedEmail = normalizeEmail(email)
-
-  if (canUseLocalAuthFallback()) {
-    const localPendingUser = getUsers()[normalizedEmail]
-
-    if (localPendingUser?.emailVerified === false) {
-      return issueDevelopmentVerificationCode({
-        email: normalizedEmail,
-        existingUser: localPendingUser,
-        fallbackMessage: 'A new verification code is ready.',
-        action: 'verify your email',
-      })
-    }
-  }
-
   try {
     const data = await requestRemoteAuth('/api/auth/verify-email/resend', {
       email: normalizedEmail,
@@ -1396,16 +1297,6 @@ export const resendEmailVerificationCode = async (email) => {
     )
 
     if (verificationResponse) {
-      if (canUseLocalAuthFallback()) {
-        return issueDevelopmentVerificationCode({
-          email: normalizedEmail,
-          existingUser: getUsers()[normalizedEmail] || {},
-          data,
-          fallbackMessage: 'A new verification code is ready.',
-          action: 'verify your email',
-        })
-      }
-
       return verificationResponse
     }
 
@@ -1415,6 +1306,10 @@ export const resendEmailVerificationCode = async (email) => {
       message: getAuthResponseMessage(data, 'A new verification code is ready.'),
     }
   } catch (error) {
+    if (isEmailDeliveryConfigurationError(error)) {
+      throw error
+    }
+
     if (!isRecoverableRemoteAuthError(error) || !canUseLocalAuthFallback()) {
       throw error
     }
@@ -1469,28 +1364,6 @@ export const signIn = async ({ email, password }) => {
     )
 
     if (verificationResponse) {
-      if (canUseLocalAuthFallback()) {
-        const existingLocalUser = getUsers()[normalizedEmail]
-
-        if (existingLocalUser?.emailVerified !== false) {
-          const passwordMatches =
-            existingLocalUser && (await verifyStoredPassword(existingLocalUser, password))
-
-          if (passwordMatches) {
-            return buildLocalSignInSession(normalizedEmail, existingLocalUser, password)
-          }
-        }
-
-        return issueDevelopmentVerificationCode({
-          email: normalizedEmail,
-          password,
-          existingUser: existingLocalUser || {},
-          data,
-          fallbackMessage: 'Verify your email to finish signing in.',
-          action: 'verify your email',
-        })
-      }
-
       return verificationResponse
     }
 
@@ -1530,33 +1403,15 @@ export const signIn = async ({ email, password }) => {
     )
 
     if (verificationError) {
-      if (canUseLocalAuthFallback()) {
-        const existingLocalUser = getUsers()[normalizedEmail]
-
-        if (existingLocalUser?.emailVerified !== false) {
-          const passwordMatches =
-            existingLocalUser && (await verifyStoredPassword(existingLocalUser, password))
-
-          if (passwordMatches) {
-            return buildLocalSignInSession(normalizedEmail, existingLocalUser, password)
-          }
-        }
-
-        return issueDevelopmentVerificationCode({
-          email: normalizedEmail,
-          password,
-          existingUser: existingLocalUser || {},
-          data: error?.data,
-          fallbackMessage: 'Verify your email to finish signing in.',
-          action: 'verify your email',
-        })
-      }
-
       error.message = verificationError.message
       error.data = {
         ...(error?.data && typeof error.data === 'object' ? error.data : {}),
         ...verificationError,
       }
+      throw error
+    }
+
+    if (isEmailDeliveryConfigurationError(error)) {
       throw error
     }
 
