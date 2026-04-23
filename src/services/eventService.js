@@ -375,6 +375,11 @@ export const normalizeEventRecord = (event, fallbackLocation) => {
       event.id ||
       event._id ||
       `${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+    eventId:
+      event.eventId ||
+      event.id ||
+      event._id ||
+      `${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
     title,
     category,
     startDate: startDate || '2026-05-01',
@@ -427,6 +432,7 @@ export const normalizeEventRecord = (event, fallbackLocation) => {
     eventUrl,
     createdBy: pickText(event.createdBy, event.creatorUsername, event.username),
     source: event.source || 'live',
+    isFeatured: Boolean(event.isFeatured || event.rawPayload?.isFeatured),
     image: imageUrl,
     fallbackImage,
     imageLabel: `${title} event artwork`,
