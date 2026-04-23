@@ -8,6 +8,8 @@ const initialForm = {
   date: '',
   time: '',
   venue: '',
+  address: '',
+  googleMapsUrl: '',
   province: '',
   category: '',
   imageFile: null,
@@ -53,6 +55,10 @@ function CreateEventPage({ categories, locations, onCreateEvent }) {
       }
     }
 
+    if (field === 'venue' && !value.trim()) {
+      return 'Venue is required.'
+    }
+
     if (field === 'date' && !value) {
       return 'Date is required.'
     }
@@ -79,6 +85,7 @@ function CreateEventPage({ categories, locations, onCreateEvent }) {
   const validateForm = (values) => ({
     title: validateField('title', values.title, values),
     description: validateField('description', values.description, values),
+    venue: validateField('venue', values.venue, values),
     date: validateField('date', values.date, values),
     time: validateField('time', values.time, values),
     province: validateField('province', values.province, values),
@@ -260,12 +267,40 @@ function CreateEventPage({ categories, locations, onCreateEvent }) {
           <label>
             <span>Venue / Address</span>
             <input
+              required
               value={formValues.venue}
               onChange={(event) => updateField('venue', event.target.value)}
-              placeholder="Mall of Asia Arena or exact address"
+              placeholder="Mall of Asia Arena"
+              aria-invalid={Boolean(errors.venue)}
             />
             <small className="field-hint">
-              Optional for now. Province remains the required fallback.
+              Use the venue or place name that people can search in Google Maps.
+            </small>
+            {errors.venue ? <small className="field-error">{errors.venue}</small> : null}
+          </label>
+
+          <label>
+            <span>Street Address / Landmark</span>
+            <input
+              value={formValues.address}
+              onChange={(event) => updateField('address', event.target.value)}
+              placeholder="Seaside Blvd, Pasay, Metro Manila"
+            />
+            <small className="field-hint">
+              Add a fuller address to make the map preview and directions more accurate.
+            </small>
+          </label>
+
+          <label>
+            <span>Google Maps Link</span>
+            <input
+              type="url"
+              value={formValues.googleMapsUrl}
+              onChange={(event) => updateField('googleMapsUrl', event.target.value)}
+              placeholder="https://maps.google.com/..."
+            />
+            <small className="field-hint">
+              Optional. If provided, attendees will open this exact Google Maps location.
             </small>
           </label>
 

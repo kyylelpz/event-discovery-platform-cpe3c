@@ -643,6 +643,52 @@
   background: var(--color-surface);
 }
 
+.featured-event__progress {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  right: 18px;
+  z-index: 3;
+  display: flex;
+  gap: 10px;
+}
+
+.featured-event__progress-segment {
+  position: relative;
+  flex: 1;
+  height: 5px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(252, 252, 252, 0.28);
+}
+
+.featured-event__progress-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform: scaleX(0);
+  transform-origin: left center;
+  background: rgba(252, 252, 252, 0.95);
+}
+
+.featured-event__progress-fill--active {
+  animation-name: featured-progress-fill;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@keyframes featured-progress-fill {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
 .featured-event__viewport {
   overflow: hidden;
 }
@@ -660,7 +706,7 @@
 }
 
 .featured-event__content {
-  padding: 48px;
+  padding: 72px 48px 48px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -861,32 +907,6 @@
 .featured-event__hover-nav--next:hover .featured-event__hover-arrow,
 .featured-event__hover-nav--next:focus-visible .featured-event__hover-arrow {
   transform: translateY(-50%) translateX(0);
-}
-
-.featured-event__pagination {
-  position: absolute;
-  left: 50%;
-  bottom: 18px;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transform: translateX(-50%);
-}
-
-.featured-event__dot {
-  width: 10px;
-  height: 10px;
-  padding: 0;
-  border: 0;
-  border-radius: 999px;
-  background: rgba(252, 252, 252, 0.5);
-  transition: transform 0.2s ease, background-color 0.2s ease;
-}
-
-.featured-event__dot--active {
-  background: rgba(252, 252, 252, 0.96);
-  transform: scale(1.2);
 }
 
 .section-block,
@@ -1804,6 +1824,13 @@
   margin: 0;
 }
 
+.profile-page__connects {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  line-height: 1.5;
+}
+
 .profile-page__interest-section {
   gap: 16px;
 }
@@ -1946,12 +1973,14 @@
 .person-card__actions {
   display: flex;
   justify-content: center;
+  flex-wrap: wrap;
   margin-top: auto;
   padding-top: 8px;
 }
 
 .person-card__actions .button {
   width: auto;
+  min-width: 140px;
 }
 
 .signin-card {

@@ -201,6 +201,23 @@ export function UsersIcon({ className = '' }) {
   )
 }
 
+export function StarIcon({ className = '', filled = false }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill={filled ? 'currentColor' : 'none'}
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="m12 3.8 2.6 5.3 5.9.9-4.2 4.1 1 5.9L12 17.2 6.7 20l1-5.9-4.2-4.1 5.9-.9L12 3.8Z" />
+    </svg>
+  )
+}
+
 export function ShareIcon({ className = '' }) {
   return createIcon(
     <>

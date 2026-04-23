@@ -8,6 +8,8 @@ import {
   HeartIcon,
   MapPinIcon,
   PlusSquareIcon,
+  UserPlusIcon,
+  UsersIcon,
 } from '../../components/ui/Icons.jsx'
 import { formatMemberSince } from '../../services/profileService.js'
 import { getUserDisplayName, getUserSecondaryLabel } from '../../utils/userDisplay.js'
@@ -22,6 +24,8 @@ function ProfilePage({
   onTabChange,
   isCurrentUser = false,
   onSaveProfile,
+  onToggleFollow,
+  isFollowing = false,
   ...sharedPageProps
 }) {
   const [isEditing, setIsEditing] = useState(false)
@@ -134,7 +138,14 @@ function ProfilePage({
               </SecondaryButton>
             ) : null}
           </div>
-        ) : null}
+        ) : (
+          <div className="profile-card__actions">
+            <SecondaryButton onClick={() => onToggleFollow?.(user)}>
+              <UserPlusIcon />
+              <span>{isFollowing ? 'Following' : 'Follow'}</span>
+            </SecondaryButton>
+          </div>
+        )}
 
         {isCurrentUser && isEditing ? (
           <form className="event-form profile-edit-form" onSubmit={handleSaveProfile}>
@@ -184,6 +195,16 @@ function ProfilePage({
           <article className="info-card profile-page__info-card">
             <h2>Bio</h2>
             <p>{bioLabel}</p>
+          </article>
+
+          <article className="info-card profile-page__info-card">
+            <h2>Connects</h2>
+            <p className="profile-page__connects">
+              <UsersIcon />
+              <span>
+                {user.followersCount || 0} followers · {user.followingCount || 0} following
+              </span>
+            </p>
           </article>
         </div>
 

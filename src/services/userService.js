@@ -1,5 +1,5 @@
 import { API_BASE_URL } from './apiBase.js'
-import { getKnownUsers, getSession } from './authService.js'
+import { getAuthRequestHeaders, getKnownUsers, getSession } from './authService.js'
 import { provinces } from '../data/mockData.js'
 
 let communityUsersApiMode = 'unknown'
@@ -241,6 +241,8 @@ export const normalizePublicUser = (rawUser = {}) => ({
   avatar: pickText(rawUser.avatar, rawUser.profilePic, rawUser.imageUrl),
   createdAt: pickText(rawUser.createdAt),
   createdEventsCount: Number(rawUser.createdEventsCount || 0),
+  followersCount: Number(rawUser.followersCount || 0),
+  followingCount: Number(rawUser.followingCount || 0),
 })
 
 const buildGeneratedCommunityUsers = (existingUsers = []) => {
@@ -394,3 +396,27 @@ export const fetchPublicProfile = async (username) => {
     throw error
   }
 }
+
+const requestFollowAction = async (username, method) => {
+  const response = await fetch(`${API_BASE_URL}/api/users/${encodeURIComponent(username)}/follow`, {
+    method,
+    credentials: 'include',
+    headers: getAuthRequestHeaders({
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    }),
+  })
+  const data = await readResponseData(response)
+
+  if (!response.ok) {
+    const error = new Error(data.message || 'Unable to update that connection right now.')
+    error.status = response.status
+    throw error
+  }
+
+  return data
+}
+
+export const followUser = async (username) => requestFollowAction(username, 'POST')
+
+export const unfollowUser = async (username) => requestFollowAction(username, 'DELETE')

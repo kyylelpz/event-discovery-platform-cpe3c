@@ -9,6 +9,7 @@ import {
   HeartIcon,
   MapPinIcon,
   ShareIcon,
+  StarIcon,
 } from '../../components/ui/Icons.jsx'
 import {
   buildGoogleMapsEmbedUrl,
@@ -34,6 +35,7 @@ function EventDetailPage({
   const locationHref = event.mapUrl
   const mapQuery = event.mapLabel || event.location
   const mapEmbedUrl = buildGoogleMapsEmbedUrl(mapQuery)
+  const venueLabel = event.venue || event.location
   const handleImageError = (eventObject) => {
     if (!event.fallbackImage || eventObject.currentTarget.dataset.fallbackApplied === 'true') {
       return
@@ -106,7 +108,7 @@ function EventDetailPage({
                     <span className="detail-map__eyebrow">Venue guide</span>
                     <div className="detail-map__headline">
                       <div className="detail-map__address">
-                        <strong>{event.location}</strong>
+                        <strong>{venueLabel}</strong>
                         <p>Pan and zoom here, then continue in Google Maps for live directions.</p>
                       </div>
 
@@ -173,13 +175,27 @@ function EventDetailPage({
                         target="_blank"
                         rel="noreferrer"
                       >
-                        {event.location}
+                        {venueLabel}
                       </a>
                     ) : (
-                      <strong>{event.location}</strong>
+                      <strong>{venueLabel}</strong>
                     )}
                   </div>
                 </div>
+                {event.venueRating > 0 ? (
+                  <div className="detail-panel__meta-item">
+                    <StarIcon filled />
+                    <div className="detail-panel__meta-content">
+                      <p>Venue Reviews</p>
+                      <strong>
+                        {event.venueRating.toFixed(1)} / 5
+                        {event.venueReviewCount > 0
+                          ? ` from ${event.venueReviewCount} reviews`
+                          : ''}
+                      </strong>
+                    </div>
+                  </div>
+                ) : null}
               </div>
 
               <div className="detail-panel__actions">

@@ -5,6 +5,7 @@ import {
   CheckIcon,
   HeartIcon,
   MapPinIcon,
+  StarIcon,
 } from '../ui/Icons.jsx'
 import { formatEventSchedule, getResponsiveImageProps } from '../../utils/formatters.js'
 
@@ -117,6 +118,15 @@ function EventCard({
               <span className="event-meta-item__content">{event.location}</span>
             )}
           </p>
+          {event.venueRating > 0 ? (
+            <p className="event-meta-item">
+              <StarIcon filled />
+              <span className="event-meta-item__content">
+                {event.venueRating.toFixed(1)}
+                {event.venueReviewCount > 0 ? ` · ${event.venueReviewCount} reviews` : ''}
+              </span>
+            </p>
+          ) : null}
         </div>
 
         <div className="event-card__footer">
