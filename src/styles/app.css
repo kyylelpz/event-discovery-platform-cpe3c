@@ -457,11 +457,11 @@
 
 .profile-menu__notification {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
-  padding: 12px 14px;
+  padding: 12px;
   border: 1px solid var(--color-border);
   border-radius: 16px;
   background: rgba(252, 252, 252, 0.72);
@@ -471,6 +471,41 @@
 
 .profile-menu__notification:hover {
   background: rgba(45, 59, 21, 0.05);
+}
+
+.profile-menu__notification--read {
+  opacity: 0.7;
+}
+
+.profile-menu__notification-main {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.profile-menu__notification-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-muted);
+}
+
+.profile-menu__notification-remove:hover {
+  background: rgba(45, 59, 21, 0.08);
+  color: var(--color-text);
 }
 
 .profile-menu__notification-icon {
@@ -1743,6 +1778,7 @@
 }
 
 :root[data-theme='dark'] .profile-menu__notification,
+:root[data-theme='dark'] .detail-panel__connect-person,
 :root[data-theme='dark'] .profile-page__connect-person,
 :root[data-theme='dark'] .profile-page__notification {
   background: rgba(23, 28, 25, 0.92);
@@ -1752,6 +1788,11 @@
 :root[data-theme='dark'] .profile-menu__notification:hover,
 :root[data-theme='dark'] .profile-page__connect-person:hover,
 :root[data-theme='dark'] .profile-page__notification:hover {
+  background: rgba(217, 178, 123, 0.12);
+}
+
+:root[data-theme='dark'] .profile-menu__notification-remove:hover,
+:root[data-theme='dark'] .detail-panel__connect-person:hover {
   background: rgba(217, 178, 123, 0.12);
 }
 
@@ -1829,6 +1870,64 @@
   width: 100%;
   min-height: 44px;
   border-radius: var(--radius-sm);
+}
+
+.detail-panel__connect {
+  display: grid;
+  gap: 14px;
+  padding-top: 24px;
+  border-top: 1px solid var(--color-border);
+}
+
+.detail-panel__connect-heading {
+  display: grid;
+  gap: 4px;
+}
+
+.detail-panel__connect-heading h3,
+.detail-panel__connect-copy strong {
+  margin: 0;
+  color: var(--color-text);
+}
+
+.detail-panel__connect-heading p,
+.detail-panel__connect-copy span,
+.detail-panel__connect-copy {
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.detail-panel__connect-list {
+  display: grid;
+  gap: 10px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.detail-panel__connect-person {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: rgba(252, 252, 252, 0.72);
+  color: var(--color-text);
+  text-align: left;
+}
+
+.detail-panel__connect-person:hover {
+  background: rgba(45, 59, 21, 0.05);
+}
+
+.detail-panel__connect-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
 }
 
 .attendee-strip {

@@ -85,6 +85,14 @@ const mapInteractionRecordToEvent = (record = {}) => {
   }
 }
 
+const mapAttendeeUser = (user = {}) => ({
+  id: String(user.id || user._id || '').trim(),
+  username: String(user.username || '').trim().toLowerCase(),
+  name: pickText(user.name, user.username) || 'Eventcinity user',
+  profilePic: pickText(user.profilePic, user.avatar),
+  attendedAt: String(user.attendedAt || '').trim(),
+})
+
 export const buildEmptyInteractionState = () => ({
   interactions: {
     hearted: [],
@@ -382,6 +390,48 @@ export const fetchPublicAttendingEvents = async (username) => {
         : []
 
     return records.map((record) => mapInteractionRecordToEvent(record))
+  } catch (error) {
+    if (!isRecoverableInteractionError(error)) {
+      throw error
+    }
+
+    return []
+  }
+}
+
+export const fetchFollowingAttendees = async (eventId) => {
+  const normalizedEventId = String(eventId || '').trim()
+
+  if (!normalizedEventId) {
+    return []
+  }
+
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/interactions/${encodeURIComponent(normalizedEventId)}/following-attendees`,
+      {
+        credentials: 'include',
+        headers: {
+          Accept: 'application/json',
+          ...getAuthRequestHeaders(),
+        },
+      },
+    )
+    const data = await readResponseData(response)
+
+    if (!response.ok || data?.success === false) {
+      const error = new Error(data.message || 'Unable to load followed attendees.')
+      error.status = response.status
+      throw error
+    }
+
+    const records = Array.isArray(data?.data)
+      ? data.data
+      : Array.isArray(data?.attendees)
+        ? data.attendees
+        : []
+
+    return records.map((user) => mapAttendeeUser(user)).filter((user) => user.id)
   } catch (error) {
     if (!isRecoverableInteractionError(error)) {
       throw error

@@ -28,6 +28,9 @@ function EventDetailPage({
   onToggleAttend,
   onOpenEvent,
   currentUser,
+  followingAttendees = [],
+  isFollowingAttendeesLoading = false,
+  onOpenProfile,
   onEditEvent,
 }) {
   const [shareStatus, setShareStatus] = useState('')
@@ -293,6 +296,46 @@ function EventDetailPage({
                   <p className="detail-panel__share-status">{shareStatus}</p>
                 ) : null}
               </div>
+
+              {currentUser ? (
+                <div className="detail-panel__connect">
+                  <div className="detail-panel__connect-heading">
+                    <h3>People You Follow</h3>
+                    <p>See who in your network is already going to this event.</p>
+                  </div>
+
+                  {isFollowingAttendeesLoading ? (
+                    <p className="detail-panel__connect-copy">
+                      Checking who you follow is attending...
+                    </p>
+                  ) : followingAttendees.length ? (
+                    <div className="detail-panel__connect-list">
+                      {followingAttendees.map((person) => (
+                        <button
+                          key={person.id}
+                          type="button"
+                          className="detail-panel__connect-person"
+                          onClick={() => onOpenProfile?.(person.username)}
+                        >
+                          <UserAvatar
+                            name={person.name}
+                            imageUrl={person.profilePic}
+                            size="sm"
+                          />
+                          <span className="detail-panel__connect-copy">
+                            <strong>{person.name}</strong>
+                            <span>@{person.username}</span>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="detail-panel__connect-copy">
+                      Nobody you follow has marked themselves as attending yet.
+                    </p>
+                  )}
+                </div>
+              ) : null}
             </div>
           </aside>
         </div>

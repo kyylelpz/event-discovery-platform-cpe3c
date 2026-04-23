@@ -39,10 +39,16 @@ import {
 } from './services/authService.js'
 import {
   buildEmptyInteractionState,
+  fetchFollowingAttendees,
   fetchPublicAttendingEvents,
   fetchInteractionState,
   updateInteractionState,
 } from './services/interactionService.js'
+import {
+  fetchNotifications,
+  markNotificationAsRead,
+  removeNotification as removePersistentNotification,
+} from './services/notificationService.js'
 import { fetchCurrentUserProfile } from './services/profileService.js'
 import {
   fetchCommunityUsers,
@@ -64,6 +70,7 @@ const EVENTS_PER_PAGE = 15
 const PEOPLE_PER_PAGE = 15
 const THEME_STORAGE_KEY = 'eventcinity_theme'
 const NOTIFICATION_READ_STORAGE_KEY = 'eventcinity_read_notifications'
+const NOTIFICATION_DISMISSED_STORAGE_KEY = 'eventcinity_dismissed_notifications'
 
 const mergeEvents = (...eventGroups) => {
   const merged = new Map()
@@ -441,15 +448,13 @@ const getNotificationUserKey = (user) =>
     .trim()
     .toLowerCase()
 
-const readStoredNotificationMap = () => {
+const readStoredNotificationMap = (storageKey) => {
   if (typeof window === 'undefined') {
     return {}
   }
 
   try {
-    const parsedValue = JSON.parse(
-      window.localStorage.getItem(NOTIFICATION_READ_STORAGE_KEY) || '{}',
-    )
+    const parsedValue = JSON.parse(window.localStorage.getItem(storageKey) || '{}')
 
     return parsedValue && typeof parsedValue === 'object' && !Array.isArray(parsedValue)
       ? parsedValue
@@ -459,12 +464,12 @@ const readStoredNotificationMap = () => {
   }
 }
 
-const readReadNotificationIds = (userKey) => {
+const readNotificationIdBucket = (storageKey, userKey) => {
   if (!userKey) {
     return []
   }
 
-  const storedNotificationMap = readStoredNotificationMap()
+  const storedNotificationMap = readStoredNotificationMap(storageKey)
   const storedIds = storedNotificationMap[userKey]
 
   return Array.isArray(storedIds)
@@ -472,12 +477,12 @@ const readReadNotificationIds = (userKey) => {
     : []
 }
 
-const persistReadNotificationIds = (userKey, notificationIds) => {
+const persistNotificationIdBucket = (storageKey, userKey, notificationIds) => {
   if (typeof window === 'undefined' || !userKey) {
     return
   }
 
-  const storedNotificationMap = readStoredNotificationMap()
+  const storedNotificationMap = readStoredNotificationMap(storageKey)
   storedNotificationMap[userKey] = Array.from(
     new Set(
       notificationIds
@@ -486,10 +491,7 @@ const persistReadNotificationIds = (userKey, notificationIds) => {
     ),
   ).slice(-200)
 
-  window.localStorage.setItem(
-    NOTIFICATION_READ_STORAGE_KEY,
-    JSON.stringify(storedNotificationMap),
-  )
+  window.localStorage.setItem(storageKey, JSON.stringify(storedNotificationMap))
 }
 
 const scoreUserForInterests = (user, interests = []) => {
@@ -556,7 +558,9 @@ function App() {
   const [activePublicProfile, setActivePublicProfile] = useState(null)
   const [isPublicProfileLoading, setIsPublicProfileLoading] = useState(false)
   const [interactionState, setInteractionState] = useState(() => buildEmptyInteractionState())
+  const [persistentNotifications, setPersistentNotifications] = useState([])
   const [readNotificationIds, setReadNotificationIds] = useState([])
+  const [dismissedNotificationIds, setDismissedNotificationIds] = useState([])
   const [activeProfileTab, setActiveProfileTab] = useState('Created Events')
   const [currentEventsPage, setCurrentEventsPage] = useState(1)
   const [currentPeoplePage, setCurrentPeoplePage] = useState(1)
@@ -566,6 +570,8 @@ function App() {
   )
   const [eventDetailRecord, setEventDetailRecord] = useState(null)
   const [isEventDetailLoading, setIsEventDetailLoading] = useState(false)
+  const [followingAttendees, setFollowingAttendees] = useState([])
+  const [isFollowingAttendeesLoading, setIsFollowingAttendeesLoading] = useState(false)
   const [pendingDashboardSection, setPendingDashboardSection] = useState('')
   const deferredSearchTerm = useDeferredValue(searchTerm)
   const currentUserRef = useRef(currentUser)
@@ -889,6 +895,64 @@ function App() {
   }, [currentUser?.email])
 
   useEffect(() => {
+    if (!currentUser?.email) {
+      setPersistentNotifications([])
+      return undefined
+    }
+
+    let isActive = true
+
+    const syncNotifications = async () => {
+      try {
+        const nextNotifications = await fetchNotifications()
+
+        if (!isActive) {
+          return
+        }
+
+        setPersistentNotifications(nextNotifications)
+      } catch (error) {
+        if (!isActive) {
+          return
+        }
+
+        console.warn('Unable to load notifications:', error)
+        setPersistentNotifications([])
+      }
+    }
+
+    void syncNotifications()
+
+    const handleWindowFocus = () => {
+      if (document.visibilityState === 'visible') {
+        void syncNotifications()
+      }
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void syncNotifications()
+      }
+    }
+
+    const notificationRefreshInterval = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        void syncNotifications()
+      }
+    }, 30_000)
+
+    window.addEventListener('focus', handleWindowFocus)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      isActive = false
+      window.removeEventListener('focus', handleWindowFocus)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.clearInterval(notificationRefreshInterval)
+    }
+  }, [currentUser?.email])
+
+  useEffect(() => {
     let isActive = true
 
     const loadCommunityDirectory = async () => {
@@ -1089,6 +1153,8 @@ function App() {
     signOut()
     setCurrentUser(null)
     setInteractionState(buildEmptyInteractionState())
+    setPersistentNotifications([])
+    setFollowingAttendees([])
     setShowInterests(false)
     navigate(routes.events)
   }
@@ -1128,14 +1194,38 @@ function App() {
   )
 
   useEffect(() => {
-    setReadNotificationIds(readReadNotificationIds(currentNotificationUserKey))
+    setReadNotificationIds(
+      readNotificationIdBucket(NOTIFICATION_READ_STORAGE_KEY, currentNotificationUserKey),
+    )
+    setDismissedNotificationIds(
+      readNotificationIdBucket(
+        NOTIFICATION_DISMISSED_STORAGE_KEY,
+        currentNotificationUserKey,
+      ),
+    )
   }, [currentNotificationUserKey])
 
-  const handleReadNotification = (notificationId) => {
-    const normalizedNotificationId = String(notificationId || '').trim()
+  const handleReadNotification = async (notification) => {
+    const normalizedNotificationId = String(notification?.id || notification || '').trim()
 
     if (!normalizedNotificationId || !currentNotificationUserKey) {
       return
+    }
+
+    if (notification?.isPersistent) {
+      try {
+        const nextNotification = await markNotificationAsRead(normalizedNotificationId)
+
+        if (nextNotification) {
+          setPersistentNotifications((currentNotifications) =>
+            currentNotifications.map((item) =>
+              item.id === normalizedNotificationId ? nextNotification : item,
+            ),
+          )
+        }
+      } catch (error) {
+        console.warn('Unable to mark the notification as read:', error)
+      }
     }
 
     setReadNotificationIds((currentIds) => {
@@ -1144,10 +1234,55 @@ function App() {
       }
 
       const nextIds = [...currentIds, normalizedNotificationId]
-      persistReadNotificationIds(currentNotificationUserKey, nextIds)
+      persistNotificationIdBucket(
+        NOTIFICATION_READ_STORAGE_KEY,
+        currentNotificationUserKey,
+        nextIds,
+      )
       return nextIds
     })
   }
+
+  const handleRemoveNotification = async (notification) => {
+    const normalizedNotificationId = String(notification?.id || notification || '').trim()
+
+    if (!normalizedNotificationId || !currentNotificationUserKey) {
+      return
+    }
+
+    if (notification?.isPersistent) {
+      let removed = false
+
+      try {
+        removed = await removePersistentNotification(normalizedNotificationId)
+      } catch (error) {
+        console.warn('Unable to remove the notification:', error)
+      }
+
+      if (!removed) {
+        return
+      }
+
+      setPersistentNotifications((currentNotifications) =>
+        currentNotifications.filter((item) => item.id !== normalizedNotificationId),
+      )
+    }
+
+    setDismissedNotificationIds((currentIds) => {
+      if (currentIds.includes(normalizedNotificationId)) {
+        return currentIds
+      }
+
+      const nextIds = [...currentIds, normalizedNotificationId]
+      persistNotificationIdBucket(
+        NOTIFICATION_DISMISSED_STORAGE_KEY,
+        currentNotificationUserKey,
+        nextIds,
+      )
+      return nextIds
+    })
+  }
+
   const communityDirectory = useMemo(
     () =>
       mergeCommunityUsers(currentUser ? [currentUser] : [], communityUsers).map(
@@ -1452,6 +1587,46 @@ function App() {
   }, [route.key, route.params?.eventId, currentEvent])
 
   useEffect(() => {
+    if (route.key !== 'event-detail' || !resolvedEventDetail?.id || !currentUser?.email) {
+      setFollowingAttendees([])
+      setIsFollowingAttendeesLoading(false)
+      return undefined
+    }
+
+    let isActive = true
+    setIsFollowingAttendeesLoading(true)
+
+    const loadFollowingAttendeesForEvent = async () => {
+      try {
+        const attendees = await fetchFollowingAttendees(resolvedEventDetail.id)
+
+        if (!isActive) {
+          return
+        }
+
+        setFollowingAttendees(attendees)
+      } catch (error) {
+        if (!isActive) {
+          return
+        }
+
+        console.warn('Unable to load followed attendees for the selected event:', error)
+        setFollowingAttendees([])
+      } finally {
+        if (isActive) {
+          setIsFollowingAttendeesLoading(false)
+        }
+      }
+    }
+
+    void loadFollowingAttendeesForEvent()
+
+    return () => {
+      isActive = false
+    }
+  }, [route.key, resolvedEventDetail?.id, currentUser?.email])
+
+  useEffect(() => {
     if (route.key !== 'profile') {
       setActivePublicProfile(null)
       setIsPublicProfileLoading(false)
@@ -1634,12 +1809,18 @@ function App() {
     }
 
     const readNotificationIdSet = new Set(readNotificationIds)
+    const dismissedNotificationIdSet = new Set(dismissedNotificationIds)
     const upcomingNotifications = [
       ...buildUpcomingEventNotifications(savedInteractionEvents, 'saved'),
       ...buildUpcomingEventNotifications(likedInteractionEvents, 'hearted'),
       ...buildUpcomingEventNotifications(attendingInteractionEvents, 'attending'),
       ...buildUpcomingEventNotifications(currentUserCreatedEvents, 'created'),
-    ]
+    ].map((notification) => ({
+      ...notification,
+      isRead: readNotificationIdSet.has(notification.id),
+      isPersistent: false,
+      sortDirection: 'asc',
+    }))
 
     const followerNotifications = currentFollowerUsernames
       .map((username) => {
@@ -1654,29 +1835,58 @@ function App() {
           body: 'Started following your profile.',
           username,
           dateSortKey: Number.MAX_SAFE_INTEGER,
+          isRead: readNotificationIdSet.has(buildNotificationId('follower', username)),
+          isPersistent: false,
+          sortDirection: 'desc',
         }
       })
+    const remoteNotifications = persistentNotifications.map((notification) => ({
+      ...notification,
+      isRead: Boolean(notification.isRead || readNotificationIdSet.has(notification.id)),
+      isPersistent: true,
+    }))
+    const notificationPriority = {
+      follower: 0,
+      'shared-attendance': 1,
+      event: 2,
+    }
 
-    return [...followerNotifications, ...upcomingNotifications]
-      .filter((notification) => !readNotificationIdSet.has(notification.id))
+    return [...remoteNotifications, ...followerNotifications, ...upcomingNotifications]
+      .filter((notification) => !dismissedNotificationIdSet.has(notification.id))
       .sort((leftNotification, rightNotification) => {
-        const followerPriorityDifference =
-          Number(rightNotification.kind === 'follower') - Number(leftNotification.kind === 'follower')
+        const unreadDifference =
+          Number(leftNotification.isRead) - Number(rightNotification.isRead)
 
-        if (followerPriorityDifference !== 0) {
-          return followerPriorityDifference
+        if (unreadDifference !== 0) {
+          return unreadDifference
         }
 
-        return leftNotification.dateSortKey - rightNotification.dateSortKey
+        const priorityDifference =
+          (notificationPriority[leftNotification.kind] ?? 3) -
+          (notificationPriority[rightNotification.kind] ?? 3)
+
+        if (priorityDifference !== 0) {
+          return priorityDifference
+        }
+
+        if (
+          leftNotification.sortDirection === 'asc' &&
+          rightNotification.sortDirection === 'asc'
+        ) {
+          return leftNotification.dateSortKey - rightNotification.dateSortKey
+        }
+
+        return rightNotification.dateSortKey - leftNotification.dateSortKey
       })
-      .slice(0, 8)
   }, [
     attendingInteractionEvents,
     communityDirectory,
     currentUser?.email,
     currentUserCreatedEvents,
     currentFollowerUsernames,
+    dismissedNotificationIds,
     likedInteractionEvents,
+    persistentNotifications,
     readNotificationIds,
     savedInteractionEvents,
   ])
@@ -1813,6 +2023,15 @@ function App() {
     try {
       const nextInteractionState = await updateInteractionState(event, nextFlags)
       setInteractionState(nextInteractionState)
+
+      if (key === 'attending' && currentUser?.email) {
+        try {
+          const nextNotifications = await fetchNotifications()
+          setPersistentNotifications(nextNotifications)
+        } catch (error) {
+          console.warn('Unable to refresh notifications after updating attendance:', error)
+        }
+      }
     } catch (error) {
       console.warn('Unable to update the current user interaction state:', error)
       window.alert('Unable to save that event action right now. Please try again.')
@@ -1910,8 +2129,9 @@ function App() {
     },
     currentUser,
     notifications: userNotifications,
-    hasUnreadNotifications: userNotifications.length > 0,
+    hasUnreadNotifications: userNotifications.some((notification) => !notification.isRead),
     onReadNotification: handleReadNotification,
+    onRemoveNotification: handleRemoveNotification,
     theme,
     onToggleTheme: () => setTheme((currentTheme) => (currentTheme === 'dark' ? 'light' : 'dark')),
     onOpenProfile: () => {
@@ -2064,6 +2284,9 @@ function App() {
           relatedEvents={relatedEvents.slice(0, 3)}
           onNavigate={navigate}
           currentUser={currentUser}
+          followingAttendees={followingAttendees}
+          isFollowingAttendeesLoading={isFollowingAttendeesLoading}
+          onOpenProfile={(username) => navigate(routes.profile(username))}
           onEditEvent={(event) => navigate(routes.editEvent(event.id))}
           {...sharedPageProps}
         />
