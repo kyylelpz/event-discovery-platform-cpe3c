@@ -216,36 +216,36 @@ function FeaturedEvent({
                         {isAttending ? <CheckIcon /> : null}
                         <span>{isAttending ? 'Attending' : 'Attend'}</span>
                       </button>
-                    </div>
 
-                    <div
-                      className="featured-event__quick-actions"
-                      aria-label="Featured event actions"
-                    >
-                      <button
-                        type="button"
-                        className="icon-box"
-                        onClick={() => onToggleHeart(slideEvent)}
-                        aria-label="Like featured event"
-                        title={isHearted ? 'Remove favorite' : 'Add to favorites'}
+                      <div
+                        className="featured-event__quick-actions"
+                        aria-label="Featured event actions"
                       >
-                        <HeartIcon
-                          className={isHearted ? 'icon-accent icon-filled' : ''}
-                          filled={Boolean(isHearted)}
-                        />
-                      </button>
-                      <button
-                        type="button"
-                        className="icon-box"
-                        onClick={() => onToggleSave(slideEvent)}
-                        aria-label="Save featured event"
-                        title={isSaved ? 'Remove bookmark' : 'Bookmark event'}
-                      >
-                        <BookmarkIcon
-                          className={isSaved ? 'icon-accent icon-filled' : ''}
-                          filled={Boolean(isSaved)}
-                        />
-                      </button>
+                        <button
+                          type="button"
+                          className="icon-box"
+                          onClick={() => onToggleHeart(slideEvent)}
+                          aria-label="Like featured event"
+                          title={isHearted ? 'Remove favorite' : 'Add to favorites'}
+                        >
+                          <HeartIcon
+                            className={isHearted ? 'icon-accent icon-filled' : ''}
+                            filled={Boolean(isHearted)}
+                          />
+                        </button>
+                        <button
+                          type="button"
+                          className="icon-box"
+                          onClick={() => onToggleSave(slideEvent)}
+                          aria-label="Save featured event"
+                          title={isSaved ? 'Remove bookmark' : 'Bookmark event'}
+                        >
+                          <BookmarkIcon
+                            className={isSaved ? 'icon-accent icon-filled' : ''}
+                            filled={Boolean(isSaved)}
+                          />
+                        </button>
+                      </div>
                     </div>
 
                     {slide.matchedInterest ? (
