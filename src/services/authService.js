@@ -242,6 +242,10 @@ const normalizeProfileUpdates = (updates = {}) => {
     ).trim()
   }
 
+  if (updates.profilePicFile instanceof File) {
+    normalizedUpdates.profilePicFile = updates.profilePicFile
+  }
+
   return normalizedUpdates
 }
 
@@ -316,13 +320,40 @@ const buildProfileSession = (
 }
 
 const updateRemoteProfile = async (updates) => {
+  const hasAvatarFile = updates.profilePicFile instanceof File
+  const requestHeaders = hasAvatarFile
+    ? getAuthRequestHeaders()
+    : getAuthRequestHeaders({
+        'Content-Type': 'application/json',
+      })
+  const requestBody = hasAvatarFile
+    ? (() => {
+        const formData = new FormData()
+        Object.entries(updates).forEach(([key, value]) => {
+          if (value == null || key === 'profilePic') {
+            return
+          }
+
+          if (key === 'profilePicFile') {
+            formData.append('avatar', value)
+            return
+          }
+
+          if (Array.isArray(value)) {
+            value.forEach((entry) => formData.append(key, String(entry)))
+            return
+          }
+
+          formData.append(key, String(value))
+        })
+        return formData
+      })()
+    : JSON.stringify(updates)
   const response = await fetch(`${API_BASE_URL}/api/profile/me`, {
     method: 'PUT',
-    headers: getAuthRequestHeaders({
-      'Content-Type': 'application/json',
-    }),
+    headers: requestHeaders,
     credentials: 'include',
-    body: JSON.stringify(updates),
+    body: requestBody,
   })
 
   const data = await readResponseData(response)
@@ -875,7 +906,7 @@ export const signUp = async ({ email, password, name }) => {
       return {
         verificationRequired: true,
         email: data.email || normalizedEmail,
-        verificationPreviewCode: String(data.verificationPreviewCode || '').trim(),
+        message: data.message || 'A verification email was sent.',
       }
     }
 
@@ -970,7 +1001,6 @@ export const resendEmailVerificationCode = async (email) => {
   return {
     verificationRequired: true,
     email: data.email || normalizedEmail,
-    verificationPreviewCode: String(data.verificationPreviewCode || '').trim(),
     message: data.message || 'A new verification code is ready.',
   }
 }
