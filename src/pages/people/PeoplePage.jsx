@@ -1,5 +1,5 @@
-import { PrimaryButton } from '../../components/ui/Button.jsx'
-import { UsersIcon } from '../../components/ui/Icons.jsx'
+import { PrimaryButton, SecondaryButton } from '../../components/ui/Button.jsx'
+import { UserPlusIcon, UsersIcon } from '../../components/ui/Icons.jsx'
 import UserAvatar from '../../components/ui/UserAvatar.jsx'
 
 function PeoplePage({
@@ -9,6 +9,9 @@ function PeoplePage({
   totalPeople = 0,
   onPageChange,
   onOpenProfile,
+  onToggleFollow,
+  currentUsername = '',
+  currentFollowingUsernames = new Set(),
 }) {
   const hasPeople = Array.isArray(people) && people.length > 0
   const rangeStart = hasPeople ? (currentPage - 1) * 15 + 1 : 0
@@ -93,9 +96,22 @@ function PeoplePage({
                 @{person.username} - {person.createdEventsCount || 0} hosted events
               </p>
               <p className="person-card__meta">
-                Open the profile to view public bio, interests, contact details, and attending events.
+                {person.followersCount || 0} followers · {person.followingCount || 0} following
               </p>
               <div className="person-card__actions">
+                {person.username && person.username !== currentUsername ? (
+                  <SecondaryButton
+                    onClick={() => onToggleFollow?.(person)}
+                    className="person-card__follow"
+                  >
+                    <UserPlusIcon />
+                    <span>
+                      {currentFollowingUsernames.has(String(person.username).toLowerCase())
+                        ? 'Following'
+                        : 'Follow'}
+                    </span>
+                  </SecondaryButton>
+                ) : null}
                 <PrimaryButton onClick={() => onOpenProfile(person.username)}>
                   View Profile
                 </PrimaryButton>

@@ -106,6 +106,18 @@ export const normalizeProfile = (rawProfile, fallbackSession = {}) => {
         '',
     ).trim(),
     createdAt: String(rawProfile?.createdAt || fallbackSession.createdAt || '').trim(),
+    followersCount: Number(rawProfile?.followersCount ?? fallbackSession.followersCount ?? 0),
+    followingCount: Number(rawProfile?.followingCount ?? fallbackSession.followingCount ?? 0),
+    followerUsernames: Array.isArray(rawProfile?.followerUsernames)
+      ? rawProfile.followerUsernames.map((value) => String(value || '').trim().toLowerCase()).filter(Boolean)
+      : Array.isArray(fallbackSession.followerUsernames)
+        ? fallbackSession.followerUsernames
+        : [],
+    followingUsernames: Array.isArray(rawProfile?.followingUsernames)
+      ? rawProfile.followingUsernames.map((value) => String(value || '').trim().toLowerCase()).filter(Boolean)
+      : Array.isArray(fallbackSession.followingUsernames)
+        ? fallbackSession.followingUsernames
+        : [],
     authProvider:
       rawProfile?.authProvider ||
       rawProfile?.provider ||

@@ -9,6 +9,7 @@ import {
   ChevronRightIcon,
   HeartIcon,
   MapPinIcon,
+  StarIcon,
 } from '../ui/Icons.jsx'
 import CategoryTag from '../ui/CategoryTag.jsx'
 import { formatEventSchedule, getResponsiveImageProps } from '../../utils/formatters.js'
@@ -26,10 +27,12 @@ function FeaturedEvent({
   const slides = Array.isArray(events) ? events.filter((item) => item?.event) : []
   const [activeIndex, setActiveIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
+  const [progressKey, setProgressKey] = useState(0)
   const sliderRef = useRef(null)
 
   useEffect(() => {
     setActiveIndex(0)
+    setProgressKey((currentKey) => currentKey + 1)
   }, [events])
 
   useEffect(() => {
@@ -38,7 +41,11 @@ function FeaturedEvent({
     }
 
     const rotationTimer = window.setInterval(() => {
-      setActiveIndex((currentIndex) => (currentIndex + 1) % slides.length)
+      setActiveIndex((currentIndex) => {
+        const nextIndex = (currentIndex + 1) % slides.length
+        setProgressKey((currentKey) => currentKey + 1)
+        return nextIndex
+      })
     }, FEATURED_EVENT_ROTATION_INTERVAL_MS)
 
     return () => window.clearInterval(rotationTimer)
@@ -49,6 +56,7 @@ function FeaturedEvent({
   }
 
   const goToSlide = (nextIndex) => {
+    setProgressKey((currentKey) => currentKey + 1)
     setActiveIndex((nextIndex + slides.length) % slides.length)
   }
 
@@ -77,6 +85,32 @@ function FeaturedEvent({
     >
       {slides.length > 1 ? (
         <>
+          <div className="featured-event__progress" aria-label="Featured event progress">
+            {slides.map((slide, index) => (
+              <button
+                key={slide.event.id}
+                type="button"
+                className={`featured-event__progress-segment ${
+                  index === activeIndex ? 'featured-event__progress-segment--active' : ''
+                }`}
+                aria-label={`Show featured event ${index + 1}`}
+                aria-current={index === activeIndex ? 'true' : undefined}
+                onClick={() => goToSlide(index)}
+              >
+                <span
+                  key={index === activeIndex ? `${slide.event.id}:${progressKey}` : slide.event.id}
+                  className={`featured-event__progress-fill ${
+                    index === activeIndex ? 'featured-event__progress-fill--active' : ''
+                  }`}
+                  style={{
+                    animationDuration: `${FEATURED_EVENT_ROTATION_INTERVAL_MS}ms`,
+                    animationPlayState: isPaused ? 'paused' : 'running',
+                  }}
+                />
+              </button>
+            ))}
+          </div>
+
           <button
             type="button"
             className="featured-event__hover-nav featured-event__hover-nav--prev"
@@ -146,6 +180,17 @@ function FeaturedEvent({
                         <span className="event-meta-item__content">{slideEvent.location}</span>
                       )}
                     </div>
+                    {slideEvent.venueRating > 0 ? (
+                      <div className="event-meta-item">
+                        <StarIcon filled />
+                        <span className="event-meta-item__content">
+                          {slideEvent.venueRating.toFixed(1)} venue rating
+                          {slideEvent.venueReviewCount > 0
+                            ? ` · ${slideEvent.venueReviewCount} reviews`
+                            : ''}
+                        </span>
+                      </div>
+                    ) : null}
                   </div>
 
                   <div className="featured-event__actions">
@@ -220,22 +265,6 @@ function FeaturedEvent({
         </div>
       </div>
 
-      {slides.length > 1 ? (
-        <div className="featured-event__pagination" aria-label="Featured event slides">
-          {slides.map((slide, index) => (
-            <button
-              key={slide.event.id}
-              type="button"
-              className={`featured-event__dot ${
-                index === activeIndex ? 'featured-event__dot--active' : ''
-              }`}
-              aria-label={`Go to featured event ${index + 1}`}
-              aria-current={index === activeIndex ? 'true' : undefined}
-              onClick={() => goToSlide(index)}
-            />
-          ))}
-        </div>
-      ) : null}
     </section>
   )
 }

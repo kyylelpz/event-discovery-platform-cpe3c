@@ -100,6 +100,10 @@ const buildSession = ({
   bio = '',
   profilePic = '',
   createdAt = '',
+  followersCount = 0,
+  followingCount = 0,
+  followerUsernames = [],
+  followingUsernames = [],
   needsInterestsSelection = false,
   hasCompletedOnboarding,
   shouldShowInterestsPrompt = false,
@@ -116,6 +120,14 @@ const buildSession = ({
   bio: String(bio || '').trim(),
   profilePic: String(profilePic || '').trim(),
   createdAt: String(createdAt || '').trim(),
+  followersCount: Number(followersCount || 0),
+  followingCount: Number(followingCount || 0),
+  followerUsernames: Array.isArray(followerUsernames)
+    ? followerUsernames.map((value) => String(value || '').trim().toLowerCase()).filter(Boolean)
+    : [],
+  followingUsernames: Array.isArray(followingUsernames)
+    ? followingUsernames.map((value) => String(value || '').trim().toLowerCase()).filter(Boolean).filter((value, index, values) => values.indexOf(value) === index)
+    : [],
   needsInterestsSelection: Boolean(needsInterestsSelection),
   hasCompletedOnboarding:
     typeof hasCompletedOnboarding === 'boolean'
@@ -138,6 +150,10 @@ const sanitizeStoredUser = (user = {}) =>
     bio: user.bio,
     profilePic: user.profilePic,
     createdAt: user.createdAt,
+    followersCount: user.followersCount,
+    followingCount: user.followingCount,
+    followerUsernames: user.followerUsernames,
+    followingUsernames: user.followingUsernames,
     needsInterestsSelection: user.needsInterestsSelection,
     hasCompletedOnboarding: user.hasCompletedOnboarding,
     shouldShowInterestsPrompt: user.shouldShowInterestsPrompt,
@@ -480,6 +496,10 @@ export const syncStoredUser = async (user) => {
     bio: user.bio,
     profilePic: user.profilePic,
     createdAt: user.createdAt,
+    followersCount: user.followersCount,
+    followingCount: user.followingCount,
+    followerUsernames: user.followerUsernames,
+    followingUsernames: user.followingUsernames,
     needsInterestsSelection: user.needsInterestsSelection,
     hasCompletedOnboarding: user.hasCompletedOnboarding,
     shouldShowInterestsPrompt: user.shouldShowInterestsPrompt,

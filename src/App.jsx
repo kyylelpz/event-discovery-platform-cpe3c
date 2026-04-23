@@ -42,7 +42,13 @@ import {
   updateInteractionState,
 } from './services/interactionService.js'
 import { fetchCurrentUserProfile } from './services/profileService.js'
-import { fetchCommunityUsers, fetchPublicProfile } from './services/userService.js'
+import {
+  fetchCommunityUsers,
+  fetchPublicProfile,
+  followUser,
+  unfollowUser,
+  normalizePublicUser,
+} from './services/userService.js'
 import {
   buildGoogleMapsSearchUrl,
   createPosterDataUri,
@@ -153,17 +159,44 @@ const buildFeaturedEventSlides = (
     return []
   }
 
-  const scoredEvents = events
-    .map((event) => ({
-      event,
-      interestScore: scoreEventForInterests(event, interests),
-      featuredScore: Number(Boolean(event.isFeatured)),
-      randomRank: getSeededIndex(
-        Math.max(events.length * 97, 1),
-        `${seedSource}:${event.id || event.title || 'event'}`,
-      ),
-      matchedInterest: getFeaturedEventInterestLabel(event, interestLabels),
-    }))
+  const categoryEventMap = new Map()
+
+  events.forEach((event) => {
+    const normalizedCategory = String(event?.category || 'Community').trim().toLowerCase()
+
+    if (!categoryEventMap.has(normalizedCategory)) {
+      categoryEventMap.set(normalizedCategory, [])
+    }
+
+    categoryEventMap.get(normalizedCategory).push(event)
+  })
+
+  const scoredEvents = [...categoryEventMap.entries()]
+    .map(([categoryKey, categoryEvents]) => {
+      const rankedCategoryEvents = [...categoryEvents]
+        .map((event) => ({
+          event,
+          interestScore: scoreEventForInterests(event, interests),
+          featuredScore: Number(Boolean(event.isFeatured)),
+          randomRank: getSeededIndex(
+            Math.max(events.length * 97, 1),
+            `${seedSource}:${categoryKey}:${event.id || event.title || 'event'}`,
+          ),
+          matchedInterest: getFeaturedEventInterestLabel(event, interestLabels),
+        }))
+        .sort((leftEvent, rightEvent) => {
+          const randomDifference = leftEvent.randomRank - rightEvent.randomRank
+
+          if (randomDifference !== 0) {
+            return randomDifference
+          }
+
+          return compareEventsByNearestDate(leftEvent.event, rightEvent.event)
+        })
+
+      return rankedCategoryEvents[0]
+    })
+    .filter(Boolean)
     .sort((leftEvent, rightEvent) => {
       const interestDifference = rightEvent.interestScore - leftEvent.interestScore
 
@@ -224,6 +257,8 @@ const normalizeCommunityUser = (user = {}) => ({
     : [],
   profilePic: String(user.profilePic || user.avatar || '').trim(),
   createdEventsCount: Number(user.createdEventsCount || 0),
+  followersCount: Number(user.followersCount || 0),
+  followingCount: Number(user.followingCount || 0),
 })
 
 const mergeCommunityUsers = (...userGroups) => {
@@ -687,6 +722,48 @@ function App() {
     return nextSession
   }
 
+  const handleToggleFollow = async (targetUser) => {
+    if (!currentUser?.email) {
+      navigate(routes.signin)
+      return
+    }
+
+    const targetUsername = String(targetUser?.username || '').trim().toLowerCase()
+
+    if (!targetUsername || targetUsername === String(currentUser?.username || '').trim().toLowerCase()) {
+      return
+    }
+
+    const isFollowing = Array.isArray(currentUser?.followingUsernames)
+      ? currentUser.followingUsernames.includes(targetUsername)
+      : false
+
+    const response = isFollowing
+      ? await unfollowUser(targetUsername)
+      : await followUser(targetUsername)
+
+    const nextCurrentUser = response?.currentUser ? { ...currentUser, ...response.currentUser } : currentUser
+    const nextTargetUser = response?.targetUser ? normalizePublicUser(response.targetUser) : null
+
+    if (nextCurrentUser) {
+      setCurrentUser(nextCurrentUser)
+      setSession(nextCurrentUser)
+      void syncStoredUser(nextCurrentUser)
+    }
+
+    if (nextTargetUser) {
+      setCommunityUsers((prevUsers) => mergeCommunityUsers(prevUsers, [nextTargetUser]))
+      if (
+        activePublicProfile &&
+        String(activePublicProfile.username || '').trim().toLowerCase() === targetUsername
+      ) {
+        setActivePublicProfile((currentProfile) =>
+          currentProfile ? { ...currentProfile, ...nextTargetUser } : nextTargetUser,
+        )
+      }
+    }
+  }
+
   const handleSignOut = () => {
     recentAuthSuccessAtRef.current = 0
     signOut()
@@ -699,6 +776,17 @@ function App() {
   const route = resolveRoute(pathname)
   const currentUserEmail = String(currentUser?.email || '').trim().toLowerCase()
   const currentUserProfileSlug = currentUser ? getUserProfileSlug(currentUser) : ''
+  const currentFollowingUsernames = useMemo(
+    () =>
+      new Set(
+        Array.isArray(currentUser?.followingUsernames)
+          ? currentUser.followingUsernames
+              .map((value) => String(value || '').trim().toLowerCase())
+              .filter(Boolean)
+          : [],
+      ),
+    [currentUser?.followingUsernames],
+  )
   const currentUserInterestLabels = Array.isArray(currentUser?.interests)
     ? currentUser.interests
         .map((value) => String(value || '').trim())
@@ -1068,6 +1156,16 @@ function App() {
 
   const activeProfile = isViewingCurrentUserProfile
     ? {
+        ...(communityDirectory.find((user) => {
+          const normalizedCurrentUsername = String(currentUser?.username || '').trim()
+          const normalizedCurrentEmail = String(currentUser?.email || '').trim().toLowerCase()
+
+          return (
+            (currentUser?.id && user.id === currentUser.id) ||
+            (normalizedCurrentUsername && user.username === normalizedCurrentUsername) ||
+            (normalizedCurrentEmail && user.email === normalizedCurrentEmail)
+          )
+        }) || {}),
         ...currentUser,
         username: currentUser.username || currentUserProfileSlug,
       }
@@ -1139,6 +1237,9 @@ function App() {
       payload.append('date', formData.date)
       payload.append('time', formData.time)
       payload.append('venue', formData.venue)
+      payload.append('address', formData.address)
+      payload.append('location', formData.address || formData.venue || formData.province)
+      payload.append('googleMapsUrl', formData.googleMapsUrl)
       payload.append('province', formData.province)
       payload.append('category', formData.category)
       if (formData.imageFile) {
@@ -1166,14 +1267,21 @@ function App() {
         const dbEvent = responseData.data
         const fallbackImage = createPosterDataUri({
           title: dbEvent.title,
-          location: dbEvent.location || dbEvent.venue || formData.province,
+          location: dbEvent.location || dbEvent.address || dbEvent.venue || formData.province,
           category: dbEvent.category || 'Community',
         })
         const mapLabel =
+          dbEvent.address ||
           dbEvent.location ||
           dbEvent.venue ||
+          formData.address ||
           formData.venue ||
           formData.province
+        const mapUrl =
+          dbEvent.venueGoogleMapsUrl ||
+          dbEvent.googleMapsUrl ||
+          formData.googleMapsUrl ||
+          buildGoogleMapsSearchUrl(mapLabel)
 
         const newEvent = {
           id: dbEvent.eventId,
@@ -1181,7 +1289,15 @@ function App() {
           category: dbEvent.category || formData.category || 'Community',
           startDate: dbEvent.startDate || dbEvent.date || formData.date,
           timeLabel: dbEvent.timeLabel || dbEvent.time || formData.time || '',
-          location: dbEvent.location || dbEvent.venue || formData.venue || formData.province,
+          location:
+            dbEvent.location ||
+            dbEvent.address ||
+            dbEvent.venue ||
+            formData.address ||
+            formData.venue ||
+            formData.province,
+          venue: dbEvent.venue || formData.venue || '',
+          address: dbEvent.address || formData.address || '',
           province: dbEvent.province || formData.province,
           host: dbEvent.organizer || dbEvent.creatorName || currentUser?.name || 'Community Host',
           createdBy: dbEvent.createdBy || currentUser?.username || '',
@@ -1189,13 +1305,18 @@ function App() {
           attendeeCount: Number(dbEvent.attendeeCount || 0),
           savedCount: Number(dbEvent.savedCount || 0),
           reactions: Number(dbEvent.reactions || 0),
+          venueRating: Number(dbEvent.venueRating || 0),
+          venueReviewCount: Number(dbEvent.venueReviewCount || 0),
+          venueGoogleMapsUrl: dbEvent.venueGoogleMapsUrl || formData.googleMapsUrl || '',
+          venuePlaceId: dbEvent.venuePlaceId || '',
+          venueCoordinates: dbEvent.venueCoordinates || null,
           image:
             dbEvent.imageUrl ||
             formData.imagePreview ||
             fallbackImage,
           fallbackImage,
           mapLabel,
-          mapUrl: buildGoogleMapsSearchUrl(mapLabel),
+          mapUrl,
           source: 'community',
         }
 
@@ -1321,6 +1442,9 @@ function App() {
         totalPeople={connectPeople.length}
         onPageChange={setCurrentPeoplePage}
         onOpenProfile={(username) => navigate(routes.profile(username))}
+        onToggleFollow={handleToggleFollow}
+        currentUsername={currentUser?.username || ''}
+        currentFollowingUsernames={currentFollowingUsernames}
       />
     )
   } else if (route.key === 'profile') {
@@ -1358,6 +1482,10 @@ function App() {
           attendingEvents={attendingByUser}
           isCurrentUser={isViewingCurrentUserProfile}
           onSaveProfile={handleProfileUpdate}
+          onToggleFollow={handleToggleFollow}
+          isFollowing={currentFollowingUsernames.has(
+            String(activeProfile?.username || '').trim().toLowerCase(),
+          )}
           activeTab={activeProfileTab}
           onTabChange={setActiveProfileTab}
           {...sharedPageProps}

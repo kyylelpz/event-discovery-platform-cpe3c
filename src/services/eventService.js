@@ -311,6 +311,37 @@ export const normalizeEventRecord = (event, fallbackLocation) => {
     event.date_label,
   )
   const fallbackImage = eventPlaceholderImage
+  const venueRating = Number(
+    pickValue(
+      event.venueRating,
+      event.venue?.rating,
+      event.rawPayload?.venueRating,
+      event.rawPayload?.venue?.rating,
+      0,
+    ),
+  )
+  const venueReviewCount = Number(
+    pickValue(
+      event.venueReviewCount,
+      event.reviewCount,
+      event.venue?.reviewCount,
+      event.rawPayload?.venueReviewCount,
+      event.rawPayload?.venue?.reviewCount,
+      0,
+    ),
+  )
+  const venueGoogleMapsUrl = pickText(
+    event.venueGoogleMapsUrl,
+    event.googleMapsUrl,
+    event.rawPayload?.googleMapsUrl,
+    event.rawPayload?.venueGoogleMapsUrl,
+    event.venue?.google_maps_link,
+  )
+  const venuePlaceId = pickText(
+    event.venuePlaceId,
+    event.rawPayload?.venuePlaceId,
+    event.venue?.google_maps_place_id,
+  )
   const mapLabel =
     joinUniqueText(venueLabel, addressLabel, locationLabel) || getFallbackLocationLabel(fallbackLocation)
   const imageUrl =
@@ -384,8 +415,15 @@ export const normalizeEventRecord = (event, fallbackLocation) => {
     savedCount: event.savedCount || 0,
     reactions: event.reactions || 0,
     attendees: [],
+    venue: venueLabel,
+    address: addressLabel,
+    venueRating,
+    venueReviewCount,
+    venueGoogleMapsUrl,
+    venuePlaceId,
+    venueCoordinates: event.venueCoordinates || null,
     mapLabel,
-    mapUrl: buildGoogleMapsSearchUrl(mapLabel),
+    mapUrl: venueGoogleMapsUrl || buildGoogleMapsSearchUrl(mapLabel),
     eventUrl,
     createdBy: pickText(event.createdBy, event.creatorUsername, event.username),
     source: event.source || 'live',
