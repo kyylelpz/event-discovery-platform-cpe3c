@@ -28,6 +28,7 @@ function EventDetailPage({
   onToggleAttend,
   onOpenEvent,
   currentUser,
+  hostProfileUsername = '',
   followingAttendees = [],
   isFollowingAttendeesLoading = false,
   onOpenProfile,
@@ -48,6 +49,7 @@ function EventDetailPage({
   const eventOwnerId = String(event?.ownerId || '').trim()
   const currentUsername = String(currentUser?.username || '').trim().toLowerCase()
   const eventCreatorUsername = String(event?.createdBy || '').trim().toLowerCase()
+  const normalizedHostProfileUsername = String(hostProfileUsername || '').trim().toLowerCase()
   const canEditEvent =
     Boolean(onEditEvent) &&
     event.source === 'created' &&
@@ -122,7 +124,17 @@ function EventDetailPage({
                 <UserAvatar name={event.host} size="md" />
                 <div>
                   <p>Hosted by</p>
-                  <strong>{event.host}</strong>
+                  {normalizedHostProfileUsername && onOpenProfile ? (
+                    <button
+                      type="button"
+                      className="detail-host__link"
+                      onClick={() => onOpenProfile(normalizedHostProfileUsername)}
+                    >
+                      <strong>{event.host}</strong>
+                    </button>
+                  ) : (
+                    <strong>{event.host}</strong>
+                  )}
                 </div>
               </div>
             </div>

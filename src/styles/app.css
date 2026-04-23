@@ -1554,6 +1554,19 @@
   gap: 2px;
 }
 
+.detail-host__link {
+  width: fit-content;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  text-align: left;
+}
+
+.detail-host__link:hover strong {
+  text-decoration: underline;
+}
+
 .detail-host strong,
 .detail-place-card strong,
 .detail-panel__meta strong,
@@ -2124,6 +2137,11 @@
 .profile-page__email {
   margin: 0;
   color: var(--color-muted);
+}
+
+.profile-card__follow {
+  width: fit-content;
+  justify-self: start;
 }
 
 .profile-card__actions {

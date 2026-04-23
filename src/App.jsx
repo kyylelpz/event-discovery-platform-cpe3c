@@ -1912,6 +1912,9 @@ function App() {
   const currentResolvedEventCreator = String(resolvedEventDetail?.createdBy || '')
     .trim()
     .toLowerCase()
+  const normalizedResolvedEventHost = String(resolvedEventDetail?.host || '')
+    .trim()
+    .toLowerCase()
   const currentUserId = String(currentUser?.id || '').trim()
   const currentUsername = String(currentUser?.username || '').trim().toLowerCase()
   const canCurrentUserEditResolvedEvent =
@@ -1922,6 +1925,26 @@ function App() {
       (currentUsername &&
         currentResolvedEventCreator &&
         currentUsername === currentResolvedEventCreator))
+  const eventHostProfileUsername =
+    resolvedEventDetail && communityDirectory.length
+      ? (() => {
+          const matchedUser = communityDirectory.find((user) => {
+            const normalizedUsername = String(user.username || '').trim().toLowerCase()
+            const normalizedName = String(user.name || '').trim().toLowerCase()
+
+            return (
+              (currentResolvedEventOwnerId && user.id === currentResolvedEventOwnerId) ||
+              (currentResolvedEventCreator &&
+                normalizedUsername === currentResolvedEventCreator) ||
+              (normalizedResolvedEventHost &&
+                (normalizedUsername === normalizedResolvedEventHost ||
+                  normalizedName === normalizedResolvedEventHost))
+            )
+          })
+
+          return String(matchedUser?.username || '').trim().toLowerCase()
+        })()
+      : ''
 
   const buildCreatedEventPayload = (formData) => {
     const payload = new FormData()
@@ -2284,6 +2307,7 @@ function App() {
           relatedEvents={relatedEvents.slice(0, 3)}
           onNavigate={navigate}
           currentUser={currentUser}
+          hostProfileUsername={eventHostProfileUsername}
           followingAttendees={followingAttendees}
           isFollowingAttendeesLoading={isFollowingAttendeesLoading}
           onOpenProfile={(username) => navigate(routes.profile(username))}

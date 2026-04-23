@@ -221,6 +221,15 @@ function ProfilePage({
               </span>
             </div>
             <p className="profile-page__email">{emailLabel}</p>
+            {!isCurrentUser ? (
+              <SecondaryButton
+                className="profile-card__follow"
+                onClick={() => onToggleFollow?.(user)}
+              >
+                <UserPlusIcon />
+                <span>{isFollowing ? 'Following' : 'Follow'}</span>
+              </SecondaryButton>
+            ) : null}
           </div>
         </div>
 
@@ -232,14 +241,7 @@ function ProfilePage({
               </SecondaryButton>
             ) : null}
           </div>
-        ) : (
-          <div className="profile-card__actions">
-            <SecondaryButton onClick={() => onToggleFollow?.(user)}>
-              <UserPlusIcon />
-              <span>{isFollowing ? 'Following' : 'Follow'}</span>
-            </SecondaryButton>
-          </div>
-        )}
+        ) : null}
 
         {isCurrentUser && isEditing ? (
           <form className="event-form profile-edit-form" onSubmit={handleSaveProfile}>
