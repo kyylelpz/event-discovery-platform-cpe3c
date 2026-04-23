@@ -430,6 +430,7 @@ export const normalizeEventRecord = (event, fallbackLocation) => {
     mapLabel,
     mapUrl: venueGoogleMapsUrl || buildGoogleMapsSearchUrl(mapLabel),
     eventUrl,
+    ownerId: pickText(event.ownerId, event.userId, event.rawPayload?.userId),
     createdBy: pickText(event.createdBy, event.creatorUsername, event.username),
     source: event.source || 'live',
     isFeatured: Boolean(event.isFeatured || event.rawPayload?.isFeatured),
@@ -530,3 +531,27 @@ export const fetchEventById = async (eventId) => {
 
   return normalizeSingleEventPayload(payload, 'All Philippines')
 }
+
+const submitCreatedEventRequest = async (path, method, payload) => {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method,
+    headers: getAuthRequestHeaders(),
+    credentials: 'include',
+    body: payload,
+  })
+  const responsePayload = await readResponseData(response)
+
+  if (!response.ok || responsePayload?.success === false) {
+    const error = new Error(responsePayload.message || 'Failed to save event.')
+    error.status = response.status
+    throw error
+  }
+
+  return normalizeSingleEventPayload(responsePayload, 'All Philippines')
+}
+
+export const createCreatedEvent = async (payload) =>
+  submitCreatedEventRequest('/api/events/create', 'POST', payload)
+
+export const updateCreatedEvent = async (eventId, payload) =>
+  submitCreatedEventRequest(`/api/events/${encodeURIComponent(eventId)}`, 'PUT', payload)

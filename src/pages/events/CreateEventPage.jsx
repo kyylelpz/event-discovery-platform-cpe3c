@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { PrimaryButton, SecondaryButton } from '../../components/ui/Button.jsx'
 import { UploadIcon } from '../../components/ui/Icons.jsx'
 
-const initialForm = {
+const emptyForm = {
   title: '',
   description: '',
   date: '',
@@ -16,6 +16,25 @@ const initialForm = {
   imagePreview: '',
   imageName: '',
 }
+
+const buildFormValues = (initialValues = {}) => ({
+  ...emptyForm,
+  ...initialValues,
+  title: String(initialValues.title || '').trim(),
+  description: String(initialValues.description || ''),
+  date: String(initialValues.date || initialValues.startDate || '').trim(),
+  time: String(initialValues.time || initialValues.timeLabel || '').trim(),
+  venue: String(initialValues.venue || '').trim(),
+  address: String(initialValues.address || '').trim(),
+  googleMapsUrl: String(
+    initialValues.googleMapsUrl || initialValues.venueGoogleMapsUrl || '',
+  ).trim(),
+  province: String(initialValues.province || '').trim(),
+  category: String(initialValues.category || '').trim(),
+  imageFile: null,
+  imagePreview: String(initialValues.imagePreview || initialValues.image || '').trim(),
+  imageName: '',
+})
 
 const countWords = (value) => {
   const trimmed = value.trim()
@@ -36,7 +55,19 @@ const getCurrentDateTimeParts = () => {
   }
 }
 
-function CreateEventPage({ categories, locations, onCreateEvent }) {
+function CreateEventPage({
+  categories,
+  locations,
+  onSubmitEvent,
+  initialValues = null,
+  pageTitle = 'Create Event',
+  pageCopy = 'Share your event with the community.',
+  submitLabel = 'Create Event',
+  submittingLabel = 'Creating Event...',
+  submissionErrorMessage = 'Unable to create your event right now.',
+  onCancel,
+}) {
+  const initialForm = useMemo(() => buildFormValues(initialValues), [initialValues])
   const [formValues, setFormValues] = useState(initialForm)
   const [errors, setErrors] = useState({})
   const [hasSubmitted, setHasSubmitted] = useState(false)
@@ -46,6 +77,14 @@ function CreateEventPage({ categories, locations, onCreateEvent }) {
   const titleWordCount = countWords(formValues.title)
   const descriptionLength = formValues.description.trim().length
   const { minDate, currentTime } = getCurrentDateTimeParts()
+
+  useEffect(() => {
+    setFormValues(initialForm)
+    setErrors({})
+    setHasSubmitted(false)
+    setSubmissionError('')
+    setIsSubmitting(false)
+  }, [initialForm])
 
   const validateField = (field, value, currentValues) => {
     if (field === 'title') {
@@ -190,10 +229,10 @@ function CreateEventPage({ categories, locations, onCreateEvent }) {
     setIsSubmitting(true)
 
     try {
-      await onCreateEvent(formValues)
+      await onSubmitEvent(formValues)
       handleReset()
     } catch (submitError) {
-      setSubmissionError(submitError.message || 'Unable to create your event right now.')
+      setSubmissionError(submitError.message || submissionErrorMessage)
     } finally {
       setIsSubmitting(false)
     }
@@ -203,8 +242,8 @@ function CreateEventPage({ categories, locations, onCreateEvent }) {
     <div className="form-page">
       <section className="form-panel">
         <div className="form-page__heading">
-          <h1>Create Event</h1>
-          <p>Share your event with the community.</p>
+          <h1>{pageTitle}</h1>
+          <p>{pageCopy}</p>
         </div>
 
         <form className="event-form" onSubmit={handleSubmit}>
@@ -220,9 +259,11 @@ function CreateEventPage({ categories, locations, onCreateEvent }) {
             <span>
               {formValues.imageName
                 ? formValues.imageName
-                : 'Click to upload or drag and drop'}
+                : formValues.imagePreview
+                  ? 'Choose a new image to replace the current one'
+                  : 'Click to upload or drag and drop'}
             </span>
-            <small>PNG, JPG up to 10MB</small>
+            <small>PNG, JPG, WEBP, or GIF up to 8MB</small>
           </label>
 
           <label>
@@ -296,7 +337,9 @@ function CreateEventPage({ categories, locations, onCreateEvent }) {
           </div>
 
           <label>
-            <span>Venue / Address</span>
+            <span>
+              Venue / Address <em>*</em>
+            </span>
             <input
               required
               value={formValues.venue}
@@ -387,12 +430,12 @@ function CreateEventPage({ categories, locations, onCreateEvent }) {
               className="form-actions__primary"
               disabled={isSubmitting}
             >
-              {isSubmitting ? 'Creating Event...' : 'Create Event'}
+              {isSubmitting ? submittingLabel : submitLabel}
             </PrimaryButton>
             <SecondaryButton
               type="button"
               className="form-actions__secondary"
-              onClick={handleReset}
+              onClick={onCancel || handleReset}
               disabled={isSubmitting}
             >
               Cancel
