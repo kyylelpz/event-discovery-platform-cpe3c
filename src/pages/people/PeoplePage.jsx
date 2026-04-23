@@ -28,9 +28,6 @@ function PeoplePage({
           Find and connect with event organizers, attendees, and like-minded
           people in your community.
         </p>
-        <div className="people-hero__badge">
-          <span>Public profile details travel with each account</span>
-        </div>
       </section>
 
       {totalPages > 1 ? (

@@ -57,6 +57,9 @@ function Navbar({
 }) {
   const isActive = (target) =>
     currentPath === target || currentPath.startsWith(`${target}/`)
+  const isPeoplePage = isActive(routes.people)
+  const searchPlaceholder = isPeoplePage ? 'Search people...' : 'Search events...'
+  const searchAriaLabel = isPeoplePage ? 'Search people' : 'Search events'
 
   return (
     <header className="topbar">
@@ -72,7 +75,8 @@ function Navbar({
           <SearchBar
             value={searchTerm}
             onChange={onSearchChange}
-            placeholder="Search events..."
+            placeholder={searchPlaceholder}
+            ariaLabel={searchAriaLabel}
             icon={<SearchIcon />}
             results={searchResults}
             onSelectResult={onSearchSelect}
@@ -208,6 +212,9 @@ function MobileNavbar({
     currentPath === target || currentPath.startsWith(`${target}/`)
 
   const toggleState = isActive(routes.events) ? 'events' : currentPath
+  const isPeoplePage = isActive(routes.people)
+  const searchPlaceholder = isPeoplePage ? 'Search people...' : 'Search events...'
+  const searchAriaLabel = isPeoplePage ? 'Search people' : 'Search events'
 
   return (
     <details className="topbar__mobile" open={false}>
@@ -235,7 +242,8 @@ function MobileNavbar({
         <SearchBar
           value={searchTerm}
           onChange={onSearchChange}
-          placeholder="Search events..."
+          placeholder={searchPlaceholder}
+          ariaLabel={searchAriaLabel}
           icon={<SearchIcon />}
           results={searchResults}
           onSelectResult={onSearchSelect}
@@ -379,10 +387,6 @@ function ProfileMenu({
         }}
       >
         <UserAvatar name={displayName} imageUrl={currentUser.profilePic} size="sm" />
-        <div className="topbar__account-copy">
-          <strong>{displayName}</strong>
-          <span>{currentUser.email}</span>
-        </div>
       </button>
 
       <button

@@ -17,6 +17,7 @@ import {
   formatEventSchedule,
   getResponsiveImageProps,
 } from '../../utils/formatters.js'
+import { routes } from '../../utils/routing.js'
 
 function EventDetailPage({
   event,
@@ -41,7 +42,7 @@ function EventDetailPage({
   const detailRouteId = String(event?.eventId || event?.id || '').trim()
   const shareUrl =
     typeof window !== 'undefined' && detailRouteId
-      ? new URL(`/events/${detailRouteId}`, window.location.origin).toString()
+      ? new URL(routes.eventDetail(detailRouteId), window.location.origin).toString()
       : ''
   const handleImageError = (eventObject) => {
     if (!event.fallbackImage || eventObject.currentTarget.dataset.fallbackApplied === 'true') {

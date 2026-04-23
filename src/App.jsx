@@ -23,6 +23,7 @@ import { API_BASE_URL } from './services/apiBase.js'
 import {
   fetchCreatedEventsByCurrentUser,
   fetchCreatedEventsByUsername,
+  fetchEventById,
   loadEventsByLocation,
 } from './services/eventService.js'
 import {
@@ -302,6 +303,44 @@ const compareCommunityUsers = (leftUser, rightUser) => {
   return String(leftUser.name || '').localeCompare(String(rightUser.name || ''))
 }
 
+const scorePersonSearchRelevance = (user, normalizedSearch) => {
+  if (!normalizedSearch) {
+    return 0
+  }
+
+  let score = 0
+  const nameText = String(user.name || '').toLowerCase()
+  const usernameText = String(user.username || '').toLowerCase()
+  const locationText = String(user.location || '').toLowerCase()
+  const bioText = String(user.bio || '').toLowerCase()
+  const interestsText = Array.isArray(user.interests)
+    ? user.interests.join(' ').toLowerCase()
+    : ''
+  const searchableText = [nameText, usernameText, locationText, bioText, interestsText].join(' ')
+
+  if (nameText.includes(normalizedSearch)) {
+    score += 8
+  }
+
+  if (usernameText.includes(normalizedSearch)) {
+    score += 7
+  }
+
+  if (locationText.includes(normalizedSearch)) {
+    score += 4
+  }
+
+  if (interestsText.includes(normalizedSearch)) {
+    score += 3
+  }
+
+  if (searchableText.includes(normalizedSearch)) {
+    score += 2
+  }
+
+  return score
+}
+
 const eventHasStartedAlready = (event) => {
   const eventDate = parseEventDate(event?.startDate)
 
@@ -483,6 +522,8 @@ function App() {
   const [featuredShuffleSeed, setFeaturedShuffleSeed] = useState(
     () => `${Date.now()}:${Math.random()}`,
   )
+  const [eventDetailRecord, setEventDetailRecord] = useState(null)
+  const [isEventDetailLoading, setIsEventDetailLoading] = useState(false)
   const deferredSearchTerm = useDeferredValue(searchTerm)
   const currentUserRef = useRef(currentUser)
   const recentAuthSuccessAtRef = useRef(0)
@@ -817,7 +858,7 @@ function App() {
     }
 
     setShowInterests(false)
-    navigate(routes.profile('me'))
+    navigate(routes.events)
   }
 
   // Called after interests are picked
@@ -994,15 +1035,9 @@ function App() {
       currentUserInterests,
     ],
   )
-  const totalPeoplePages = Math.max(1, Math.ceil(connectPeople.length / PEOPLE_PER_PAGE))
-  const activePeoplePage = Math.min(currentPeoplePage, totalPeoplePages)
-  const paginatedPeople = connectPeople.slice(
-    (activePeoplePage - 1) * PEOPLE_PER_PAGE,
-    activePeoplePage * PEOPLE_PER_PAGE,
-  )
-
   const selectedCalendarDate =
     route.key === 'events-date' ? parseEventDate(route.params?.dateKey) : null
+  const isPeopleSearchMode = route.key === 'people'
   const allEvents = mergeEvents(
     savedInteractionEvents,
     likedInteractionEvents,
@@ -1014,6 +1049,30 @@ function App() {
   ).filter((event) => !eventHasStartedAlready(event))
   const normalizedSearch = deferredSearchTerm.trim().toLowerCase()
   const isCalendarDateMode = Boolean(selectedCalendarDate)
+  const filteredConnectPeople = useMemo(() => {
+    if (!isPeopleSearchMode || !normalizedSearch) {
+      return connectPeople
+    }
+
+    return connectPeople.filter((person) =>
+      [
+        person.name,
+        person.username,
+        person.location,
+        person.bio,
+        ...(Array.isArray(person.interests) ? person.interests : []),
+      ]
+        .join(' ')
+        .toLowerCase()
+        .includes(normalizedSearch),
+    )
+  }, [connectPeople, isPeopleSearchMode, normalizedSearch])
+  const totalPeoplePages = Math.max(1, Math.ceil(filteredConnectPeople.length / PEOPLE_PER_PAGE))
+  const activePeoplePage = Math.min(currentPeoplePage, totalPeoplePages)
+  const paginatedPeople = filteredConnectPeople.slice(
+    (activePeoplePage - 1) * PEOPLE_PER_PAGE,
+    activePeoplePage * PEOPLE_PER_PAGE,
+  )
   const availableDateCounts = useMemo(() => {
     return allEvents.reduce((counts, event) => {
       getEventDateKeys(event).forEach((dateKey) => {
@@ -1123,18 +1182,38 @@ function App() {
 
   const searchResults = !normalizedSearch
     ? []
-    : [...filteredEvents]
-        .sort((leftEvent, rightEvent) => {
-          const relevanceDifference =
-            scoreEventRelevance(rightEvent) - scoreEventRelevance(leftEvent)
+    : isPeopleSearchMode
+      ? [...filteredConnectPeople]
+          .sort((leftUser, rightUser) => {
+            const relevanceDifference =
+              scorePersonSearchRelevance(rightUser, normalizedSearch) -
+              scorePersonSearchRelevance(leftUser, normalizedSearch)
 
-          if (relevanceDifference !== 0) {
-            return relevanceDifference
-          }
+            if (relevanceDifference !== 0) {
+              return relevanceDifference
+            }
 
-          return compareByNearestDate(leftEvent, rightEvent)
-        })
-        .slice(0, 6)
+            return compareCommunityUsers(leftUser, rightUser)
+          })
+          .slice(0, 6)
+          .map((person) => ({
+            id: person.username || person.id,
+            title: person.name || `@${person.username}`,
+            location: `@${person.username}${person.location ? ` · ${person.location}` : ''}`,
+            username: person.username,
+          }))
+      : [...filteredEvents]
+          .sort((leftEvent, rightEvent) => {
+            const relevanceDifference =
+              scoreEventRelevance(rightEvent) - scoreEventRelevance(leftEvent)
+
+            if (relevanceDifference !== 0) {
+              return relevanceDifference
+            }
+
+            return compareByNearestDate(leftEvent, rightEvent)
+          })
+          .slice(0, 6)
 
   const showSearchResults = isSearchFocused && normalizedSearch.length > 0
   const currentEvent = allEvents.find((event) => {
@@ -1145,10 +1224,65 @@ function App() {
       String(event?.eventId || '').trim() === routeEventId
     )
   })
+  const resolvedEventDetail = currentEvent || eventDetailRecord
   const isViewingCurrentUserProfile =
     route.key === 'profile' &&
     currentUser &&
     ['me', currentUserProfileSlug].includes(route.params?.username)
+
+  useEffect(() => {
+    if (route.key !== 'event-detail') {
+      setEventDetailRecord(null)
+      setIsEventDetailLoading(false)
+      return undefined
+    }
+
+    const routeEventId = String(route.params?.eventId || '').trim()
+
+    if (!routeEventId) {
+      setEventDetailRecord(null)
+      setIsEventDetailLoading(false)
+      return undefined
+    }
+
+    if (currentEvent) {
+      setEventDetailRecord(currentEvent)
+      setIsEventDetailLoading(false)
+      return undefined
+    }
+
+    let isActive = true
+    setIsEventDetailLoading(true)
+
+    const loadEventDetail = async () => {
+      try {
+        const event = await fetchEventById(routeEventId)
+
+        if (!isActive) {
+          return
+        }
+
+        setEventDetailRecord(event)
+      } catch (error) {
+        if (!isActive) {
+          return
+        }
+
+        console.warn('Unable to load the selected event detail:', error)
+        setEventDetailRecord(null)
+      } finally {
+        if (isActive) {
+          setIsEventDetailLoading(false)
+        }
+      }
+    }
+
+    void loadEventDetail()
+
+    return () => {
+      isActive = false
+    }
+  }, [route.key, route.params?.eventId, currentEvent])
 
   useEffect(() => {
     if (route.key !== 'profile') {
@@ -1386,10 +1520,11 @@ function App() {
   const attendingByUser = isViewingCurrentUserProfile
     ? attendingInteractionEvents
     : profileAttendingEvents
-  const relatedEvents = currentEvent
+  const relatedEvents = resolvedEventDetail
     ? allEvents.filter((e) =>
-        e.id !== currentEvent.id &&
-        (e.category === currentEvent.category || e.province === currentEvent.province)
+        e.id !== resolvedEventDetail.id &&
+        (e.category === resolvedEventDetail.category ||
+          e.province === resolvedEventDetail.province)
       )
     : []
 
@@ -1535,7 +1670,7 @@ function App() {
           fallbackImage,
           mapLabel,
           mapUrl,
-          source: 'community',
+          source: 'created',
         }
 
         setCreatedEvents((prev) => [newEvent, ...prev])
@@ -1577,6 +1712,12 @@ function App() {
     searchResults,
     onSearchSelect: (event) => {
       setIsSearchFocused(false)
+
+      if (isPeopleSearchMode && event.username) {
+        navigate(routes.profile(event.username))
+        return
+      }
+
       navigate(routes.eventDetail(event.id))
     },
     onSearchFocus: () => setIsSearchFocused(true),
@@ -1645,22 +1786,54 @@ function App() {
     ) : (
       <SignInPage onAuthSuccess={handleAuthSuccess} />
     )
-  } else if (route.key === 'event-detail' && currentEvent) {
-    page = (
-      <EventDetailPage
-        event={currentEvent}
-        relatedEvents={relatedEvents.slice(0, 3)}
-        onNavigate={navigate}
-        {...sharedPageProps}
-      />
-    )
+  } else if (route.key === 'event-detail') {
+    if (isEventDetailLoading && !resolvedEventDetail) {
+      page = (
+        <div className="page-stack page-stack--detail">
+          <section className="detail-hero">
+            <div className="detail-layout">
+              <div className="detail-layout__main">
+                <div className="section-block__heading">
+                  <h2>Loading event</h2>
+                  <p>Pulling the latest event details from the catalog.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      )
+    } else if (!resolvedEventDetail) {
+      page = (
+        <div className="page-stack page-stack--detail">
+          <section className="detail-hero">
+            <div className="detail-layout">
+              <div className="detail-layout__main">
+                <div className="section-block__heading">
+                  <h2>Event not found</h2>
+                  <p>This event could not be found in the stored catalog.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      )
+    } else {
+      page = (
+        <EventDetailPage
+          event={resolvedEventDetail}
+          relatedEvents={relatedEvents.slice(0, 3)}
+          onNavigate={navigate}
+          {...sharedPageProps}
+        />
+      )
+    }
   } else if (route.key === 'people') {
     page = (
       <PeoplePage
         people={paginatedPeople}
         currentPage={activePeoplePage}
         totalPages={totalPeoplePages}
-        totalPeople={connectPeople.length}
+        totalPeople={filteredConnectPeople.length}
         onPageChange={setCurrentPeoplePage}
         onOpenProfile={(username) => navigate(routes.profile(username))}
         onToggleFollow={handleToggleFollow}

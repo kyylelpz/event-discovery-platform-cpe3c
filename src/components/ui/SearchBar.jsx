@@ -2,6 +2,7 @@ function SearchBar({
   value,
   onChange,
   placeholder,
+  ariaLabel = 'Search',
   icon,
   results = [],
   onSelectResult,
@@ -11,7 +12,7 @@ function SearchBar({
 }) {
   return (
     <label className="searchbar">
-      <span className="sr-only">Search events</span>
+      <span className="sr-only">{ariaLabel}</span>
       {icon && <span className="searchbar__icon">{icon}</span>}
       <input
         type="search"

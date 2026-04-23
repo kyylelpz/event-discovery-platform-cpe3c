@@ -474,6 +474,16 @@ const requestEventCollection = async (path, fallbackLocation, options = {}) => {
   return normalizeEventPayload(payload, fallbackLocation)
 }
 
+const normalizeSingleEventPayload = (payload, fallbackLocation) => {
+  const eventRecord = payload?.data || payload?.event || null
+
+  if (!eventRecord || typeof eventRecord !== 'object') {
+    throw new Error('Malformed event payload')
+  }
+
+  return normalizeEventRecord(eventRecord, fallbackLocation)
+}
+
 export const loadEventsByLocation = async (location) => {
   try {
     return {
@@ -502,3 +512,21 @@ export const fetchCreatedEventsByUsername = async (username) =>
     `/api/events/created/by/${encodeURIComponent(username)}`,
     'All Philippines',
   )
+
+export const fetchEventById = async (eventId) => {
+  const response = await fetch(`${API_BASE_URL}/api/events/${encodeURIComponent(eventId)}`, {
+    credentials: 'include',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+  const payload = await readResponseData(response)
+
+  if (!response.ok) {
+    const error = new Error(payload.message || 'Failed to load event details')
+    error.status = response.status
+    throw error
+  }
+
+  return normalizeSingleEventPayload(payload, 'All Philippines')
+}
