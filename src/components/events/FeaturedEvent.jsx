@@ -15,7 +15,10 @@ import CategoryTag from '../ui/CategoryTag.jsx'
 import { formatEventSchedule, getResponsiveImageProps } from '../../utils/formatters.js'
 
 const FEATURED_EVENT_ROTATION_INTERVAL_MS = 5000
-const FEATURED_EVENT_TITLE_MAX_LENGTH = 68
+const FEATURED_EVENT_TITLE_MAX_LENGTH = 42
+const FEATURED_EVENT_DESCRIPTION_MAX_LENGTH = 88
+const FEATURED_EVENT_SCHEDULE_MAX_LENGTH = 54
+const FEATURED_EVENT_LOCATION_MAX_LENGTH = 48
 
 const truncateText = (value, maxLength) => {
   const normalizedValue = String(value || '').trim()
@@ -163,6 +166,18 @@ function FeaturedEvent({
             const slideEvent = slide.event
             const scheduleLabel = formatEventSchedule(slideEvent)
             const featuredTitle = truncateText(slideEvent.title, FEATURED_EVENT_TITLE_MAX_LENGTH)
+            const featuredDescription = truncateText(
+              slideEvent.description,
+              FEATURED_EVENT_DESCRIPTION_MAX_LENGTH,
+            )
+            const featuredSchedule = truncateText(
+              scheduleLabel,
+              FEATURED_EVENT_SCHEDULE_MAX_LENGTH,
+            )
+            const featuredLocation = truncateText(
+              slideEvent.location,
+              FEATURED_EVENT_LOCATION_MAX_LENGTH,
+            )
             const featuredImage = getResponsiveImageProps(slideEvent.image)
             const locationHref = slideEvent.mapUrl
             const eventId = String(slideEvent?.id || '').trim()
@@ -176,21 +191,25 @@ function FeaturedEvent({
                   <CategoryTag>{slideEvent.category}</CategoryTag>
                   <div className="featured-event__copy">
                     <span className="featured-event__eyebrow">Featured Event</span>
-                    <h1 title={slideEvent.title}>{featuredTitle}</h1>
-                    <p>{slideEvent.description}</p>
+                    <div className="featured-event__field-shell featured-event__field-shell--title">
+                      <h1 title={slideEvent.title}>{featuredTitle}</h1>
+                    </div>
+                    <div className="featured-event__field-shell featured-event__field-shell--description">
+                      <p title={slideEvent.description}>{featuredDescription}</p>
+                    </div>
                   </div>
 
                   <div className="featured-event__meta">
-                    <div className="event-meta-item">
+                    <div className="event-meta-item featured-event__meta-item-shell">
                       <CalendarIcon />
                       <span
                         className="event-meta-item__content featured-event__meta-text"
                         title={scheduleLabel}
                       >
-                        {scheduleLabel}
+                        {featuredSchedule}
                       </span>
                     </div>
-                    <div className="event-meta-item">
+                    <div className="event-meta-item featured-event__meta-item-shell">
                       <MapPinIcon />
                       {locationHref ? (
                         <a
@@ -200,14 +219,14 @@ function FeaturedEvent({
                           rel="noreferrer"
                           title={slideEvent.location}
                         >
-                          {slideEvent.location}
+                          {featuredLocation}
                         </a>
                       ) : (
                         <span
                           className="event-meta-item__content featured-event__meta-text"
                           title={slideEvent.location}
                         >
-                          {slideEvent.location}
+                          {featuredLocation}
                         </span>
                       )}
                     </div>
