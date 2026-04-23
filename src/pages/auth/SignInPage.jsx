@@ -6,6 +6,8 @@ import {
   getEmailValidationError,
   getPasswordValidationChecks,
   getPasswordValidationErrors,
+  requestPasswordReset,
+  resetPassword,
   signIn,
   signUp,
   verifyEmailCode,
@@ -351,19 +353,20 @@ function SignInPage({ onAuthSuccess }) {
 
   const isSignUp = mode === 'signup'
   const isVerify = mode === 'verify'
+  const isPasswordResetRequest = mode === 'forgot-password'
+  const isPasswordResetConfirm = mode === 'reset-password'
+  const isPasswordResetFlow = isPasswordResetRequest || isPasswordResetConfirm
   const passwordChecks = getPasswordValidationChecks(password)
   const confirmPasswordMatches = password.length > 0 && password === confirmPassword
   const shouldShowChecklistState =
     hasAttemptedSubmit || password.length > 0 || confirmPassword.length > 0
 
-  const getSignupFormErrors = () => {
+  const getPasswordSetupErrors = ({ includeEmail = false } = {}) => {
     const nextErrors = []
     const normalizedEmail = email.trim().toLowerCase()
     const trimmedPassword = password.trim()
 
-    if (!normalizedEmail) {
-      nextErrors.push('Email is required.')
-    } else {
+    if (includeEmail) {
       const emailError = getEmailValidationError(normalizedEmail)
 
       if (emailError) {
@@ -422,9 +425,95 @@ function SignInPage({ onAuthSuccess }) {
 
     const normalizedEmail = email.trim().toLowerCase()
     const trimmedPassword = password.trim()
+    const emailError = getEmailValidationError(normalizedEmail)
+
+    if (isPasswordResetRequest) {
+      if (emailError) {
+        setErrors([emailError])
+        return
+      }
+
+      setIsLoading(true)
+      try {
+        const result = await requestPasswordReset(normalizedEmail)
+        setMode('reset-password')
+        setVerificationCode('')
+        setPassword('')
+        setConfirmPassword('')
+        setHasAttemptedSubmit(false)
+        setStatusMessage(result.message || 'Check your email for the password reset code.')
+      } catch (err) {
+        if (err?.data?.verificationRequired) {
+          setMode('verify')
+          setVerificationCode('')
+          setPassword('')
+          setConfirmPassword('')
+          setHasAttemptedSubmit(false)
+          setStatusMessage(err.message || 'Verify your email before resetting your password.')
+          return
+        }
+
+        setErrors([err.message || 'Unable to send a password reset code right now.'])
+      } finally {
+        setIsLoading(false)
+      }
+
+      return
+    }
+
+    if (isPasswordResetConfirm) {
+      const normalizedResetCode = normalizeVerificationCodeInput(verificationCode)
+      const resetErrors = []
+
+      if (emailError) {
+        resetErrors.push(emailError)
+      }
+
+      if (normalizedResetCode.length !== 6) {
+        resetErrors.push('Enter the 6-digit reset code.')
+      }
+
+      resetErrors.push(...getPasswordSetupErrors())
+
+      if (resetErrors.length) {
+        setErrors([...new Set(resetErrors)])
+        return
+      }
+
+      setIsLoading(true)
+      try {
+        const result = await resetPassword({
+          email: normalizedEmail,
+          code: normalizedResetCode,
+          password,
+        })
+        setMode('signin')
+        setVerificationCode('')
+        setPassword('')
+        setConfirmPassword('')
+        setHasAttemptedSubmit(false)
+        setStatusMessage(result.message || 'Password updated. Sign in with your new password.')
+      } catch (err) {
+        if (err?.data?.verificationRequired) {
+          setMode('verify')
+          setVerificationCode('')
+          setPassword('')
+          setConfirmPassword('')
+          setHasAttemptedSubmit(false)
+          setStatusMessage(err.message || 'Verify your email before resetting your password.')
+          return
+        }
+
+        setErrors([err.message || 'Unable to reset your password right now.'])
+      } finally {
+        setIsLoading(false)
+      }
+
+      return
+    }
 
     if (isSignUp) {
-      const signupErrors = getSignupFormErrors()
+      const signupErrors = getPasswordSetupErrors({ includeEmail: true })
 
       if (signupErrors.length) {
         setErrors(signupErrors)
@@ -436,8 +525,6 @@ function SignInPage({ onAuthSuccess }) {
       setErrors(['Fill in both fields to continue'])
       return
     }
-
-    const emailError = getEmailValidationError(normalizedEmail)
 
     if (emailError) {
       setErrors([emailError])
@@ -489,6 +576,8 @@ function SignInPage({ onAuthSuccess }) {
     setPassword('')
     setConfirmPassword('')
     setVerificationCode('')
+    setShowPassword(false)
+    setShowConfirm(false)
   }
 
   const handleResendVerification = async () => {
@@ -506,6 +595,36 @@ function SignInPage({ onAuthSuccess }) {
       setStatusMessage(result.message || 'A new verification email was sent.')
     } catch (error) {
       setErrors([error.message || 'Unable to resend the verification code right now.'])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleResendPasswordReset = async () => {
+    setErrors([])
+    setStatusMessage('')
+
+    if (!email.trim()) {
+      setErrors(['Enter your email first so we know where to send the reset code.'])
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const result = await requestPasswordReset(email)
+      setStatusMessage(result.message || 'A new password reset code is ready.')
+    } catch (error) {
+      if (error?.data?.verificationRequired) {
+        setMode('verify')
+        setVerificationCode('')
+        setPassword('')
+        setConfirmPassword('')
+        setHasAttemptedSubmit(false)
+        setStatusMessage(error.message || 'Verify your email before resetting your password.')
+        return
+      }
+
+      setErrors([error.message || 'Unable to resend the reset code right now.'])
     } finally {
       setIsLoading(false)
     }
@@ -529,6 +648,10 @@ function SignInPage({ onAuthSuccess }) {
             <h1>
               {isVerify
                 ? 'Verify email'
+                : isPasswordResetRequest
+                  ? 'Reset password'
+                  : isPasswordResetConfirm
+                    ? 'Set a new password'
                 : isSignUp
                   ? 'Create account'
                   : 'Welcome back'}
@@ -536,9 +659,13 @@ function SignInPage({ onAuthSuccess }) {
             <p>
               {isVerify
                 ? 'Enter the verification code for your new account to finish signing in.'
+                : isPasswordResetRequest
+                  ? 'Enter your email and we will send a password reset code.'
+                  : isPasswordResetConfirm
+                    ? 'Enter the reset code and choose a strong new password.'
                 : isSignUp
-                ? 'Join to discover and save events near you.'
-                : 'Pick up where you left off. Your saved events are waiting.'}
+                  ? 'Join to discover and save events near you.'
+                  : 'Pick up where you left off. Your saved events are waiting.'}
             </p>
           </header>
 
@@ -552,6 +679,11 @@ function SignInPage({ onAuthSuccess }) {
             {isVerify ? (
               <button className="auth-tab active" type="button">
                 Verify
+              </button>
+            ) : null}
+            {isPasswordResetFlow ? (
+              <button className="auth-tab active" type="button">
+                Reset
               </button>
             ) : null}
           </div>
@@ -592,16 +724,81 @@ function SignInPage({ onAuthSuccess }) {
               />
             </div>
 
-            {!isVerify ? (
+            {isVerify ? (
+              <div className="field-group">
+                <div className="field-label-row">
+                  <label htmlFor="verificationCode">Verification code</label>
+                  <button type="button" className="forgot-link" onClick={handleResendVerification}>
+                    Resend code
+                  </button>
+                </div>
+                <input
+                  id="verificationCode"
+                  value={verificationCode}
+                  onChange={(event) => {
+                    setVerificationCode(normalizeVerificationCodeInput(event.target.value))
+                    if (errors.length) {
+                      setErrors([])
+                    }
+                  }}
+                  placeholder="Enter the 6-digit code"
+                  inputMode="numeric"
+                  maxLength={6}
+                  pattern="[0-9]{6}"
+                  autoComplete="one-time-code"
+                />
+                <p className="field-note">
+                  Check the verification message for your new account, then enter the code here.
+                </p>
+              </div>
+            ) : isPasswordResetRequest ? (
+              <div className="field-group">
+                <p className="field-note">
+                  We will send a 6-digit reset code to this email if the account can reset its password here.
+                </p>
+              </div>
+            ) : (
               <>
+                {isPasswordResetConfirm ? (
+                  <div className="field-group">
+                    <div className="field-label-row">
+                      <label htmlFor="verificationCode">Reset code</label>
+                      <button type="button" className="forgot-link" onClick={handleResendPasswordReset}>
+                        Resend code
+                      </button>
+                    </div>
+                    <input
+                      id="verificationCode"
+                      value={verificationCode}
+                      onChange={(event) => {
+                        setVerificationCode(normalizeVerificationCodeInput(event.target.value))
+                        if (errors.length) {
+                          setErrors([])
+                        }
+                      }}
+                      placeholder="Enter the 6-digit reset code"
+                      inputMode="numeric"
+                      maxLength={6}
+                      pattern="[0-9]{6}"
+                      autoComplete="one-time-code"
+                    />
+                  </div>
+                ) : null}
+
                 <div className="field-group">
                   <div className="field-label-row">
-                    <label htmlFor="password">Password</label>
-                    {!isSignUp && (
-                      <button type="button" className="forgot-link" onClick={() => alert('Forgot password flow here')}>
+                    <label htmlFor="password">
+                      {isPasswordResetConfirm ? 'New Password' : 'Password'}
+                    </label>
+                    {!isSignUp && !isPasswordResetConfirm ? (
+                      <button
+                        type="button"
+                        className="forgot-link"
+                        onClick={() => switchMode('forgot-password')}
+                      >
                         Forgot password?
                       </button>
-                    )}
+                    ) : null}
                   </div>
                   <div className="input-wrapper">
                     <input
@@ -615,14 +812,14 @@ function SignInPage({ onAuthSuccess }) {
                         }
                       }}
                       placeholder="........"
-                      autoComplete={isSignUp ? 'new-password' : 'current-password'}
+                      autoComplete={isSignUp || isPasswordResetConfirm ? 'new-password' : 'current-password'}
                       className="has-toggle"
                     />
                     <button type="button" className="show-password-btn" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
                       <EyeIcon open={showPassword} />
                     </button>
                   </div>
-                  {isSignUp ? (
+                  {isSignUp || isPasswordResetConfirm ? (
                     <ul className="password-checklist" aria-label="Password requirements">
                       {passwordChecks.map((check) => (
                         <li
@@ -649,7 +846,7 @@ function SignInPage({ onAuthSuccess }) {
                   ) : null}
                 </div>
 
-                {isSignUp ? (
+                {isSignUp || isPasswordResetConfirm ? (
                   <div className="field-group">
                     <label htmlFor="confirmPassword">Confirm Password</label>
                     <div className="input-wrapper">
@@ -692,46 +889,27 @@ function SignInPage({ onAuthSuccess }) {
                   </div>
                 ) : null}
               </>
-            ) : (
-              <div className="field-group">
-                <div className="field-label-row">
-                  <label htmlFor="verificationCode">Verification code</label>
-                  <button type="button" className="forgot-link" onClick={handleResendVerification}>
-                    Resend code
-                  </button>
-                </div>
-                <input
-                  id="verificationCode"
-                  value={verificationCode}
-                  onChange={(event) => {
-                    setVerificationCode(normalizeVerificationCodeInput(event.target.value))
-                    if (errors.length) {
-                      setErrors([])
-                    }
-                  }}
-                  placeholder="Enter the 6-digit code"
-                  inputMode="numeric"
-                  maxLength={6}
-                  pattern="[0-9]{6}"
-                  autoComplete="one-time-code"
-                />
-                <p className="field-note">
-                  Check the verification message for your new account, then enter the code here.
-                </p>
-              </div>
             )}
 
             <PrimaryButton type="submit" disabled={isLoading}>
               {isLoading
                 ? isVerify
                   ? 'Verifying...'
-                  : (isSignUp ? 'Creating account...' : 'Signing in...')
+                  : isPasswordResetRequest
+                    ? 'Sending code...'
+                    : isPasswordResetConfirm
+                      ? 'Updating password...'
+                      : (isSignUp ? 'Creating account...' : 'Signing in...')
                 : isVerify
                   ? 'Verify email'
-                  : (isSignUp ? 'Create account' : 'Continue')}
+                  : isPasswordResetRequest
+                    ? 'Send reset code'
+                    : isPasswordResetConfirm
+                      ? 'Update password'
+                      : (isSignUp ? 'Create account' : 'Continue')}
             </PrimaryButton>
 
-            {!isVerify ? (
+            {!isVerify && !isPasswordResetFlow ? (
               <>
                 <div className="divider">or</div>
 
@@ -743,11 +921,18 @@ function SignInPage({ onAuthSuccess }) {
             ) : null}
           </form>
 
-          {!isVerify ? (
+          {!isVerify && !isPasswordResetFlow ? (
             <div className="auth-footer">
               {isSignUp ? 'Already have an account?' : "Don't have an account?"}
               <button type="button" onClick={() => switchMode(isSignUp ? 'signin' : 'signup')}>
                 {isSignUp ? 'Sign in' : 'Sign up'}
+              </button>
+            </div>
+          ) : isPasswordResetFlow ? (
+            <div className="auth-footer">
+              Remembered your password?
+              <button type="button" onClick={() => switchMode('signin')}>
+                Back to sign in
               </button>
             </div>
           ) : (
