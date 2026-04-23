@@ -12,7 +12,7 @@ import {
   UsersIcon,
 } from '../../components/ui/Icons.jsx'
 import { formatMemberSince } from '../../services/profileService.js'
-import { normalizeProfilePrivacy } from '../../utils/privacy.js'
+import { normalizeProfilePrivacy, resolveProfilePrivacy } from '../../utils/privacy.js'
 import { getUserDisplayName, getUserSecondaryLabel } from '../../utils/userDisplay.js'
 
 const privacyOptions = [
@@ -81,7 +81,7 @@ function ProfilePage({
   const displayName = getUserDisplayName(user)
   const secondaryLabel = getUserSecondaryLabel(user)
   const locationLabel = user.location || 'Philippines'
-  const privacy = normalizeProfilePrivacy(user.privacy)
+  const privacy = resolveProfilePrivacy(user)
   const isEmailHidden = !isCurrentUser && privacy.hideEmail
   const isContactHidden = !isCurrentUser && privacy.hideContact
   const isFollowersHidden = !isCurrentUser && privacy.hideFollowers

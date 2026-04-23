@@ -60,7 +60,11 @@ import {
   matchesDateFilter,
   parseEventDate,
 } from './utils/formatters.js'
-import { normalizeProfilePrivacy } from './utils/privacy.js'
+import {
+  normalizeProfilePrivacy,
+  resolveProfilePrivacy,
+  saveStoredProfilePrivacy,
+} from './utils/privacy.js'
 import { normalizeRoutePath, resolveRoute, routes, slugify } from './utils/routing.js'
 
 const EVENTS_PER_PAGE = 15
@@ -588,6 +592,14 @@ function App() {
 
   useEffect(() => {
     currentUserRef.current = currentUser
+  }, [currentUser])
+
+  useEffect(() => {
+    if (!currentUser?.privacy) {
+      return
+    }
+
+    saveStoredProfilePrivacy(currentUser, currentUser.privacy)
   }, [currentUser])
 
   useEffect(() => {
@@ -1146,7 +1158,7 @@ function App() {
             }
           }
 
-          const privacy = normalizeProfilePrivacy(user.privacy)
+          const privacy = resolveProfilePrivacy(user)
 
           return {
             ...user,
