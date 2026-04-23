@@ -15,6 +15,17 @@ import CategoryTag from '../ui/CategoryTag.jsx'
 import { formatEventSchedule, getResponsiveImageProps } from '../../utils/formatters.js'
 
 const FEATURED_EVENT_ROTATION_INTERVAL_MS = 5000
+const FEATURED_EVENT_TITLE_MAX_LENGTH = 68
+
+const truncateText = (value, maxLength) => {
+  const normalizedValue = String(value || '').trim()
+
+  if (normalizedValue.length <= maxLength) {
+    return normalizedValue
+  }
+
+  return `${normalizedValue.slice(0, maxLength).trimEnd()}...`
+}
 
 function FeaturedEvent({
   events,
@@ -151,6 +162,7 @@ function FeaturedEvent({
           {slides.map((slide) => {
             const slideEvent = slide.event
             const scheduleLabel = formatEventSchedule(slideEvent)
+            const featuredTitle = truncateText(slideEvent.title, FEATURED_EVENT_TITLE_MAX_LENGTH)
             const featuredImage = getResponsiveImageProps(slideEvent.image)
             const locationHref = slideEvent.mapUrl
             const eventId = String(slideEvent?.id || '').trim()
@@ -164,28 +176,39 @@ function FeaturedEvent({
                   <CategoryTag>{slideEvent.category}</CategoryTag>
                   <div className="featured-event__copy">
                     <span className="featured-event__eyebrow">Featured Event</span>
-                    <h1>{slideEvent.title}</h1>
+                    <h1 title={slideEvent.title}>{featuredTitle}</h1>
                     <p>{slideEvent.description}</p>
                   </div>
 
                   <div className="featured-event__meta">
                     <div className="event-meta-item">
                       <CalendarIcon />
-                      <span className="event-meta-item__content">{scheduleLabel}</span>
+                      <span
+                        className="event-meta-item__content featured-event__meta-text"
+                        title={scheduleLabel}
+                      >
+                        {scheduleLabel}
+                      </span>
                     </div>
                     <div className="event-meta-item">
                       <MapPinIcon />
                       {locationHref ? (
                         <a
-                          className="event-meta-item__content featured-event__location-link"
+                          className="event-meta-item__content featured-event__location-link featured-event__meta-text"
                           href={locationHref}
                           target="_blank"
                           rel="noreferrer"
+                          title={slideEvent.location}
                         >
                           {slideEvent.location}
                         </a>
                       ) : (
-                        <span className="event-meta-item__content">{slideEvent.location}</span>
+                        <span
+                          className="event-meta-item__content featured-event__meta-text"
+                          title={slideEvent.location}
+                        >
+                          {slideEvent.location}
+                        </span>
                       )}
                     </div>
                     {slideEvent.venueRating > 0 ? (
