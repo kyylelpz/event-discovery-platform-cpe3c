@@ -1,7 +1,7 @@
 const footerLinks = {
   'Use Eventcinity': [
     { label: 'Create Events', path: '/events/create' },
-    { label: 'Upcoming Events', path: '/events' },
+    { label: 'Upcoming Events', path: '/events', sectionId: 'upcoming-events' },
     { label: 'Connect with People', path: '/people' },
   ],
   'Plan Events': [
@@ -16,7 +16,7 @@ const footerLinks = {
   ],
 }
 
-function SiteFooter({ onNavigate }) {
+function SiteFooter({ onNavigate, onNavigateToDashboardSection }) {
   return (
     <footer className="site-footer">
       <div className="footer-grid">
@@ -34,7 +34,14 @@ function SiteFooter({ onNavigate }) {
                   <button
                     type="button"
                     className="footer-link"
-                    onClick={() => onNavigate(link.path)}
+                    onClick={() => {
+                      if (link.sectionId && onNavigateToDashboardSection) {
+                        onNavigateToDashboardSection(link.sectionId)
+                        return
+                      }
+
+                      onNavigate(link.path)
+                    }}
                   >
                     {link.label}
                   </button>

@@ -24,7 +24,7 @@ function EventDiscoveryPage({
   const isCalendarDateMode = Boolean(selectedCalendarDate)
 
   return (
-    <div className="page-stack">
+    <div id="dashboard-top" className="page-stack">
       {!isCalendarDateMode ? (
         <FeaturedEvent
           events={featuredEvents}
@@ -46,7 +46,7 @@ function EventDiscoveryPage({
         </section>
       ) : null}
 
-      <section className="section-block">
+      <section id="upcoming-events" className="section-block">
         <div className="section-block__topline">
           <div className="section-block__topline-copy">
             <h2>
