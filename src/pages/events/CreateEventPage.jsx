@@ -17,24 +17,31 @@ const emptyForm = {
   imageName: '',
 }
 
-const buildFormValues = (initialValues = {}) => ({
-  ...emptyForm,
-  ...initialValues,
-  title: String(initialValues.title || '').trim(),
-  description: String(initialValues.description || ''),
-  date: String(initialValues.date || initialValues.startDate || '').trim(),
-  time: String(initialValues.time || initialValues.timeLabel || '').trim(),
-  venue: String(initialValues.venue || '').trim(),
-  address: String(initialValues.address || '').trim(),
-  googleMapsUrl: String(
-    initialValues.googleMapsUrl || initialValues.venueGoogleMapsUrl || '',
-  ).trim(),
-  province: String(initialValues.province || '').trim(),
-  category: String(initialValues.category || '').trim(),
-  imageFile: null,
-  imagePreview: String(initialValues.imagePreview || initialValues.image || '').trim(),
-  imageName: '',
-})
+const buildFormValues = (initialValues = {}) => {
+  const safeInitialValues =
+    initialValues && typeof initialValues === 'object' ? initialValues : {}
+
+  return {
+    ...emptyForm,
+    ...safeInitialValues,
+    title: String(safeInitialValues.title || '').trim(),
+    description: String(safeInitialValues.description || ''),
+    date: String(safeInitialValues.date || safeInitialValues.startDate || '').trim(),
+    time: String(safeInitialValues.time || safeInitialValues.timeLabel || '').trim(),
+    venue: String(safeInitialValues.venue || '').trim(),
+    address: String(safeInitialValues.address || '').trim(),
+    googleMapsUrl: String(
+      safeInitialValues.googleMapsUrl || safeInitialValues.venueGoogleMapsUrl || '',
+    ).trim(),
+    province: String(safeInitialValues.province || '').trim(),
+    category: String(safeInitialValues.category || '').trim(),
+    imageFile: null,
+    imagePreview: String(
+      safeInitialValues.imagePreview || safeInitialValues.image || '',
+    ).trim(),
+    imageName: '',
+  }
+}
 
 const countWords = (value) => {
   const trimmed = value.trim()
@@ -59,7 +66,7 @@ function CreateEventPage({
   categories,
   locations,
   onSubmitEvent,
-  initialValues = null,
+  initialValues = {},
   pageTitle = 'Create Event',
   pageCopy = 'Share your event with the community.',
   submitLabel = 'Create Event',
