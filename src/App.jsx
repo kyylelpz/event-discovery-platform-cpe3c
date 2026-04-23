@@ -63,6 +63,7 @@ import { normalizeRoutePath, resolveRoute, routes, slugify } from './utils/routi
 const EVENTS_PER_PAGE = 15
 const PEOPLE_PER_PAGE = 15
 const THEME_STORAGE_KEY = 'eventcinity_theme'
+const FOLLOWER_NOTIFICATIONS_STORAGE_KEY = 'eventcinity_seen_followers'
 
 const mergeEvents = (...eventGroups) => {
   const merged = new Map()
@@ -316,6 +317,98 @@ const eventHasStartedAlready = (event) => {
   )
 
   return normalizedEventDate.getTime() < startOfToday.getTime()
+}
+
+const buildNotificationId = (...parts) => parts.filter(Boolean).join(':')
+
+const buildUpcomingEventNotifications = (events, type) => {
+  const today = new Date()
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const nextWeek = new Date(startOfToday)
+  nextWeek.setDate(startOfToday.getDate() + 7)
+
+  return events
+    .map((event) => {
+      const eventDate = parseEventDate(event?.startDate)
+
+      if (!eventDate) {
+        return null
+      }
+
+      const normalizedEventDate = new Date(
+        eventDate.getFullYear(),
+        eventDate.getMonth(),
+        eventDate.getDate(),
+      )
+
+      if (
+        normalizedEventDate.getTime() < startOfToday.getTime() ||
+        normalizedEventDate.getTime() > nextWeek.getTime()
+      ) {
+        return null
+      }
+
+      const differenceInDays = Math.round(
+        (normalizedEventDate.getTime() - startOfToday.getTime()) / (1000 * 60 * 60 * 24),
+      )
+      const timingLabel =
+        differenceInDays === 0
+          ? 'today'
+          : differenceInDays === 1
+            ? 'tomorrow'
+            : `in ${differenceInDays} days`
+      const actionLabel =
+        type === 'saved'
+          ? 'bookmarked'
+          : type === 'hearted'
+            ? 'favorited'
+            : 'attending'
+
+      return {
+        id: buildNotificationId(type, event.id || event.eventId),
+        kind: 'event',
+        title: event.title,
+        body: `Your ${actionLabel} event is happening ${timingLabel}.`,
+        eventId: event.id || event.eventId,
+        dateSortKey: normalizedEventDate.getTime(),
+      }
+    })
+    .filter(Boolean)
+}
+
+const readSeenFollowerUsernames = () => {
+  if (typeof window === 'undefined') {
+    return []
+  }
+
+  try {
+    const parsedValue = JSON.parse(
+      window.localStorage.getItem(FOLLOWER_NOTIFICATIONS_STORAGE_KEY) || '[]',
+    )
+
+    return Array.isArray(parsedValue)
+      ? parsedValue.map((value) => String(value || '').trim().toLowerCase()).filter(Boolean)
+      : []
+  } catch {
+    return []
+  }
+}
+
+const persistSeenFollowerUsernames = (usernames) => {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  window.localStorage.setItem(
+    FOLLOWER_NOTIFICATIONS_STORAGE_KEY,
+    JSON.stringify(
+      Array.from(
+        new Set(
+          usernames.map((value) => String(value || '').trim().toLowerCase()).filter(Boolean),
+        ),
+      ),
+    ),
+  )
 }
 
 const scoreUserForInterests = (user, interests = []) => {
@@ -805,6 +898,15 @@ function App() {
       ),
     [currentUser?.followingUsernames],
   )
+  const currentFollowerUsernames = useMemo(
+    () =>
+      Array.isArray(currentUser?.followerUsernames)
+        ? currentUser.followerUsernames
+            .map((value) => String(value || '').trim().toLowerCase())
+            .filter(Boolean)
+        : [],
+    [currentUser?.followerUsernames],
+  )
   const currentUserInterestLabels = Array.isArray(currentUser?.interests)
     ? currentUser.interests
         .map((value) => String(value || '').trim())
@@ -1196,6 +1298,54 @@ function App() {
         username: currentUser.username || currentUserProfileSlug,
       }
     : activePublicProfile
+  const profileNotifications = useMemo(() => {
+    if (!isViewingCurrentUserProfile) {
+      return []
+    }
+
+    const upcomingNotifications = [
+      ...buildUpcomingEventNotifications(savedInteractionEvents, 'saved'),
+      ...buildUpcomingEventNotifications(likedInteractionEvents, 'hearted'),
+      ...buildUpcomingEventNotifications(attendingInteractionEvents, 'attending'),
+    ]
+
+    const seenFollowers = new Set(readSeenFollowerUsernames())
+    const followerNotifications = currentFollowerUsernames
+      .filter((username) => !seenFollowers.has(username))
+      .map((username) => {
+        const followerProfile =
+          communityDirectory.find((user) => String(user.username || '').trim().toLowerCase() === username) ||
+          null
+
+        return {
+          id: buildNotificationId('follower', username),
+          kind: 'follower',
+          title: followerProfile?.name || username,
+          body: 'Started following your profile.',
+          username,
+          dateSortKey: Number.MAX_SAFE_INTEGER,
+        }
+      })
+
+    return [...followerNotifications, ...upcomingNotifications].slice(0, 8)
+  }, [
+    attendingInteractionEvents,
+    communityDirectory,
+    currentFollowerUsernames,
+    isViewingCurrentUserProfile,
+    likedInteractionEvents,
+    savedInteractionEvents,
+  ])
+
+  useEffect(() => {
+    if (!isViewingCurrentUserProfile || currentFollowerUsernames.length === 0) {
+      return
+    }
+
+    const currentSeenFollowers = new Set(readSeenFollowerUsernames())
+    currentFollowerUsernames.forEach((username) => currentSeenFollowers.add(username))
+    persistSeenFollowerUsernames([...currentSeenFollowers])
+  }, [currentFollowerUsernames, isViewingCurrentUserProfile])
 
   const createdByProfile = profileCreatedEvents
   const savedByUser = isViewingCurrentUserProfile
@@ -1254,6 +1404,19 @@ function App() {
     if (!currentUser?.email) {
       navigate(routes.signin)
       throw new Error('Sign in to create an event.')
+    }
+
+    const now = new Date()
+    const [year, month, day] = String(formData.date || '')
+      .split('-')
+      .map((value) => Number(value))
+    const [hours, minutes] = String(formData.time || '')
+      .split(':')
+      .map((value) => Number(value))
+    const eventDateTime = new Date(year || 0, (month || 1) - 1, day || 1, hours || 0, minutes || 0)
+
+    if (Number.isNaN(eventDateTime.getTime()) || eventDateTime.getTime() < now.getTime()) {
+      throw new Error('Choose a future date and time for your event.')
     }
 
     try {
@@ -1513,6 +1676,7 @@ function App() {
             String(activeProfile?.username || '').trim().toLowerCase(),
           )}
           communityUsers={communityDirectory}
+          notifications={profileNotifications}
           onOpenProfile={(username) => navigate(routes.profile(username))}
           activeTab={activeProfileTab}
           onTabChange={setActiveProfileTab}

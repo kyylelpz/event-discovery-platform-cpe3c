@@ -6,8 +6,10 @@ import {
   BookmarkIcon,
   CalendarIcon,
   HeartIcon,
+  MessageCircleIcon,
   MapPinIcon,
   PlusSquareIcon,
+  SearchIcon,
   UserPlusIcon,
   UsersIcon,
 } from '../../components/ui/Icons.jsx'
@@ -27,11 +29,13 @@ function ProfilePage({
   onToggleFollow,
   isFollowing = false,
   communityUsers = [],
+  notifications = [],
   onOpenProfile,
   ...sharedPageProps
 }) {
   const [isEditing, setIsEditing] = useState(false)
   const [activeConnectTab, setActiveConnectTab] = useState('followers')
+  const [connectSearch, setConnectSearch] = useState('')
   const [draftPhone, setDraftPhone] = useState(user.phone || user.contact || '')
   const [draftBio, setDraftBio] = useState(user.bio || '')
   const [error, setError] = useState('')
@@ -69,7 +73,20 @@ function ProfilePage({
   const followingUsers = communityUsers.filter((person) =>
     followingUsernames.includes(String(person.username || '').trim().toLowerCase()),
   )
-  const activeConnectUsers = activeConnectTab === 'followers' ? followerUsers : followingUsers
+  const activeConnectUsers = (activeConnectTab === 'followers' ? followerUsers : followingUsers).filter(
+    (person) => {
+      const normalizedSearch = connectSearch.trim().toLowerCase()
+
+      if (!normalizedSearch) {
+        return true
+      }
+
+      return [person.name, person.username]
+        .join(' ')
+        .toLowerCase()
+        .includes(normalizedSearch)
+    },
+  )
   const emptyCopy = isCurrentUser
     ? 'This area fills in from your own account activity and hosted events.'
     : activeTabConfig?.label === 'Attending'
@@ -211,6 +228,9 @@ function ProfilePage({
 
           <article className="info-card profile-page__info-card">
             <h2>Connects</h2>
+            <p className="profile-page__connect-summary">
+              Keep up with your people quickly from one compact space.
+            </p>
             <div className="profile-page__connects">
               <button
                 type="button"
@@ -233,6 +253,14 @@ function ProfilePage({
                 <span>{user.followingCount || 0} following</span>
               </button>
             </div>
+            <label className="profile-page__connect-search">
+              <SearchIcon />
+              <input
+                value={connectSearch}
+                onChange={(event) => setConnectSearch(event.target.value)}
+                placeholder={`Search ${activeConnectTab}`}
+              />
+            </label>
             <div className="profile-page__connect-list" aria-live="polite">
               {activeConnectUsers.length ? (
                 activeConnectUsers.map((person) => (
@@ -251,13 +279,58 @@ function ProfilePage({
                       <strong>{person.name}</strong>
                       <span>@{person.username}</span>
                     </span>
+                    <span className="profile-page__connect-person-meta">
+                      {person.followersCount || 0} followers
+                    </span>
                   </button>
                 ))
               ) : (
                 <p className="profile-page__connect-empty">
-                  {activeConnectTab === 'followers'
-                    ? 'No followers to show yet.'
-                    : 'No following accounts to show yet.'}
+                  {connectSearch.trim()
+                    ? `No ${activeConnectTab} matched your search.`
+                    : activeConnectTab === 'followers'
+                      ? 'No followers to show yet.'
+                      : 'No following accounts to show yet.'}
+                </p>
+              )}
+            </div>
+          </article>
+
+          <article className="info-card profile-page__info-card">
+            <h2>Notifications</h2>
+            <p className="profile-page__connect-summary">
+              Upcoming saved activity and new follower updates show here.
+            </p>
+            <div className="profile-page__notification-list">
+              {notifications.length ? (
+                notifications.map((notification) => (
+                  <button
+                    key={notification.id}
+                    type="button"
+                    className="profile-page__notification"
+                    onClick={() => {
+                      if (notification.eventId) {
+                        sharedPageProps.onOpenEvent?.(notification.eventId)
+                        return
+                      }
+
+                      if (notification.username) {
+                        onOpenProfile?.(notification.username)
+                      }
+                    }}
+                  >
+                    <span className="profile-page__notification-icon">
+                      {notification.kind === 'follower' ? <UserPlusIcon /> : <MessageCircleIcon />}
+                    </span>
+                    <span className="profile-page__notification-copy">
+                      <strong>{notification.title}</strong>
+                      <span>{notification.body}</span>
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <p className="profile-page__connect-empty">
+                  No new notifications right now.
                 </p>
               )}
             </div>
