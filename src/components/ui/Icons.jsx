@@ -350,6 +350,16 @@ export function MessageCircleIcon({ className = '' }) {
   )
 }
 
+export function BellIcon({ className = '' }) {
+  return createIcon(
+    <>
+      <path d="M6.5 9.5a5.5 5.5 0 1 1 11 0v4.2l1.5 2.8H5l1.5-2.8Z" />
+      <path d="M10 18.5a2 2 0 0 0 4 0" />
+    </>,
+    className,
+  )
+}
+
 export function ShieldIcon({ className = '' }) {
   return createIcon(
     <>

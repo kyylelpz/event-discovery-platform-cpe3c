@@ -6,6 +6,7 @@ import UserAvatar from '../ui/UserAvatar.jsx'
 import { formatMemberSince } from '../../services/profileService.js'
 import { getUserDisplayName, getUserSecondaryLabel } from '../../utils/userDisplay.js'
 import {
+  BellIcon,
   CalendarIcon,
   CloseIcon,
   ChevronLeftIcon,
@@ -50,6 +51,7 @@ function Navbar({
   currentUser,
   notifications = [],
   hasUnreadNotifications = false,
+  onReadNotification,
   theme,
   onToggleTheme,
   onOpenProfile,
@@ -125,17 +127,22 @@ function Navbar({
           </SecondaryButton>
 
           {currentUser ? (
-            <ProfileMenu
-              currentUser={currentUser}
-              notifications={notifications}
-              hasUnreadNotifications={hasUnreadNotifications}
-              theme={theme}
-              onToggleTheme={onToggleTheme}
-              onNavigate={onNavigate}
-              onOpenProfile={onOpenProfile}
-              onOpenEvent={onOpenEvent}
-              onSignOut={onSignOut}
-            />
+            <>
+              <NotificationMenu
+                notifications={notifications}
+                hasUnreadNotifications={hasUnreadNotifications}
+                onReadNotification={onReadNotification}
+                onNavigate={onNavigate}
+                onOpenEvent={onOpenEvent}
+              />
+              <ProfileMenu
+                currentUser={currentUser}
+                theme={theme}
+                onToggleTheme={onToggleTheme}
+                onOpenProfile={onOpenProfile}
+                onSignOut={onSignOut}
+              />
+            </>
           ) : (
             <>
               <SecondaryButton
@@ -172,6 +179,7 @@ function Navbar({
         currentUser={currentUser}
         notifications={notifications}
         hasUnreadNotifications={hasUnreadNotifications}
+        onReadNotification={onReadNotification}
         theme={theme}
         onToggleTheme={onToggleTheme}
         onOpenProfile={onOpenProfile}
@@ -203,6 +211,7 @@ function MobileNavbar({
   currentUser,
   notifications = [],
   hasUnreadNotifications = false,
+  onReadNotification,
   theme,
   onToggleTheme,
   onOpenProfile,
@@ -278,15 +287,19 @@ function MobileNavbar({
         <div className="topbar__mobile-links">
           {currentUser ? (
             <div className="topbar__mobile-account-row">
-              <ProfileMenu
-                currentUser={currentUser}
+              <NotificationMenu
                 notifications={notifications}
                 hasUnreadNotifications={hasUnreadNotifications}
+                onReadNotification={onReadNotification}
+                onNavigate={onNavigate}
+                onOpenEvent={onOpenEvent}
+                mobile
+              />
+              <ProfileMenu
+                currentUser={currentUser}
                 theme={theme}
                 onToggleTheme={onToggleTheme}
-                onNavigate={onNavigate}
                 onOpenProfile={onOpenProfile}
-                onOpenEvent={onOpenEvent}
                 onSignOut={onSignOut}
                 mobile
               />
@@ -337,15 +350,111 @@ function ThemeIconButton({ theme, onToggleTheme }) {
   )
 }
 
-function ProfileMenu({
-  currentUser,
+function NotificationMenu({
   notifications = [],
   hasUnreadNotifications = false,
+  onReadNotification,
+  onNavigate,
+  onOpenEvent,
+  mobile = false,
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const menuRef = useRef(null)
+
+  useEffect(() => {
+    if (!isOpen) {
+      return undefined
+    }
+
+    const handleOutsideClick = (event) => {
+      if (!menuRef.current?.contains(event.target)) {
+        setIsOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [isOpen])
+
+  return (
+    <div
+      ref={menuRef}
+      className={`notification-menu ${mobile ? 'notification-menu--mobile' : ''}`}
+    >
+      <button
+        type="button"
+        className="notification-menu__trigger"
+        aria-label={
+          hasUnreadNotifications
+            ? `Open notifications with ${notifications.length} unread item${
+                notifications.length === 1 ? '' : 's'
+              }`
+            : 'Open notifications'
+        }
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((currentValue) => !currentValue)}
+        title="Notifications"
+      >
+        <BellIcon />
+        {hasUnreadNotifications ? (
+          <span className="notification-menu__badge" aria-hidden="true" />
+        ) : null}
+      </button>
+
+      {isOpen ? (
+        <div className="notification-menu__panel">
+          <div className="notification-menu__header">
+            <h3>Notifications</h3>
+            {hasUnreadNotifications ? (
+              <span className="profile-menu__section-alert">New</span>
+            ) : null}
+          </div>
+
+          {notifications.length ? (
+            <div className="notification-menu__list">
+              {notifications.map((notification) => (
+                <button
+                  key={notification.id}
+                  type="button"
+                  className="profile-menu__notification"
+                  onClick={() => {
+                    onReadNotification?.(notification.id)
+                    setIsOpen(false)
+
+                    if (notification.eventId) {
+                      onOpenEvent?.(notification.eventId)
+                      return
+                    }
+
+                    if (notification.username) {
+                      onNavigate?.(routes.profile(notification.username))
+                    }
+                  }}
+                >
+                  <span className="profile-menu__notification-icon">
+                    {notification.kind === 'follower' ? <UserPlusIcon /> : <MessageCircleIcon />}
+                  </span>
+                  <span className="profile-menu__notification-copy">
+                    <strong>{notification.title}</strong>
+                    <span>{notification.body}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="profile-menu__empty">No new notifications right now.</div>
+          )}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function ProfileMenu({
+  currentUser,
   theme,
   onToggleTheme,
-  onNavigate,
   onOpenProfile,
-  onOpenEvent,
   onSignOut,
   mobile = false,
 }) {
@@ -393,23 +502,11 @@ function ProfileMenu({
       <button
         type="button"
         className="profile-menu__trigger"
-        aria-label={
-          hasUnreadNotifications
-            ? `Open profile menu with ${notifications.length} notification${
-                notifications.length === 1 ? '' : 's'
-              }`
-            : 'Open profile menu'
-        }
+        aria-label="Open profile menu"
         aria-expanded={isOpen}
         onClick={() => setIsOpen((currentValue) => !currentValue)}
       >
         <MoreVerticalIcon />
-        {hasUnreadNotifications ? (
-          <span
-            className="profile-menu__notification-badge"
-            aria-hidden="true"
-          />
-        ) : null}
       </button>
 
       <ThemeIconButton theme={theme} onToggleTheme={onToggleTheme} />
@@ -456,48 +553,6 @@ function ProfileMenu({
               <div className="profile-menu__empty">
                 Nothing here yet. Explore more events!
               </div>
-            )}
-          </div>
-
-          <div className="profile-menu__section">
-            <div className="profile-menu__section-heading">
-              <h4>Notifications</h4>
-              {hasUnreadNotifications ? (
-                <span className="profile-menu__section-alert">New</span>
-              ) : null}
-            </div>
-            {notifications.length ? (
-              <div className="profile-menu__notifications">
-                {notifications.slice(0, 4).map((notification) => (
-                  <button
-                    key={notification.id}
-                    type="button"
-                    className="profile-menu__notification"
-                    onClick={() => {
-                      setIsOpen(false)
-
-                      if (notification.eventId) {
-                        onOpenEvent?.(notification.eventId)
-                        return
-                      }
-
-                      if (notification.username) {
-                        onNavigate?.(routes.profile(notification.username))
-                      }
-                    }}
-                  >
-                    <span className="profile-menu__notification-icon">
-                      {notification.kind === 'follower' ? <UserPlusIcon /> : <MessageCircleIcon />}
-                    </span>
-                    <span className="profile-menu__notification-copy">
-                      <strong>{notification.title}</strong>
-                      <span>{notification.body}</span>
-                    </span>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="profile-menu__empty">No new notifications right now.</div>
             )}
           </div>
 
