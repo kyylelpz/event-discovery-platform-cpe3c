@@ -1,6 +1,5 @@
 import { API_BASE_URL } from './apiBase.js'
 import { getAuthRequestHeaders } from './authService.js'
-import { normalizeProfilePrivacy, resolveProfilePrivacy } from '../utils/privacy.js'
 
 const normalizeEmail = (value) => String(value || '').trim().toLowerCase()
 
@@ -106,7 +105,6 @@ export const normalizeProfile = (rawProfile, fallbackSession = {}) => {
         fallbackSession.profilePic ||
         '',
     ).trim(),
-    privacy: resolveProfilePrivacy(rawProfile, normalizeProfilePrivacy(fallbackSession.privacy)),
     createdAt: String(rawProfile?.createdAt || fallbackSession.createdAt || '').trim(),
     followersCount: Number(rawProfile?.followersCount ?? fallbackSession.followersCount ?? 0),
     followingCount: Number(rawProfile?.followingCount ?? fallbackSession.followingCount ?? 0),

@@ -12,31 +12,7 @@ import {
   UsersIcon,
 } from '../../components/ui/Icons.jsx'
 import { formatMemberSince } from '../../services/profileService.js'
-import { normalizeProfilePrivacy, resolveProfilePrivacy } from '../../utils/privacy.js'
 import { getUserDisplayName, getUserSecondaryLabel } from '../../utils/userDisplay.js'
-
-const privacyOptions = [
-  {
-    key: 'hideEmail',
-    label: 'Hide email',
-    description: 'Keep your email off your public profile.',
-  },
-  {
-    key: 'hideContact',
-    label: 'Hide contact',
-    description: 'Keep your phone or contact details private.',
-  },
-  {
-    key: 'hideFollowers',
-    label: 'Hide followers',
-    description: 'Hide your follower count and follower list.',
-  },
-  {
-    key: 'hideFollowing',
-    label: 'Hide following',
-    description: 'Hide your following count and following list.',
-  },
-]
 
 function ProfilePage({
   user,
@@ -62,7 +38,6 @@ function ProfilePage({
   const [draftBio, setDraftBio] = useState(user.bio || '')
   const [draftProfilePic, setDraftProfilePic] = useState(user.profilePic || user.avatar || '')
   const [draftProfilePicFile, setDraftProfilePicFile] = useState(null)
-  const [draftPrivacy, setDraftPrivacy] = useState(() => normalizeProfilePrivacy(user.privacy))
   const [error, setError] = useState('')
   const [avatarError, setAvatarError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
@@ -82,18 +57,11 @@ function ProfilePage({
   const displayName = getUserDisplayName(user)
   const secondaryLabel = getUserSecondaryLabel(user)
   const locationLabel = user.location || 'Philippines'
-  const privacy = resolveProfilePrivacy(user)
-  const isEmailHidden = !isCurrentUser && privacy.hideEmail
-  const isContactHidden = !isCurrentUser && privacy.hideContact
-  const isFollowersHidden = !isCurrentUser && privacy.hideFollowers
-  const isFollowingHidden = !isCurrentUser && privacy.hideFollowing
-  const emailLabel = isEmailHidden
-    ? 'Email is hidden by this user.'
-    : user.email || 'No public email has been added yet.'
+  const emailLabel = isCurrentUser
+    ? user.email || 'No email yet'
+    : 'Email stays private to this account.'
   const contactLabel =
-    isContactHidden
-      ? 'Contact details are hidden by this user.'
-      : user.phone || user.contact || 'No public contact has been added yet.'
+    user.phone || user.contact || 'No public contact has been added yet.'
   const bioLabel =
     user.bio || 'Nothing here yet. Explore more events and add a short intro.'
   const interests = Array.isArray(user.interests) ? user.interests : []
@@ -106,9 +74,7 @@ function ProfilePage({
   const followingUsers = communityUsers.filter((person) =>
     followingUsernames.includes(String(person.username || '').trim().toLowerCase()),
   )
-  const isActiveConnectHidden =
-    activeConnectTab === 'followers' ? isFollowersHidden : isFollowingHidden
-  const activeConnectUsers = isActiveConnectHidden ? [] : (activeConnectTab === 'followers' ? followerUsers : followingUsers).filter(
+  const activeConnectUsers = (activeConnectTab === 'followers' ? followerUsers : followingUsers).filter(
     (person) => {
       const normalizedSearch = connectSearch.trim().toLowerCase()
 
@@ -138,8 +104,7 @@ function ProfilePage({
     setDraftBio(user.bio || '')
     setDraftProfilePic(user.profilePic || user.avatar || '')
     setDraftProfilePicFile(null)
-    setDraftPrivacy(normalizeProfilePrivacy(user.privacy))
-  }, [user.bio, user.contact, user.phone, user.profilePic, user.avatar, user.privacy, user.username])
+  }, [user.bio, user.contact, user.phone, user.profilePic, user.avatar, user.username])
 
   const handleStartEdit = () => {
     setDraftUsername(user.username || '')
@@ -147,7 +112,6 @@ function ProfilePage({
     setDraftBio(user.bio || '')
     setDraftProfilePic(user.profilePic || user.avatar || '')
     setDraftProfilePicFile(null)
-    setDraftPrivacy(normalizeProfilePrivacy(user.privacy))
     setError('')
     setAvatarError('')
     setIsEditing(true)
@@ -159,17 +123,9 @@ function ProfilePage({
     setDraftBio(user.bio || '')
     setDraftProfilePic(user.profilePic || user.avatar || '')
     setDraftProfilePicFile(null)
-    setDraftPrivacy(normalizeProfilePrivacy(user.privacy))
     setError('')
     setAvatarError('')
     setIsEditing(false)
-  }
-
-  const handlePrivacyChange = (key) => {
-    setDraftPrivacy((currentPrivacy) => ({
-      ...currentPrivacy,
-      [key]: !currentPrivacy[key],
-    }))
   }
 
   const handleProfileImageChange = (event) => {
@@ -221,7 +177,6 @@ function ProfilePage({
         bio: draftBio,
         profilePic: draftProfilePic,
         profilePicFile: draftProfilePicFile,
-        privacy: draftPrivacy,
       })
       setIsEditing(false)
     } catch (saveError) {
@@ -324,28 +279,6 @@ function ProfilePage({
               <small className="field-hint">{draftBio.trim().length}/300 characters</small>
             </label>
 
-            <fieldset className="profile-edit-form__privacy">
-              <legend>Privacy</legend>
-              <div className="profile-edit-form__privacy-list">
-                {privacyOptions.map((option) => (
-                  <label key={option.key} className="profile-edit-form__privacy-option">
-                    <span className="profile-edit-form__privacy-copy">
-                      <span>{option.label}</span>
-                      <small>{option.description}</small>
-                    </span>
-                    <span className="profile-edit-form__switch">
-                      <input
-                        type="checkbox"
-                        checked={Boolean(draftPrivacy[option.key])}
-                        onChange={() => handlePrivacyChange(option.key)}
-                      />
-                      <span className="profile-edit-form__switch-track" aria-hidden="true" />
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-
             {error ? <p className="profile-card__status profile-card__status--error">{error}</p> : null}
 
             <div className="form-actions">
@@ -381,86 +314,68 @@ function ProfilePage({
                 className={`profile-page__connect-button ${
                   activeConnectTab === 'followers' ? 'profile-page__connect-button--active' : ''
                 }`}
-                onClick={() => {
-                  if (!isFollowersHidden) {
-                    setActiveConnectTab('followers')
-                  }
-                }}
-                disabled={isFollowersHidden}
+                onClick={() => setActiveConnectTab('followers')}
               >
                 <UsersIcon />
-                <span>{isFollowersHidden ? 'Followers hidden' : `${user.followersCount || 0} followers`}</span>
+                <span>{user.followersCount || 0} followers</span>
               </button>
               <button
                 type="button"
                 className={`profile-page__connect-button ${
                   activeConnectTab === 'following' ? 'profile-page__connect-button--active' : ''
                 }`}
-                onClick={() => {
-                  if (!isFollowingHidden) {
-                    setActiveConnectTab('following')
-                  }
-                }}
-                disabled={isFollowingHidden}
+                onClick={() => setActiveConnectTab('following')}
               >
                 <UsersIcon />
-                <span>{isFollowingHidden ? 'Following hidden' : `${user.followingCount || 0} following`}</span>
+                <span>{user.followingCount || 0} following</span>
               </button>
             </div>
             <p className="profile-page__connect-list-label">
-              {isActiveConnectHidden
-                ? activeConnectTab === 'followers'
-                  ? 'This user keeps followers private.'
-                  : 'This user keeps following private.'
-                : activeConnectTab === 'followers'
+              {activeConnectTab === 'followers'
                 ? `${activeConnectUsers.length} follower${activeConnectUsers.length === 1 ? '' : 's'} visible`
                 : `${activeConnectUsers.length} following account${activeConnectUsers.length === 1 ? '' : 's'} visible`}
             </p>
-            {!isActiveConnectHidden ? (
-              <>
-                <label className="profile-page__connect-search">
-                  <SearchIcon />
-                  <input
-                    value={connectSearch}
-                    onChange={(event) => setConnectSearch(event.target.value)}
-                    placeholder={`Search ${activeConnectTab}`}
-                  />
-                </label>
-                <div className="profile-page__connect-list" aria-live="polite">
-                  {activeConnectUsers.length ? (
-                    activeConnectUsers.map((person) => (
-                      <button
-                        key={person.username}
-                        type="button"
-                        className="profile-page__connect-person"
-                        onClick={() => onOpenProfile?.(person.username)}
-                      >
-                        <UserAvatar
-                          name={person.name}
-                          imageUrl={person.profilePic || person.avatar}
-                          size="sm"
-                        />
-                        <span className="profile-page__connect-person-copy">
-                          <strong>{person.name}</strong>
-                          <span>@{person.username}</span>
-                        </span>
-                        <span className="profile-page__connect-person-meta">
-                          {activeConnectTab === 'followers' ? 'Follows you' : 'Following'}
-                        </span>
-                      </button>
-                    ))
-                  ) : (
-                    <p className="profile-page__connect-empty">
-                      {connectSearch.trim()
-                        ? `No ${activeConnectTab} matched your search.`
-                        : activeConnectTab === 'followers'
-                          ? 'No followers to show yet.'
-                          : 'No following accounts to show yet.'}
-                    </p>
-                  )}
-                </div>
-              </>
-            ) : null}
+            <label className="profile-page__connect-search">
+              <SearchIcon />
+              <input
+                value={connectSearch}
+                onChange={(event) => setConnectSearch(event.target.value)}
+                placeholder={`Search ${activeConnectTab}`}
+              />
+            </label>
+            <div className="profile-page__connect-list" aria-live="polite">
+              {activeConnectUsers.length ? (
+                activeConnectUsers.map((person) => (
+                  <button
+                    key={person.username}
+                    type="button"
+                    className="profile-page__connect-person"
+                    onClick={() => onOpenProfile?.(person.username)}
+                  >
+                    <UserAvatar
+                      name={person.name}
+                      imageUrl={person.profilePic || person.avatar}
+                      size="sm"
+                    />
+                    <span className="profile-page__connect-person-copy">
+                      <strong>{person.name}</strong>
+                      <span>@{person.username}</span>
+                    </span>
+                    <span className="profile-page__connect-person-meta">
+                      {activeConnectTab === 'followers' ? 'Follows you' : 'Following'}
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <p className="profile-page__connect-empty">
+                  {connectSearch.trim()
+                    ? `No ${activeConnectTab} matched your search.`
+                    : activeConnectTab === 'followers'
+                      ? 'No followers to show yet.'
+                      : 'No following accounts to show yet.'}
+                </p>
+              )}
+            </div>
           </article>
         </div>
 

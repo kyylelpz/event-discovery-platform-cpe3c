@@ -1,7 +1,6 @@
 import { PrimaryButton, SecondaryButton } from '../../components/ui/Button.jsx'
 import { UserPlusIcon, UsersIcon } from '../../components/ui/Icons.jsx'
 import UserAvatar from '../../components/ui/UserAvatar.jsx'
-import { resolveProfilePrivacy } from '../../utils/privacy.js'
 
 function PeoplePage({
   people,
@@ -76,17 +75,8 @@ function PeoplePage({
 
       <section className="people-grid">
         {hasPeople ? (
-          people.map((person) => {
-            const privacy = resolveProfilePrivacy(person)
-            const followersLabel = privacy.hideFollowers
-              ? 'Followers hidden'
-              : `${person.followersCount || 0} followers`
-            const followingLabel = privacy.hideFollowing
-              ? 'Following hidden'
-              : `${person.followingCount || 0} following`
-
-            return (
-              <article key={person.username} className="person-card">
+          people.map((person) => (
+            <article key={person.username} className="person-card">
               <div className="person-card__header">
                 <UserAvatar
                   name={person.name}
@@ -103,7 +93,7 @@ function PeoplePage({
                 @{person.username} - {person.createdEventsCount || 0} hosted events
               </p>
               <p className="person-card__meta">
-                {followersLabel} - {followingLabel}
+                {person.followersCount || 0} followers - {person.followingCount || 0} following
               </p>
               <div className="person-card__actions">
                 {person.username && person.username !== currentUsername ? (
@@ -123,9 +113,8 @@ function PeoplePage({
                   View Profile
                 </PrimaryButton>
               </div>
-              </article>
-            )
-          })
+            </article>
+          ))
         ) : (
           <article className="person-card">
             <div className="person-card__header">
