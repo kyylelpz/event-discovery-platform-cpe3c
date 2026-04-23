@@ -65,7 +65,7 @@ import { normalizeRoutePath, resolveRoute, routes, slugify } from './utils/routi
 const EVENTS_PER_PAGE = 15
 const PEOPLE_PER_PAGE = 15
 const THEME_STORAGE_KEY = 'eventcinity_theme'
-const FOLLOWER_NOTIFICATIONS_STORAGE_KEY = 'eventcinity_seen_followers'
+const NOTIFICATION_READ_STORAGE_KEY = 'eventcinity_read_notifications'
 
 const mergeEvents = (...eventGroups) => {
   const merged = new Map()
@@ -361,6 +361,21 @@ const eventHasStartedAlready = (event) => {
 
 const buildNotificationId = (...parts) => parts.filter(Boolean).join(':')
 
+const buildUpcomingNotificationBody = (type, timingLabel) => {
+  if (type === 'created') {
+    return `Your hosted event is happening ${timingLabel}.`
+  }
+
+  const actionLabel =
+    type === 'saved'
+      ? 'bookmarked'
+      : type === 'hearted'
+        ? 'favorited'
+        : 'attending'
+
+  return `Your ${actionLabel} event is happening ${timingLabel}.`
+}
+
 const buildUpcomingEventNotifications = (events, type) => {
   const today = new Date()
   const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate())
@@ -397,18 +412,12 @@ const buildUpcomingEventNotifications = (events, type) => {
           : differenceInDays === 1
             ? 'tomorrow'
             : `in ${differenceInDays} days`
-      const actionLabel =
-        type === 'saved'
-          ? 'bookmarked'
-          : type === 'hearted'
-            ? 'favorited'
-            : 'attending'
 
       return {
         id: buildNotificationId(type, event.id || event.eventId),
         kind: 'event',
         title: event.title,
-        body: `Your ${actionLabel} event is happening ${timingLabel}.`,
+        body: buildUpcomingNotificationBody(type, timingLabel),
         eventId: event.id || event.eventId,
         dateSortKey: normalizedEventDate.getTime(),
       }
@@ -416,38 +425,59 @@ const buildUpcomingEventNotifications = (events, type) => {
     .filter(Boolean)
 }
 
-const readSeenFollowerUsernames = () => {
+const getNotificationUserKey = (user) =>
+  String(user?.email || user?.username || user?.id || '')
+    .trim()
+    .toLowerCase()
+
+const readStoredNotificationMap = () => {
   if (typeof window === 'undefined') {
-    return []
+    return {}
   }
 
   try {
     const parsedValue = JSON.parse(
-      window.localStorage.getItem(FOLLOWER_NOTIFICATIONS_STORAGE_KEY) || '[]',
+      window.localStorage.getItem(NOTIFICATION_READ_STORAGE_KEY) || '{}',
     )
 
-    return Array.isArray(parsedValue)
-      ? parsedValue.map((value) => String(value || '').trim().toLowerCase()).filter(Boolean)
-      : []
+    return parsedValue && typeof parsedValue === 'object' && !Array.isArray(parsedValue)
+      ? parsedValue
+      : {}
   } catch {
-    return []
+    return {}
   }
 }
 
-const persistSeenFollowerUsernames = (usernames) => {
-  if (typeof window === 'undefined') {
+const readReadNotificationIds = (userKey) => {
+  if (!userKey) {
+    return []
+  }
+
+  const storedNotificationMap = readStoredNotificationMap()
+  const storedIds = storedNotificationMap[userKey]
+
+  return Array.isArray(storedIds)
+    ? storedIds.map((value) => String(value || '').trim()).filter(Boolean)
+    : []
+}
+
+const persistReadNotificationIds = (userKey, notificationIds) => {
+  if (typeof window === 'undefined' || !userKey) {
     return
   }
 
-  window.localStorage.setItem(
-    FOLLOWER_NOTIFICATIONS_STORAGE_KEY,
-    JSON.stringify(
-      Array.from(
-        new Set(
-          usernames.map((value) => String(value || '').trim().toLowerCase()).filter(Boolean),
-        ),
-      ),
+  const storedNotificationMap = readStoredNotificationMap()
+  storedNotificationMap[userKey] = Array.from(
+    new Set(
+      notificationIds
+        .map((value) => String(value || '').trim())
+        .filter(Boolean),
     ),
+  ).slice(-200)
+
+  window.localStorage.setItem(
+    NOTIFICATION_READ_STORAGE_KEY,
+    JSON.stringify(storedNotificationMap),
   )
 }
 
@@ -515,6 +545,7 @@ function App() {
   const [activePublicProfile, setActivePublicProfile] = useState(null)
   const [isPublicProfileLoading, setIsPublicProfileLoading] = useState(false)
   const [interactionState, setInteractionState] = useState(() => buildEmptyInteractionState())
+  const [readNotificationIds, setReadNotificationIds] = useState([])
   const [activeProfileTab, setActiveProfileTab] = useState('Created Events')
   const [currentEventsPage, setCurrentEventsPage] = useState(1)
   const [currentPeoplePage, setCurrentPeoplePage] = useState(1)
@@ -689,14 +720,16 @@ function App() {
     let isActive = true
 
     const syncCurrentUserProfile = async () => {
+      const latestUser = currentUserRef.current || activeUser
+
       try {
-        const profile = await fetchCurrentUserProfile(activeUser)
+        const profile = await fetchCurrentUserProfile(latestUser)
 
         if (!isActive) {
           return
         }
 
-        const nextSession = { ...activeUser, ...profile }
+        const nextSession = { ...latestUser, ...profile }
         setCurrentUser(nextSession)
         setSession(nextSession)
         void syncStoredUser(nextSession)
@@ -749,8 +782,32 @@ function App() {
 
     void syncCurrentUserProfile()
 
+    const handleWindowFocus = () => {
+      if (document.visibilityState === 'visible') {
+        void syncCurrentUserProfile()
+      }
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void syncCurrentUserProfile()
+      }
+    }
+
+    const profileRefreshInterval = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        void syncCurrentUserProfile()
+      }
+    }, 30_000)
+
+    window.addEventListener('focus', handleWindowFocus)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
     return () => {
       isActive = false
+      window.removeEventListener('focus', handleWindowFocus)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.clearInterval(profileRefreshInterval)
     }
   }, [currentUser?.email, currentUser?.authProvider])
 
@@ -781,6 +838,39 @@ function App() {
     }
 
     void syncInteractionState()
+
+    return () => {
+      isActive = false
+    }
+  }, [currentUser?.email])
+
+  useEffect(() => {
+    if (!currentUser?.email) {
+      setCreatedEvents([])
+      return undefined
+    }
+
+    let isActive = true
+
+    const loadCurrentUserCreatedEvents = async () => {
+      try {
+        const events = await fetchCreatedEventsByCurrentUser()
+
+        if (!isActive) {
+          return
+        }
+
+        setCreatedEvents(events)
+      } catch (error) {
+        if (!isActive) {
+          return
+        }
+
+        console.warn('Unable to load created events for notification reminders:', error)
+      }
+    }
+
+    void loadCurrentUserCreatedEvents()
 
     return () => {
       isActive = false
@@ -983,6 +1073,7 @@ function App() {
   }
 
   const currentUserEmail = String(currentUser?.email || '').trim().toLowerCase()
+  const currentNotificationUserKey = getNotificationUserKey(currentUser)
   const currentUserProfileSlug = currentUser ? getUserProfileSlug(currentUser) : ''
   const currentFollowingUsernames = useMemo(
     () =>
@@ -1010,6 +1101,32 @@ function App() {
         .filter(Boolean)
     : []
   const currentUserInterests = normalizeInterestList(currentUserInterestLabels)
+  const currentUserCreatedEvents = useMemo(
+    () => (currentUser?.email ? mergeEvents(createdEvents, profileCreatedEvents) : []),
+    [createdEvents, currentUser?.email, profileCreatedEvents],
+  )
+
+  useEffect(() => {
+    setReadNotificationIds(readReadNotificationIds(currentNotificationUserKey))
+  }, [currentNotificationUserKey])
+
+  const handleReadNotification = (notificationId) => {
+    const normalizedNotificationId = String(notificationId || '').trim()
+
+    if (!normalizedNotificationId || !currentNotificationUserKey) {
+      return
+    }
+
+    setReadNotificationIds((currentIds) => {
+      if (currentIds.includes(normalizedNotificationId)) {
+        return currentIds
+      }
+
+      const nextIds = [...currentIds, normalizedNotificationId]
+      persistReadNotificationIds(currentNotificationUserKey, nextIds)
+      return nextIds
+    })
+  }
   const communityDirectory = useMemo(
     () =>
       mergeCommunityUsers(currentUser ? [currentUser] : [], communityUsers).map(
@@ -1493,15 +1610,15 @@ function App() {
       return []
     }
 
+    const readNotificationIdSet = new Set(readNotificationIds)
     const upcomingNotifications = [
       ...buildUpcomingEventNotifications(savedInteractionEvents, 'saved'),
       ...buildUpcomingEventNotifications(likedInteractionEvents, 'hearted'),
       ...buildUpcomingEventNotifications(attendingInteractionEvents, 'attending'),
+      ...buildUpcomingEventNotifications(currentUserCreatedEvents, 'created'),
     ]
 
-    const seenFollowers = new Set(readSeenFollowerUsernames())
     const followerNotifications = currentFollowerUsernames
-      .filter((username) => !seenFollowers.has(username))
       .map((username) => {
         const followerProfile =
           communityDirectory.find((user) => String(user.username || '').trim().toLowerCase() === username) ||
@@ -1517,25 +1634,29 @@ function App() {
         }
       })
 
-    return [...followerNotifications, ...upcomingNotifications].slice(0, 8)
+    return [...followerNotifications, ...upcomingNotifications]
+      .filter((notification) => !readNotificationIdSet.has(notification.id))
+      .sort((leftNotification, rightNotification) => {
+        const followerPriorityDifference =
+          Number(rightNotification.kind === 'follower') - Number(leftNotification.kind === 'follower')
+
+        if (followerPriorityDifference !== 0) {
+          return followerPriorityDifference
+        }
+
+        return leftNotification.dateSortKey - rightNotification.dateSortKey
+      })
+      .slice(0, 8)
   }, [
     attendingInteractionEvents,
     communityDirectory,
     currentUser?.email,
+    currentUserCreatedEvents,
     currentFollowerUsernames,
     likedInteractionEvents,
+    readNotificationIds,
     savedInteractionEvents,
   ])
-
-  useEffect(() => {
-    if (!isViewingCurrentUserProfile || currentFollowerUsernames.length === 0) {
-      return
-    }
-
-    const currentSeenFollowers = new Set(readSeenFollowerUsernames())
-    currentFollowerUsernames.forEach((username) => currentSeenFollowers.add(username))
-    persistSeenFollowerUsernames([...currentSeenFollowers])
-  }, [currentFollowerUsernames, isViewingCurrentUserProfile])
 
   const createdByProfile = profileCreatedEvents
   const savedByUser = isViewingCurrentUserProfile
@@ -1774,6 +1895,7 @@ function App() {
     currentUser,
     notifications: userNotifications,
     hasUnreadNotifications: userNotifications.length > 0,
+    onReadNotification: handleReadNotification,
     theme,
     onToggleTheme: () => setTheme((currentTheme) => (currentTheme === 'dark' ? 'light' : 'dark')),
     onOpenProfile: () => {
@@ -1909,6 +2031,7 @@ function App() {
           )}
           communityUsers={communityDirectory}
           notifications={userNotifications}
+          onReadNotification={handleReadNotification}
           onOpenProfile={(username) => navigate(routes.profile(username))}
           activeTab={activeProfileTab}
           onTabChange={setActiveProfileTab}

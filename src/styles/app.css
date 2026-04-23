@@ -184,7 +184,8 @@
 }
 
 .topbar__account,
-.profile-menu {
+.profile-menu,
+.notification-menu {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -209,7 +210,8 @@
   background: rgba(45, 59, 21, 0.08);
 }
 
-.profile-menu__trigger {
+.profile-menu__trigger,
+.notification-menu__trigger {
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -222,11 +224,12 @@
   color: var(--color-text);
 }
 
-.profile-menu__trigger:hover {
+.profile-menu__trigger:hover,
+.notification-menu__trigger:hover {
   background: rgba(45, 59, 21, 0.08);
 }
 
-.profile-menu__notification-badge {
+.notification-menu__badge {
   position: absolute;
   top: 7px;
   right: 7px;
@@ -269,12 +272,14 @@
 
 .topbar__account:focus-visible,
 .profile-menu__trigger:focus-visible,
+.notification-menu__trigger:focus-visible,
 .mode-toggle-button:focus-visible {
   outline: 2px solid rgba(193, 127, 74, 0.35);
   outline-offset: 2px;
 }
 
-.profile-menu__panel {
+.profile-menu__panel,
+.notification-menu__panel {
   position: absolute;
   top: calc(100% + 12px);
   right: 0;
@@ -289,6 +294,36 @@
   border-radius: 22px;
   background: var(--color-surface);
   box-shadow: 0 18px 40px rgba(31, 26, 23, 0.14);
+}
+
+.notification-menu__panel {
+  width: min(380px, calc(100vw - 24px));
+  gap: 14px;
+  padding: 18px;
+  max-height: min(560px, calc(100vh - 96px));
+}
+
+.notification-menu__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.notification-menu__header h3 {
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+}
+
+.notification-menu__list {
+  display: grid;
+  gap: 10px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 4px;
+  overscroll-behavior: contain;
 }
 
 .profile-menu__header {
@@ -1637,6 +1672,7 @@
 :root[data-theme='dark'] .searchbar__dropdown,
 :root[data-theme='dark'] .find-events-picker__panel,
 :root[data-theme='dark'] .profile-menu__panel,
+:root[data-theme='dark'] .notification-menu__panel,
 :root[data-theme='dark'] .icon-badge,
 :root[data-theme='dark'] .icon-box,
 :root[data-theme='dark'] .profile-menu__info-card,
@@ -1646,11 +1682,12 @@
 }
 
 :root[data-theme='dark'] .profile-menu__panel,
+:root[data-theme='dark'] .notification-menu__panel,
 :root[data-theme='dark'] .detail-map__badge {
   border-color: var(--color-border);
 }
 
-:root[data-theme='dark'] .profile-menu__notification-badge {
+:root[data-theme='dark'] .notification-menu__badge {
   border-color: rgba(23, 28, 25, 0.96);
   box-shadow: 0 0 0 2px rgba(213, 60, 51, 0.22);
 }
@@ -1683,6 +1720,7 @@
 :root[data-theme='dark'] .searchbar__result:hover,
 :root[data-theme='dark'] .topbar__account:hover,
 :root[data-theme='dark'] .profile-menu__trigger:hover,
+:root[data-theme='dark'] .notification-menu__trigger:hover,
 :root[data-theme='dark'] .mode-toggle-button:hover,
 :root[data-theme='dark'] .button--secondary:hover,
 :root[data-theme='dark'] .button--secondary-active,
@@ -2742,7 +2780,20 @@
   }
 
   .topbar__mobile-account-row {
+    display: grid;
+    gap: 10px;
     width: 100%;
+  }
+
+  .notification-menu--mobile {
+    display: grid;
+    width: 100%;
+  }
+
+  .notification-menu--mobile .notification-menu__panel {
+    position: static;
+    width: 100%;
+    margin-top: 12px;
   }
 
   .profile-menu--mobile {
