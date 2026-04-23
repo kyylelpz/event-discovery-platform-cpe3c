@@ -287,7 +287,7 @@
   overflow-y: auto;
   border: 1px solid var(--color-border);
   border-radius: 22px;
-  background: #f8f5f0;
+  background: var(--color-success-bg);
   box-shadow: 0 18px 40px rgba(31, 26, 23, 0.14);
 }
 
@@ -704,7 +704,7 @@
   overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  background: var(--color-surface);
+  background: var(--color-success-bg);
 }
 
 .featured-event__progress-shell {
@@ -823,10 +823,6 @@
 .featured-event h1 {
   font-size: clamp(2rem, 3.2vw, 3.5rem);
   line-height: 1.06;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 
 .featured-event p {
@@ -878,6 +874,12 @@
 .event-meta-item__content {
   display: block;
   min-width: 0;
+}
+
+.featured-event__meta-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .event-meta-item > svg {
@@ -1775,6 +1777,11 @@
   background: var(--color-surface);
 }
 
+.form-panel,
+.people-hero {
+  background: var(--color-success-bg);
+}
+
 .event-form,
 .signin-form {
   display: grid;
@@ -2335,6 +2342,10 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
+}
+
+.info-page__hero {
+  background: var(--color-success-bg);
 }
 
 .info-page__hero {

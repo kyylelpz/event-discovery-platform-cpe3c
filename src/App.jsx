@@ -577,6 +577,11 @@ function App() {
   }, [pathname])
 
   useEffect(() => {
+    setSearchTerm('')
+    setIsSearchFocused(false)
+  }, [pathname])
+
+  useEffect(() => {
     if (
       currentUser?.email ||
       !isHostedAuthEnvironment() ||
