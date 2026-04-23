@@ -60,11 +60,6 @@ import {
   matchesDateFilter,
   parseEventDate,
 } from './utils/formatters.js'
-import {
-  normalizeProfilePrivacy,
-  resolveProfilePrivacy,
-  saveStoredProfilePrivacy,
-} from './utils/privacy.js'
 import { normalizeRoutePath, resolveRoute, routes, slugify } from './utils/routing.js'
 
 const EVENTS_PER_PAGE = 15
@@ -264,7 +259,6 @@ const normalizeCommunityUser = (user = {}) => ({
     ? user.interests.map((interest) => String(interest || '').trim()).filter(Boolean)
     : [],
   profilePic: String(user.profilePic || user.avatar || '').trim(),
-  privacy: normalizeProfilePrivacy(user.privacy),
   createdEventsCount: Number(user.createdEventsCount || 0),
   followersCount: Number(user.followersCount || 0),
   followingCount: Number(user.followingCount || 0),
@@ -592,14 +586,6 @@ function App() {
 
   useEffect(() => {
     currentUserRef.current = currentUser
-  }, [currentUser])
-
-  useEffect(() => {
-    if (!currentUser?.privacy) {
-      return
-    }
-
-    saveStoredProfilePrivacy(currentUser, currentUser.privacy)
   }, [currentUser])
 
   useEffect(() => {
@@ -1164,16 +1150,12 @@ function App() {
             return {
               ...user,
               ...currentUser,
-              privacy: normalizeProfilePrivacy(currentUser.privacy),
             }
           }
 
-          const privacy = resolveProfilePrivacy(user)
-
           return {
             ...user,
-            privacy,
-            email: privacy.hideEmail ? '' : user.email,
+            email: '',
           }
         },
       ).sort(compareCommunityUsers),
