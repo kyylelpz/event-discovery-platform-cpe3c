@@ -69,7 +69,7 @@ function CreateEventPage({
   categories,
   locations,
   onSubmitEvent,
-  initialValues = {},
+  initialValues = null,
   pageTitle = 'Create Event',
   pageCopy = 'Share your event with the community.',
   submitLabel = 'Create Event',
@@ -77,7 +77,26 @@ function CreateEventPage({
   submissionErrorMessage = 'Unable to create your event right now.',
   onCancel,
 }) {
-  const initialForm = useMemo(() => buildFormValues(initialValues), [initialValues])
+  const initialForm = useMemo(
+    () => buildFormValues(initialValues),
+    [
+      initialValues?.title,
+      initialValues?.description,
+      initialValues?.date,
+      initialValues?.startDate,
+      initialValues?.time,
+      initialValues?.timeValue,
+      initialValues?.timeLabel,
+      initialValues?.venue,
+      initialValues?.address,
+      initialValues?.googleMapsUrl,
+      initialValues?.venueGoogleMapsUrl,
+      initialValues?.province,
+      initialValues?.category,
+      initialValues?.imagePreview,
+      initialValues?.image,
+    ],
+  )
   const [formValues, setFormValues] = useState(initialForm)
   const [errors, setErrors] = useState({})
   const [hasSubmitted, setHasSubmitted] = useState(false)
