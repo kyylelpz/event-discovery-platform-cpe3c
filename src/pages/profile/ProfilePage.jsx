@@ -26,9 +26,12 @@ function ProfilePage({
   onSaveProfile,
   onToggleFollow,
   isFollowing = false,
+  communityUsers = [],
+  onOpenProfile,
   ...sharedPageProps
 }) {
   const [isEditing, setIsEditing] = useState(false)
+  const [activeConnectTab, setActiveConnectTab] = useState('followers')
   const [draftPhone, setDraftPhone] = useState(user.phone || user.contact || '')
   const [draftBio, setDraftBio] = useState(user.bio || '')
   const [error, setError] = useState('')
@@ -58,6 +61,15 @@ function ProfilePage({
     user.bio || 'Nothing here yet. Explore more events and add a short intro.'
   const interests = Array.isArray(user.interests) ? user.interests : []
   const joinedLabel = user.joinedDate || formatMemberSince(user.createdAt)
+  const followerUsernames = Array.isArray(user.followerUsernames) ? user.followerUsernames : []
+  const followingUsernames = Array.isArray(user.followingUsernames) ? user.followingUsernames : []
+  const followerUsers = communityUsers.filter((person) =>
+    followerUsernames.includes(String(person.username || '').trim().toLowerCase()),
+  )
+  const followingUsers = communityUsers.filter((person) =>
+    followingUsernames.includes(String(person.username || '').trim().toLowerCase()),
+  )
+  const activeConnectUsers = activeConnectTab === 'followers' ? followerUsers : followingUsers
   const emptyCopy = isCurrentUser
     ? 'This area fills in from your own account activity and hosted events.'
     : activeTabConfig?.label === 'Attending'
@@ -199,12 +211,56 @@ function ProfilePage({
 
           <article className="info-card profile-page__info-card">
             <h2>Connects</h2>
-            <p className="profile-page__connects">
-              <UsersIcon />
-              <span>
-                {user.followersCount || 0} followers · {user.followingCount || 0} following
-              </span>
-            </p>
+            <div className="profile-page__connects">
+              <button
+                type="button"
+                className={`profile-page__connect-button ${
+                  activeConnectTab === 'followers' ? 'profile-page__connect-button--active' : ''
+                }`}
+                onClick={() => setActiveConnectTab('followers')}
+              >
+                <UsersIcon />
+                <span>{user.followersCount || 0} followers</span>
+              </button>
+              <button
+                type="button"
+                className={`profile-page__connect-button ${
+                  activeConnectTab === 'following' ? 'profile-page__connect-button--active' : ''
+                }`}
+                onClick={() => setActiveConnectTab('following')}
+              >
+                <UsersIcon />
+                <span>{user.followingCount || 0} following</span>
+              </button>
+            </div>
+            <div className="profile-page__connect-list" aria-live="polite">
+              {activeConnectUsers.length ? (
+                activeConnectUsers.map((person) => (
+                  <button
+                    key={person.username}
+                    type="button"
+                    className="profile-page__connect-person"
+                    onClick={() => onOpenProfile?.(person.username)}
+                  >
+                    <UserAvatar
+                      name={person.name}
+                      imageUrl={person.profilePic || person.avatar}
+                      size="sm"
+                    />
+                    <span className="profile-page__connect-person-copy">
+                      <strong>{person.name}</strong>
+                      <span>@{person.username}</span>
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <p className="profile-page__connect-empty">
+                  {activeConnectTab === 'followers'
+                    ? 'No followers to show yet.'
+                    : 'No following accounts to show yet.'}
+                </p>
+              )}
+            </div>
           </article>
         </div>
 

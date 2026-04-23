@@ -1604,6 +1604,12 @@
   border-top: 1px solid var(--color-border);
 }
 
+.detail-panel__share-status {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.92rem;
+}
+
 .detail-panel__attend {
   width: 100%;
 }
@@ -1825,10 +1831,68 @@
 }
 
 .profile-page__connects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.profile-page__connect-button {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  line-height: 1.5;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.profile-page__connect-button--active {
+  border-color: var(--color-accent);
+  background: rgba(45, 59, 21, 0.08);
+}
+
+.profile-page__connect-list {
+  display: grid;
+  gap: 10px;
+}
+
+.profile-page__connect-person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: rgba(252, 252, 252, 0.72);
+  color: var(--color-text);
+  text-align: left;
+}
+
+.profile-page__connect-person:hover {
+  background: rgba(45, 59, 21, 0.05);
+}
+
+.profile-page__connect-person-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.profile-page__connect-person-copy strong,
+.profile-page__connect-person-copy span {
+  margin: 0;
+  line-height: 1.35;
+}
+
+.profile-page__connect-person-copy span,
+.profile-page__connect-empty {
+  color: var(--color-muted);
+}
+
+.profile-page__connect-empty {
+  margin: 0;
 }
 
 .profile-page__interest-section {
