@@ -33,6 +33,7 @@ function ProfilePage({
   const [isEditing, setIsEditing] = useState(false)
   const [activeConnectTab, setActiveConnectTab] = useState('followers')
   const [connectSearch, setConnectSearch] = useState('')
+  const [draftName, setDraftName] = useState(user.name || '')
   const [draftUsername, setDraftUsername] = useState(user.username || '')
   const [draftPhone, setDraftPhone] = useState(user.phone || user.contact || '')
   const [draftBio, setDraftBio] = useState(user.bio || '')
@@ -54,8 +55,14 @@ function ProfilePage({
       ]
   const activeTabConfig = tabs.find((tab) => tab.label === activeTab) || tabs[0]
   const displayEvents = activeTabConfig.events
-  const displayName = getUserDisplayName(user)
-  const secondaryLabel = getUserSecondaryLabel(user)
+  const profileName = String(user.name || '').trim()
+  const profileUsername = String(user.username || '').trim()
+  const fallbackDisplayName = getUserDisplayName(user)
+  const displayName = profileName || fallbackDisplayName
+  const secondaryLabel =
+    profileUsername && profileUsername.toLowerCase() !== displayName.toLowerCase()
+      ? `@${profileUsername}`
+      : getUserSecondaryLabel(user)
   const locationLabel = user.location || 'Philippines'
   const emailLabel = isCurrentUser
     ? user.email || 'No email yet'
@@ -99,14 +106,16 @@ function ProfilePage({
       : user.profilePic || user.avatar
 
   useEffect(() => {
+    setDraftName(user.name || '')
     setDraftUsername(user.username || '')
     setDraftPhone(user.phone || user.contact || '')
     setDraftBio(user.bio || '')
     setDraftProfilePic(user.profilePic || user.avatar || '')
     setDraftProfilePicFile(null)
-  }, [user.bio, user.contact, user.phone, user.profilePic, user.avatar, user.username])
+  }, [user.avatar, user.bio, user.contact, user.name, user.phone, user.profilePic, user.username])
 
   const handleStartEdit = () => {
+    setDraftName(user.name || '')
     setDraftUsername(user.username || '')
     setDraftPhone(user.phone || user.contact || '')
     setDraftBio(user.bio || '')
@@ -118,6 +127,7 @@ function ProfilePage({
   }
 
   const handleCancelEdit = () => {
+    setDraftName(user.name || '')
     setDraftUsername(user.username || '')
     setDraftPhone(user.phone || user.contact || '')
     setDraftBio(user.bio || '')
@@ -172,6 +182,7 @@ function ProfilePage({
 
     try {
       await onSaveProfile({
+        name: draftName,
         username: draftUsername,
         phone: draftPhone,
         bio: draftBio,
@@ -245,6 +256,16 @@ function ProfilePage({
 
         {isCurrentUser && isEditing ? (
           <form className="event-form profile-edit-form" onSubmit={handleSaveProfile}>
+            <label>
+              <span>Name</span>
+              <input
+                value={draftName}
+                onChange={(nextEvent) => setDraftName(nextEvent.target.value)}
+                placeholder="Your display name"
+              />
+              <small className="field-hint">Names do not need to be unique.</small>
+            </label>
+
             <label>
               <span>Username</span>
               <input

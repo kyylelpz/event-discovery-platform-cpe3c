@@ -9,7 +9,6 @@ const emptyForm = {
   date: '',
   time: '',
   venue: '',
-  address: '',
   googleMapsUrl: '',
   province: '',
   category: '',
@@ -32,7 +31,6 @@ const buildFormValues = (initialValues = {}) => {
       safeInitialValues.timeValue || safeInitialValues.time || safeInitialValues.timeLabel || '',
     ),
     venue: String(safeInitialValues.venue || '').trim(),
-    address: String(safeInitialValues.address || '').trim(),
     googleMapsUrl: String(
       safeInitialValues.googleMapsUrl || safeInitialValues.venueGoogleMapsUrl || '',
     ).trim(),
@@ -88,7 +86,6 @@ function CreateEventPage({
       initialValues?.timeValue,
       initialValues?.timeLabel,
       initialValues?.venue,
-      initialValues?.address,
       initialValues?.googleMapsUrl,
       initialValues?.venueGoogleMapsUrl,
       initialValues?.province,
@@ -367,7 +364,7 @@ function CreateEventPage({
 
           <label>
             <span>
-              Venue / Address <em>*</em>
+              Venue <em>*</em>
             </span>
             <input
               required
@@ -380,18 +377,6 @@ function CreateEventPage({
               Use the venue or place name that people can search in Google Maps.
             </small>
             {errors.venue ? <small className="field-error">{errors.venue}</small> : null}
-          </label>
-
-          <label>
-            <span>Street Address / Landmark</span>
-            <input
-              value={formValues.address}
-              onChange={(event) => updateField('address', event.target.value)}
-              placeholder="Seaside Blvd, Pasay, Metro Manila"
-            />
-            <small className="field-hint">
-              Add a fuller address to make the map preview and directions more accurate.
-            </small>
           </label>
 
           <label>

@@ -91,7 +91,7 @@ export const normalizeProfile = (rawProfile, fallbackSession = {}) => {
     id: String(rawProfile?.id || rawProfile?._id || fallbackSession.id || '').trim(),
     email,
     name:
-      String(rawProfile?.name || rawProfile?.username || fallbackSession.name || '').trim() ||
+      String(rawProfile?.name || fallbackSession.name || rawProfile?.username || '').trim() ||
       getDefaultName(email),
     username: String(rawProfile?.username || fallbackSession.username || '').trim(),
     interests,

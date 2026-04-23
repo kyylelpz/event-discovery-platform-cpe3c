@@ -1969,8 +1969,7 @@ function App() {
     payload.append('date', formData.date)
     payload.append('time', formData.time)
     payload.append('venue', formData.venue)
-    payload.append('address', formData.address)
-    payload.append('location', formData.address || formData.venue || formData.province)
+    payload.append('location', formData.venue || formData.province)
     payload.append('googleMapsUrl', formData.googleMapsUrl)
     payload.append('province', formData.province)
     payload.append('category', formData.category)
@@ -2269,7 +2268,6 @@ function App() {
             date: resolvedEventDetail.startDate,
             time: resolvedEventDetail.timeValue || resolvedEventDetail.timeLabel,
             venue: resolvedEventDetail.venue,
-            address: resolvedEventDetail.address,
             googleMapsUrl: resolvedEventDetail.venueGoogleMapsUrl,
             province: resolvedEventDetail.province,
             category: resolvedEventDetail.category,
