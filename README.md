@@ -11,6 +11,12 @@ Eventcinity is a **React + Vite single-page application (SPA)** that provides th
 
 ---
 
+## Related Repository
+
+- Backend: https://github.com/kyylelpz/event-discovery-platform-backend-cpe3c
+
+---
+
 ## Overview
 
 This frontend application allows users to:
