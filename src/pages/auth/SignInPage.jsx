@@ -513,10 +513,9 @@ function SignInPage({ onAuthSuccess }) {
 
   const handleGoogleSignIn = () => {
     const googleAuthUrl = new URL(`${API_BASE_URL}/api/auth/google`)
-    const redirectPath = isSignUp ? routes.profile('me') : routes.events
     googleAuthUrl.searchParams.set(
       'redirectTo',
-      `${window.location.origin}${redirectPath}`,
+      `${window.location.origin}${routes.events}`,
     )
     window.location.href = googleAuthUrl.toString()
   }

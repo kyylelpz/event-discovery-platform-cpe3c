@@ -817,7 +817,7 @@ function App() {
     }
 
     setShowInterests(false)
-    navigate(routes.profile('me'))
+    navigate(routes.events)
   }
 
   // Called after interests are picked
