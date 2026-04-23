@@ -147,4 +147,4 @@ npm run build
 - Jana Daniela Bautista  
 - Lance Angelo Bernal  
 - Euan Francisco  
-- Kyle Lemuel E. Lopez  
+- Kyle Lemuel Lopez  
