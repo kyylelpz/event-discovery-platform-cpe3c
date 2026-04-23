@@ -19,17 +19,17 @@ import CommunityHostsPage from './pages/info/CommunityHostsPage.jsx'
 import LocationGuidesPage from './pages/info/LocationGuidesPage.jsx'
 import HelpCenterPage from './pages/info/HelpCenterPage.jsx'
 import ContactSupportPage from './pages/info/ContactSupportPage.jsx'
-import { API_BASE_URL } from './services/apiBase.js'
 import {
+  createCreatedEvent,
   fetchCreatedEventsByCurrentUser,
   fetchCreatedEventsByUsername,
   fetchEventById,
   loadEventsByLocation,
+  updateCreatedEvent,
 } from './services/eventService.js'
 import {
   clearSession,
   consumeHostedAuthRedirect,
-  getAuthRequestHeaders,
   getSession,
   isHostedAuthEnvironment,
   saveCurrentUserProfile,
@@ -52,8 +52,6 @@ import {
   normalizePublicUser,
 } from './services/userService.js'
 import {
-  buildGoogleMapsSearchUrl,
-  createPosterDataUri,
   eventOccursOnDate,
   formatDateKey,
   getEventDateKeys,
@@ -71,6 +69,19 @@ const mergeEvents = (...eventGroups) => {
   const merged = new Map()
   eventGroups.flat().forEach((event) => merged.set(event.id, event))
   return [...merged.values()]
+}
+
+const matchesEventId = (event, eventId) => {
+  const normalizedEventId = String(eventId || '').trim()
+
+  if (!normalizedEventId) {
+    return false
+  }
+
+  return (
+    String(event?.id || '').trim() === normalizedEventId ||
+    String(event?.eventId || '').trim() === normalizedEventId
+  )
 }
 
 const normalizeInterestList = (values) =>
@@ -1378,11 +1389,7 @@ function App() {
   const showSearchResults = isSearchFocused && normalizedSearch.length > 0
   const currentEvent = allEvents.find((event) => {
     const routeEventId = String(route.params?.eventId || '').trim()
-
-    return (
-      String(event?.id || '').trim() === routeEventId ||
-      String(event?.eventId || '').trim() === routeEventId
-    )
+    return matchesEventId(event, routeEventId)
   })
   const resolvedEventDetail = currentEvent || eventDetailRecord
   const isViewingCurrentUserProfile =
@@ -1391,7 +1398,7 @@ function App() {
     ['me', currentUserProfileSlug].includes(route.params?.username)
 
   useEffect(() => {
-    if (route.key !== 'event-detail') {
+    if (!['event-detail', 'edit-event'].includes(route.key)) {
       setEventDetailRecord(null)
       setIsEventDetailLoading(false)
       return undefined
@@ -1691,6 +1698,90 @@ function App() {
           e.province === resolvedEventDetail.province)
       )
     : []
+  const currentResolvedEventOwnerId = String(resolvedEventDetail?.ownerId || '').trim()
+  const currentResolvedEventCreator = String(resolvedEventDetail?.createdBy || '')
+    .trim()
+    .toLowerCase()
+  const currentUserId = String(currentUser?.id || '').trim()
+  const currentUsername = String(currentUser?.username || '').trim().toLowerCase()
+  const canCurrentUserEditResolvedEvent =
+    resolvedEventDetail?.source === 'created' &&
+    ((currentUserId &&
+      currentResolvedEventOwnerId &&
+      currentUserId === currentResolvedEventOwnerId) ||
+      (currentUsername &&
+        currentResolvedEventCreator &&
+        currentUsername === currentResolvedEventCreator))
+
+  const buildCreatedEventPayload = (formData) => {
+    const payload = new FormData()
+    payload.append('title', formData.title)
+    payload.append('description', formData.description)
+    payload.append('date', formData.date)
+    payload.append('time', formData.time)
+    payload.append('venue', formData.venue)
+    payload.append('address', formData.address)
+    payload.append('location', formData.address || formData.venue || formData.province)
+    payload.append('googleMapsUrl', formData.googleMapsUrl)
+    payload.append('province', formData.province)
+    payload.append('category', formData.category)
+
+    if (formData.imageFile) {
+      payload.append('image', formData.imageFile)
+    }
+
+    return payload
+  }
+
+  const assertFutureEventSchedule = (formData, actionLabel = 'save') => {
+    const now = new Date()
+    const [year, month, day] = String(formData.date || '')
+      .split('-')
+      .map((value) => Number(value))
+    const [hours, minutes] = String(formData.time || '')
+      .split(':')
+      .map((value) => Number(value))
+    const eventDateTime = new Date(
+      year || 0,
+      (month || 1) - 1,
+      day || 1,
+      hours || 0,
+      minutes || 0,
+    )
+
+    if (Number.isNaN(eventDateTime.getTime()) || eventDateTime.getTime() < now.getTime()) {
+      throw new Error(`Choose a future date and time for your event before you ${actionLabel} it.`)
+    }
+  }
+
+  const syncCreatedEventState = (nextEvent, { incrementCreatedCount = false } = {}) => {
+    setCreatedEvents((prevEvents) => mergeEvents(prevEvents, [nextEvent]))
+    setProfileCreatedEvents((prevEvents) => mergeEvents(prevEvents, [nextEvent]))
+    setEventDetailRecord((currentRecord) =>
+      currentRecord && matchesEventId(currentRecord, nextEvent.id) ? nextEvent : currentRecord,
+    )
+
+    if (!incrementCreatedCount) {
+      return
+    }
+
+    setCurrentUser((prev) =>
+      prev
+        ? {
+            ...prev,
+            createdEventsCount: Number(prev.createdEventsCount || 0) + 1,
+          }
+        : prev,
+    )
+    setCommunityUsers((prevUsers) =>
+      mergeCommunityUsers(prevUsers, [
+        {
+          ...currentUser,
+          createdEventsCount: Number(currentUser?.createdEventsCount || 0) + 1,
+        },
+      ]),
+    )
+  }
 
   const toggleInteraction = async (key, event) => {
     if (!currentUser?.email) {
@@ -1734,131 +1825,40 @@ function App() {
       throw new Error('Sign in to create an event.')
     }
 
-    const now = new Date()
-    const [year, month, day] = String(formData.date || '')
-      .split('-')
-      .map((value) => Number(value))
-    const [hours, minutes] = String(formData.time || '')
-      .split(':')
-      .map((value) => Number(value))
-    const eventDateTime = new Date(year || 0, (month || 1) - 1, day || 1, hours || 0, minutes || 0)
-
-    if (Number.isNaN(eventDateTime.getTime()) || eventDateTime.getTime() < now.getTime()) {
-      throw new Error('Choose a future date and time for your event.')
-    }
+    assertFutureEventSchedule(formData, 'create')
 
     try {
-      const payload = new FormData()
-      payload.append('title', formData.title)
-      payload.append('description', formData.description)
-      payload.append('date', formData.date)
-      payload.append('time', formData.time)
-      payload.append('venue', formData.venue)
-      payload.append('address', formData.address)
-      payload.append('location', formData.address || formData.venue || formData.province)
-      payload.append('googleMapsUrl', formData.googleMapsUrl)
-      payload.append('province', formData.province)
-      payload.append('category', formData.category)
-      if (formData.imageFile) {
-        payload.append('image', formData.imageFile)
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/events/create`, {
-        method: 'POST',
-        headers: getAuthRequestHeaders(),
-        credentials: 'include',
-        body: payload,
-      })
-      const responseData = await response.json()
-
-      if (!response.ok || !responseData.success) {
-        if ([401, 403].includes(response.status)) {
-          navigate(routes.signin)
-          throw new Error('Sign in to create an event.')
-        }
-
-        throw new Error(responseData.message || 'Failed to create event.')
-      }
-
-      if (responseData.success) {
-        const dbEvent = responseData.data
-        const fallbackImage = createPosterDataUri({
-          title: dbEvent.title,
-          location: dbEvent.location || dbEvent.address || dbEvent.venue || formData.province,
-          category: dbEvent.category || 'Community',
-        })
-        const mapLabel =
-          dbEvent.address ||
-          dbEvent.location ||
-          dbEvent.venue ||
-          formData.address ||
-          formData.venue ||
-          formData.province
-        const mapUrl =
-          dbEvent.venueGoogleMapsUrl ||
-          dbEvent.googleMapsUrl ||
-          formData.googleMapsUrl ||
-          buildGoogleMapsSearchUrl(mapLabel)
-
-        const newEvent = {
-          id: dbEvent.eventId,
-          title: dbEvent.title,
-          category: dbEvent.category || formData.category || 'Community',
-          startDate: dbEvent.startDate || dbEvent.date || formData.date,
-          timeLabel: dbEvent.timeLabel || dbEvent.time || formData.time || '',
-          location:
-            dbEvent.location ||
-            dbEvent.address ||
-            dbEvent.venue ||
-            formData.address ||
-            formData.venue ||
-            formData.province,
-          venue: dbEvent.venue || formData.venue || '',
-          address: dbEvent.address || formData.address || '',
-          province: dbEvent.province || formData.province,
-          host: dbEvent.organizer || dbEvent.creatorName || currentUser?.name || 'Community Host',
-          createdBy: dbEvent.createdBy || currentUser?.username || '',
-          description: dbEvent.description || '',
-          attendeeCount: Number(dbEvent.attendeeCount || 0),
-          savedCount: Number(dbEvent.savedCount || 0),
-          reactions: Number(dbEvent.reactions || 0),
-          venueRating: Number(dbEvent.venueRating || 0),
-          venueReviewCount: Number(dbEvent.venueReviewCount || 0),
-          venueGoogleMapsUrl: dbEvent.venueGoogleMapsUrl || formData.googleMapsUrl || '',
-          venuePlaceId: dbEvent.venuePlaceId || '',
-          venueCoordinates: dbEvent.venueCoordinates || null,
-          image:
-            dbEvent.imageUrl ||
-            formData.imagePreview ||
-            fallbackImage,
-          fallbackImage,
-          mapLabel,
-          mapUrl,
-          source: 'created',
-        }
-
-        setCreatedEvents((prev) => [newEvent, ...prev])
-        setCurrentUser((prev) =>
-          prev
-            ? {
-                ...prev,
-                createdEventsCount: Number(prev.createdEventsCount || 0) + 1,
-              }
-            : prev,
-        )
-        setCommunityUsers((prevUsers) =>
-          mergeCommunityUsers(prevUsers, [
-            {
-              ...currentUser,
-              createdEventsCount: Number(currentUser?.createdEventsCount || 0) + 1,
-            },
-          ]),
-        )
-        navigate(routes.eventDetail(newEvent.id))
-      }
+      const createdEvent = await createCreatedEvent(buildCreatedEventPayload(formData))
+      syncCreatedEventState(createdEvent, { incrementCreatedCount: true })
+      navigate(routes.eventDetail(createdEvent.id))
     } catch (err) {
       console.error('Upload failed:', err.message)
+      if ([401, 403].includes(err?.status)) {
+        navigate(routes.signin)
+      }
       throw err
+    }
+  }
+
+  const handleUpdateEvent = async (eventId, formData) => {
+    if (!currentUser?.email) {
+      navigate(routes.signin)
+      throw new Error('Sign in to edit your event.')
+    }
+
+    assertFutureEventSchedule(formData, 'save')
+
+    try {
+      const updatedEvent = await updateCreatedEvent(eventId, buildCreatedEventPayload(formData))
+      syncCreatedEventState(updatedEvent)
+      setEventDetailRecord(updatedEvent)
+      navigate(routes.eventDetail(updatedEvent.id))
+    } catch (error) {
+      if (error?.status === 401) {
+        navigate(routes.signin)
+      }
+
+      throw error
     }
   }
 
@@ -1946,11 +1946,86 @@ function App() {
       <CreateEventPage
         categories={categoryOptions.filter((item) => item !== 'All Events')}
         locations={locationOptions.filter((item) => item !== 'All Philippines')}
-        onCreateEvent={handleCreateEvent}
+        onSubmitEvent={handleCreateEvent}
       />
     ) : (
       <SignInPage onAuthSuccess={handleAuthSuccess} />
     )
+  } else if (route.key === 'edit-event') {
+    if (!currentUser) {
+      page = <SignInPage onAuthSuccess={handleAuthSuccess} />
+    } else if (isEventDetailLoading && !resolvedEventDetail) {
+      page = (
+        <div className="page-stack page-stack--detail">
+          <section className="detail-hero">
+            <div className="detail-layout">
+              <div className="detail-layout__main">
+                <div className="section-block__heading">
+                  <h2>Loading event</h2>
+                  <p>Pulling the latest event details before editing.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      )
+    } else if (!resolvedEventDetail) {
+      page = (
+        <div className="page-stack page-stack--detail">
+          <section className="detail-hero">
+            <div className="detail-layout">
+              <div className="detail-layout__main">
+                <div className="section-block__heading">
+                  <h2>Event not found</h2>
+                  <p>This event could not be found in the stored catalog.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      )
+    } else if (!canCurrentUserEditResolvedEvent) {
+      page = (
+        <div className="page-stack page-stack--detail">
+          <section className="detail-hero">
+            <div className="detail-layout">
+              <div className="detail-layout__main">
+                <div className="section-block__heading">
+                  <h2>Editing not allowed</h2>
+                  <p>Only the account that created this event can edit it.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      )
+    } else {
+      page = (
+        <CreateEventPage
+          categories={categoryOptions.filter((item) => item !== 'All Events')}
+          locations={locationOptions.filter((item) => item !== 'All Philippines')}
+          initialValues={{
+            title: resolvedEventDetail.title,
+            description: resolvedEventDetail.description,
+            date: resolvedEventDetail.startDate,
+            time: resolvedEventDetail.timeLabel,
+            venue: resolvedEventDetail.venue,
+            address: resolvedEventDetail.address,
+            googleMapsUrl: resolvedEventDetail.venueGoogleMapsUrl,
+            province: resolvedEventDetail.province,
+            category: resolvedEventDetail.category,
+            image: resolvedEventDetail.image,
+          }}
+          pageTitle="Edit Event"
+          pageCopy="Update your event details and keep attendees in the loop."
+          submitLabel="Save Changes"
+          submittingLabel="Saving Changes..."
+          submissionErrorMessage="Unable to save your event changes right now."
+          onSubmitEvent={(formData) => handleUpdateEvent(resolvedEventDetail.id, formData)}
+          onCancel={() => navigate(routes.eventDetail(resolvedEventDetail.id))}
+        />
+      )
+    }
   } else if (route.key === 'event-detail') {
     if (isEventDetailLoading && !resolvedEventDetail) {
       page = (
@@ -1988,6 +2063,8 @@ function App() {
           event={resolvedEventDetail}
           relatedEvents={relatedEvents.slice(0, 3)}
           onNavigate={navigate}
+          currentUser={currentUser}
+          onEditEvent={(event) => navigate(routes.editEvent(event.id))}
           {...sharedPageProps}
         />
       )

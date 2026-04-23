@@ -2,6 +2,7 @@ export const routes = {
   events: '/events',
   eventsByDate: (dateKey) => `/events/date/${dateKey}`,
   createEvent: '/events/create',
+  editEvent: (eventId) => `/events/${encodeURIComponent(String(eventId || '').trim())}/edit`,
   eventDetail: (eventId) => `/events/${encodeURIComponent(String(eventId || '').trim())}`,
   people: '/people',
   profile: (username) => `/profile/${username}`,
@@ -57,6 +58,10 @@ export const resolveRoute = (pathname) => {
 
   if (cleanPath === '/events/create') {
     return { key: 'create-event', params: {} }
+  }
+
+  if (parts[0] === 'events' && parts[1] && parts[2] === 'edit') {
+    return { key: 'edit-event', params: { eventId: decodeRouteParam(parts[1]) } }
   }
 
   if (parts[0] === 'events' && parts[1] === 'date' && parts[2]) {

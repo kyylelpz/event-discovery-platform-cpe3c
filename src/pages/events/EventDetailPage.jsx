@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import EventList from '../../components/events/EventList.jsx'
-import { PrimaryButton } from '../../components/ui/Button.jsx'
+import { PrimaryButton, SecondaryButton } from '../../components/ui/Button.jsx'
 import CategoryTag from '../../components/ui/CategoryTag.jsx'
 import UserAvatar from '../../components/ui/UserAvatar.jsx'
 import {
@@ -27,6 +27,8 @@ function EventDetailPage({
   onToggleSave,
   onToggleAttend,
   onOpenEvent,
+  currentUser,
+  onEditEvent,
 }) {
   const [shareStatus, setShareStatus] = useState('')
   const eventId = String(event?.id || '').trim()
@@ -39,6 +41,15 @@ function EventDetailPage({
   const mapQuery = event.mapLabel || event.location
   const mapEmbedUrl = buildGoogleMapsEmbedUrl(mapQuery)
   const venueLabel = event.venue || event.location
+  const currentUserId = String(currentUser?.id || '').trim()
+  const eventOwnerId = String(event?.ownerId || '').trim()
+  const currentUsername = String(currentUser?.username || '').trim().toLowerCase()
+  const eventCreatorUsername = String(event?.createdBy || '').trim().toLowerCase()
+  const canEditEvent =
+    Boolean(onEditEvent) &&
+    event.source === 'created' &&
+    ((currentUserId && eventOwnerId && currentUserId === eventOwnerId) ||
+      (currentUsername && eventCreatorUsername && currentUsername === eventCreatorUsername))
   const detailRouteId = String(event?.eventId || event?.id || '').trim()
   const shareUrl =
     typeof window !== 'undefined' && detailRouteId
@@ -232,6 +243,14 @@ function EventDetailPage({
               </div>
 
               <div className="detail-panel__actions">
+                {canEditEvent ? (
+                  <SecondaryButton
+                    onClick={() => onEditEvent(event)}
+                    className="detail-panel__edit"
+                  >
+                    Edit Event
+                  </SecondaryButton>
+                ) : null}
                 <PrimaryButton
                   onClick={() => onToggleAttend(event)}
                   className="detail-panel__attend"
