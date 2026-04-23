@@ -1287,6 +1287,16 @@ function App() {
   const compareByNearestDate = compareEventsByNearestDate
 
   const sortedEvents = [...filteredEvents].sort((leftEvent, rightEvent) => {
+    if (isCalendarDateMode) {
+      return `${leftEvent.title}`.localeCompare(`${rightEvent.title}`)
+    }
+
+    const dateDifference = compareByNearestDate(leftEvent, rightEvent)
+
+    if (dateDifference !== 0) {
+      return dateDifference
+    }
+
     const interestDifference =
       scoreEventForInterests(rightEvent, currentUserInterests) -
       scoreEventForInterests(leftEvent, currentUserInterests)
@@ -1295,11 +1305,7 @@ function App() {
       return interestDifference
     }
 
-    if (isCalendarDateMode) {
-      return `${leftEvent.title}`.localeCompare(`${rightEvent.title}`)
-    }
-
-    return compareByNearestDate(leftEvent, rightEvent)
+    return `${leftEvent.title}`.localeCompare(`${rightEvent.title}`)
   })
 
   const totalEventPages = Math.max(1, Math.ceil(sortedEvents.length / EVENTS_PER_PAGE))
@@ -2030,8 +2036,6 @@ function App() {
             String(activeProfile?.username || '').trim().toLowerCase(),
           )}
           communityUsers={communityDirectory}
-          notifications={userNotifications}
-          onReadNotification={handleReadNotification}
           onOpenProfile={(username) => navigate(routes.profile(username))}
           activeTab={activeProfileTab}
           onTabChange={setActiveProfileTab}

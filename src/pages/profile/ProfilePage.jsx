@@ -6,7 +6,6 @@ import {
   BookmarkIcon,
   CalendarIcon,
   HeartIcon,
-  MessageCircleIcon,
   MapPinIcon,
   SearchIcon,
   UserPlusIcon,
@@ -28,8 +27,6 @@ function ProfilePage({
   onToggleFollow,
   isFollowing = false,
   communityUsers = [],
-  notifications = [],
-  onReadNotification,
   onOpenProfile,
   ...sharedPageProps
 }) {
@@ -363,50 +360,6 @@ function ProfilePage({
               )}
             </div>
           </article>
-
-          {isCurrentUser ? (
-            <article className="info-card profile-page__info-card">
-              <h2>Notifications</h2>
-              <p className="profile-page__connect-summary">
-                Upcoming saved activity and new follower updates show here.
-              </p>
-              <div className="profile-page__notification-list">
-                {notifications.length ? (
-                  notifications.map((notification) => (
-                    <button
-                      key={notification.id}
-                      type="button"
-                      className="profile-page__notification"
-                      onClick={() => {
-                        onReadNotification?.(notification.id)
-
-                        if (notification.eventId) {
-                          sharedPageProps.onOpenEvent?.(notification.eventId)
-                          return
-                        }
-
-                        if (notification.username) {
-                          onOpenProfile?.(notification.username)
-                        }
-                      }}
-                    >
-                      <span className="profile-page__notification-icon">
-                        {notification.kind === 'follower' ? <UserPlusIcon /> : <MessageCircleIcon />}
-                      </span>
-                      <span className="profile-page__notification-copy">
-                        <strong>{notification.title}</strong>
-                        <span>{notification.body}</span>
-                      </span>
-                    </button>
-                  ))
-                ) : (
-                  <p className="profile-page__connect-empty">
-                    No new notifications right now.
-                  </p>
-                )}
-              </div>
-            </article>
-          ) : null}
         </div>
 
         <section className="section-block profile-page__interest-section">
