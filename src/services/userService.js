@@ -243,6 +243,7 @@ export const normalizePublicUser = (rawUser = {}) => ({
   createdEventsCount: Number(rawUser.createdEventsCount || 0),
   followersCount: Number(rawUser.followersCount || 0),
   followingCount: Number(rawUser.followingCount || 0),
+  isMock: Boolean(rawUser.isMock),
 })
 
 const buildGeneratedCommunityUsers = (existingUsers = []) => {

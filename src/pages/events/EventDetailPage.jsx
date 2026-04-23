@@ -11,6 +11,7 @@ import {
   LinkIcon,
   MapPinIcon,
   StarIcon,
+  UsersIcon,
 } from '../../components/ui/Icons.jsx'
 import {
   buildGoogleMapsEmbedUrl,
@@ -33,6 +34,7 @@ function EventDetailPage({
   isFollowingAttendeesLoading = false,
   onOpenProfile,
   onEditEvent,
+  recommendedEvents = [],
 }) {
   const [shareStatus, setShareStatus] = useState('')
   const eventId = String(event?.id || '').trim()
@@ -241,6 +243,13 @@ function EventDetailPage({
                     )}
                   </div>
                 </div>
+                <div className="detail-panel__meta-item">
+                  <UsersIcon />
+                  <div className="detail-panel__meta-content">
+                    <p>Attendees</p>
+                    <strong>{Number(event.attendeeCount || 0)} going</strong>
+                  </div>
+                </div>
                 {event.venueRating > 0 ? (
                   <div className="detail-panel__meta-item">
                     <StarIcon filled />
@@ -352,6 +361,25 @@ function EventDetailPage({
           </aside>
         </div>
       </section>
+
+      {recommendedEvents.length ? (
+        <section className="section-block">
+          <div className="section-block__heading">
+            <h2>Recommended For You</h2>
+            <p>More events matched to your interests and activity.</p>
+          </div>
+          <EventList
+            events={recommendedEvents}
+            emptyTitle="No recommendations yet"
+            emptyCopy="Try adding interests or exploring more categories first."
+            interactions={interactions}
+            onToggleHeart={onToggleHeart}
+            onToggleSave={onToggleSave}
+            onToggleAttend={onToggleAttend}
+            onOpenEvent={onOpenEvent}
+          />
+        </section>
+      ) : null}
 
       <section className="section-block">
         <div className="section-block__heading">
