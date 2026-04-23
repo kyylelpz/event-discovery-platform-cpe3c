@@ -199,7 +199,13 @@ const getAuthResponseMessage = (data, fallback = '') => {
 }
 
 const getAuthResponseEmail = (data, fallbackEmail = '') =>
-  normalizeEmail(data?.email || getAuthDataRecord(data)?.email || fallbackEmail)
+  normalizeEmail(
+    data?.email ||
+      data?.user?.email ||
+      getAuthDataRecord(data)?.email ||
+      getAuthDataRecord(data)?.user?.email ||
+      fallbackEmail,
+  )
 
 const getAuthVerificationRequired = (data) => {
   const authData = getAuthDataRecord(data)
@@ -638,7 +644,6 @@ const issueLocalVerificationCode = async (userInput, messageBuilder) => {
       : String(messageBuilder || '').trim()
 
   return {
-    user,
     verificationRequired: true,
     email: user.email,
     message: message || buildLocalVerificationMessage(verificationCode),
@@ -1187,12 +1192,7 @@ export const verifyEmailCode = async ({ email, code }) => {
     }
 
     if (user.emailVerified !== false) {
-      const session = buildSession({
-        ...user,
-        shouldShowInterestsPrompt: Boolean(user.needsInterestsSelection),
-      })
-      setSession(session)
-      return session
+      throw new Error('That email is already verified. Sign in to continue.')
     }
 
     if (!String(user.verificationCode || '').trim()) {
@@ -1289,6 +1289,16 @@ export const signIn = async ({ email, password }) => {
       email: normalizedEmail,
       password,
     })
+
+    const verificationResponse = buildVerificationRequiredResponse(
+      data,
+      normalizedEmail,
+      'Verify your email to finish signing in.',
+    )
+
+    if (verificationResponse) {
+      return verificationResponse
+    }
 
     const session = buildSession({
       ...createSessionFromAuthPayload(
