@@ -11,7 +11,6 @@ import {
   LinkIcon,
   MapPinIcon,
   StarIcon,
-  UsersIcon,
 } from '../../components/ui/Icons.jsx'
 import {
   buildGoogleMapsEmbedUrl,
@@ -241,13 +240,6 @@ function EventDetailPage({
                     ) : (
                       <strong>{venueLabel}</strong>
                     )}
-                  </div>
-                </div>
-                <div className="detail-panel__meta-item">
-                  <UsersIcon />
-                  <div className="detail-panel__meta-content">
-                    <p>Attendees</p>
-                    <strong>{Number(event.attendeeCount || 0)} going</strong>
                   </div>
                 </div>
                 {event.venueRating > 0 ? (
