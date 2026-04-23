@@ -15,10 +15,10 @@ import CategoryTag from '../ui/CategoryTag.jsx'
 import { formatEventSchedule, getResponsiveImageProps } from '../../utils/formatters.js'
 
 const FEATURED_EVENT_ROTATION_INTERVAL_MS = 5000
-const FEATURED_EVENT_TITLE_MAX_LENGTH = 42
-const FEATURED_EVENT_DESCRIPTION_MAX_LENGTH = 88
-const FEATURED_EVENT_SCHEDULE_MAX_LENGTH = 54
-const FEATURED_EVENT_LOCATION_MAX_LENGTH = 48
+const FEATURED_EVENT_TITLE_MAX_LENGTH = 56
+const FEATURED_EVENT_DESCRIPTION_MAX_LENGTH = 68
+const FEATURED_EVENT_SCHEDULE_MAX_LENGTH = 42
+const FEATURED_EVENT_LOCATION_MAX_LENGTH = 38
 
 const truncateText = (value, maxLength) => {
   const normalizedValue = String(value || '').trim()
