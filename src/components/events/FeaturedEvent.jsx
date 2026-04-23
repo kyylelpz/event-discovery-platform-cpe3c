@@ -45,9 +45,11 @@ function FeaturedEvent({
   const sliderRef = useRef(null)
 
   useEffect(() => {
-    setActiveIndex(0)
+    setActiveIndex((currentIndex) =>
+      slides.length ? Math.min(currentIndex, slides.length - 1) : 0,
+    )
     setProgressKey((currentKey) => currentKey + 1)
-  }, [events])
+  }, [slides.length])
 
   useEffect(() => {
     if (slides.length < 2 || isPaused) {
