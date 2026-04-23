@@ -82,12 +82,13 @@ function ProfilePage({
   const secondaryLabel = getUserSecondaryLabel(user)
   const locationLabel = user.location || 'Philippines'
   const privacy = normalizeProfilePrivacy(user.privacy)
-  const emailLabel = privacy.hideEmail
-      ? 'Email is hidden by this user.'
-      : user.email || 'No public email has been added yet.'
-  const isContactHidden = privacy.hideContact
-  const isFollowersHidden = privacy.hideFollowers
-  const isFollowingHidden = privacy.hideFollowing
+  const isEmailHidden = !isCurrentUser && privacy.hideEmail
+  const isContactHidden = !isCurrentUser && privacy.hideContact
+  const isFollowersHidden = !isCurrentUser && privacy.hideFollowers
+  const isFollowingHidden = !isCurrentUser && privacy.hideFollowing
+  const emailLabel = isEmailHidden
+    ? 'Email is hidden by this user.'
+    : user.email || 'No public email has been added yet.'
   const contactLabel =
     isContactHidden
       ? 'Contact details are hidden by this user.'
