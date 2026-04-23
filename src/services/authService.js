@@ -11,6 +11,8 @@ const PASSWORD_UPPERCASE_PATTERN = /[A-Z]/
 const PASSWORD_LOWERCASE_PATTERN = /[a-z]/
 const PASSWORD_NUMBER_PATTERN = /\d/
 const PASSWORD_SPECIAL_PATTERN = /[^A-Za-z0-9]/
+const VERIFICATION_CODE_LENGTH = 6
+const LOCAL_VERIFICATION_CODE_TTL_MS = 15 * 60 * 1000
 const textEncoder = new TextEncoder()
 
 const normalizeEmail = (value) => String(value || '').trim().toLowerCase()
@@ -184,6 +186,80 @@ const isRecoverableRemoteAuthError = (error) =>
   error?.status === 504
 
 const hasOwn = (object, key) => Object.prototype.hasOwnProperty.call(object, key)
+
+const getAuthDataRecord = (data) =>
+  data?.data && typeof data.data === 'object' && !Array.isArray(data.data) ? data.data : {}
+
+const getAuthResponseMessage = (data, fallback = '') => {
+  const resolvedMessage = String(
+    data?.message || getAuthDataRecord(data)?.message || fallback || '',
+  ).trim()
+
+  return resolvedMessage || fallback
+}
+
+const getAuthResponseEmail = (data, fallbackEmail = '') =>
+  normalizeEmail(data?.email || getAuthDataRecord(data)?.email || fallbackEmail)
+
+const getAuthVerificationRequired = (data) => {
+  const authData = getAuthDataRecord(data)
+  const verificationFlags = [
+    data?.verificationRequired,
+    data?.requiresVerification,
+    authData?.verificationRequired,
+    authData?.requiresVerification,
+  ]
+
+  return verificationFlags.find((value) => typeof value === 'boolean') === true
+}
+
+const buildVerificationRequiredResponse = (
+  data,
+  fallbackEmail = '',
+  fallbackMessage = 'Verify your email to continue.',
+) => {
+  if (!getAuthVerificationRequired(data)) {
+    return null
+  }
+
+  return {
+    verificationRequired: true,
+    email: getAuthResponseEmail(data, fallbackEmail),
+    message: getAuthResponseMessage(data, fallbackMessage),
+  }
+}
+
+const normalizeVerificationCode = (value) =>
+  String(value || '')
+    .replace(/\D+/g, '')
+    .slice(0, VERIFICATION_CODE_LENGTH)
+
+const createVerificationCode = () =>
+  String(Math.floor(Math.random() * 10 ** VERIFICATION_CODE_LENGTH)).padStart(
+    VERIFICATION_CODE_LENGTH,
+    '0',
+  )
+
+const getVerificationCodeExpiry = (issuedAt = Date.now()) =>
+  new Date(issuedAt + LOCAL_VERIFICATION_CODE_TTL_MS).toISOString()
+
+const isLocalVerificationCodeExpired = (user = {}) => {
+  const expiryTimestamp = Date.parse(String(user.verificationCodeExpiresAt || '').trim())
+
+  return Number.isNaN(expiryTimestamp) || expiryTimestamp < Date.now()
+}
+
+const buildLocalVerificationMessage = (code, action = 'verify your email') =>
+  `Local mode: use verification code ${code} to ${action}.`
+
+const buildLocalVerificationRequiredError = (email, message) => {
+  const error = new Error(message || 'Verify your email to continue.')
+  error.data = {
+    verificationRequired: true,
+    email: normalizeEmail(email),
+  }
+  return error
+}
 
 const ensureUniqueLocalUsername = (username, currentEmail = '') => {
   if (!username) {
@@ -378,7 +454,7 @@ const requestRemoteAuth = async (path, payload) => {
   const data = await readResponseData(response)
 
   if (!response.ok || data?.success === false) {
-    const error = new Error(data.message || 'Authentication failed.')
+    const error = new Error(getAuthResponseMessage(data, 'Authentication failed.'))
     error.status = response.status
     error.data = data
     throw error
@@ -468,23 +544,27 @@ const verifyStoredPassword = async (user, password) => {
   return typeof user?.password === 'string' && user.password === password
 }
 
-const upsertLocalUser = async ({
-  id = '',
-  email,
-  password,
-  name,
-  username,
-  interests = [],
-  authProvider = 'local',
-  location = '',
-  phone = '',
-  bio = '',
-  profilePic = '',
-  createdAt = '',
-  needsInterestsSelection = false,
-  hasCompletedOnboarding,
-  shouldShowInterestsPrompt = false,
-}) => {
+const upsertLocalUser = async (userInput = {}) => {
+  const {
+    id = '',
+    email,
+    password,
+    name,
+    username,
+    interests = [],
+    authProvider = 'local',
+    location = '',
+    phone = '',
+    bio = '',
+    profilePic = '',
+    createdAt = '',
+    needsInterestsSelection = false,
+    hasCompletedOnboarding,
+    shouldShowInterestsPrompt = false,
+    emailVerified,
+    verificationCode,
+    verificationCodeExpiresAt,
+  } = userInput
   const normalizedEmail = normalizeEmail(email)
   const users = getUsers()
   const existingUser = users[normalizedEmail] || {}
@@ -513,6 +593,18 @@ const upsertLocalUser = async ({
         ? hasCompletedOnboarding
         : !needsInterestsSelection,
     shouldShowInterestsPrompt: Boolean(shouldShowInterestsPrompt),
+    emailVerified:
+      typeof emailVerified === 'boolean'
+        ? emailVerified
+        : typeof existingUser.emailVerified === 'boolean'
+          ? existingUser.emailVerified
+          : true,
+    verificationCode: hasOwn(userInput, 'verificationCode')
+      ? String(verificationCode || '').trim()
+      : String(existingUser.verificationCode || '').trim(),
+    verificationCodeExpiresAt: hasOwn(userInput, 'verificationCodeExpiresAt')
+      ? String(verificationCodeExpiresAt || '').trim()
+      : String(existingUser.verificationCodeExpiresAt || '').trim(),
     ...passwordRecord,
   }
 
@@ -520,10 +612,37 @@ const upsertLocalUser = async ({
     delete nextUser.password
   }
 
+  if (nextUser.emailVerified) {
+    nextUser.verificationCode = ''
+    nextUser.verificationCodeExpiresAt = ''
+  }
+
   users[normalizedEmail] = nextUser
   saveUsers(users)
 
   return nextUser
+}
+
+const issueLocalVerificationCode = async (userInput, messageBuilder) => {
+  const verificationCode = createVerificationCode()
+  const verificationCodeExpiresAt = getVerificationCodeExpiry()
+  const user = await upsertLocalUser({
+    ...userInput,
+    emailVerified: false,
+    verificationCode,
+    verificationCodeExpiresAt,
+  })
+  const message =
+    typeof messageBuilder === 'function'
+      ? messageBuilder(verificationCode)
+      : String(messageBuilder || '').trim()
+
+  return {
+    user,
+    verificationRequired: true,
+    email: user.email,
+    message: message || buildLocalVerificationMessage(verificationCode),
+  }
 }
 
 export const syncStoredUser = async (user) => {
