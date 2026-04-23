@@ -13,6 +13,11 @@ import {
 import { CheckIcon, CloseIcon } from '../../components/ui/Icons.jsx'
 import { routes } from '../../utils/routing.js'
 
+const normalizeVerificationCodeInput = (value) =>
+  String(value || '')
+    .replace(/\D+/g, '')
+    .slice(0, 6)
+
 const styles = `
   .signin-wrapper {
     min-height: 100vh;
@@ -388,8 +393,10 @@ function SignInPage({ onAuthSuccess }) {
     setStatusMessage('')
 
     if (isVerify) {
-      if (!email.trim() || !verificationCode.trim()) {
-        setErrors(['Enter your email and verification code to continue.'])
+      const normalizedVerificationCode = normalizeVerificationCodeInput(verificationCode)
+
+      if (!email.trim() || normalizedVerificationCode.length !== 6) {
+        setErrors(['Enter your email and 6-digit verification code to continue.'])
         return
       }
 
@@ -397,7 +404,7 @@ function SignInPage({ onAuthSuccess }) {
       try {
         const session = await verifyEmailCode({
           email,
-          code: verificationCode,
+          code: normalizedVerificationCode,
         })
 
         if (onAuthSuccess) {
@@ -698,13 +705,15 @@ function SignInPage({ onAuthSuccess }) {
                   id="verificationCode"
                   value={verificationCode}
                   onChange={(event) => {
-                    setVerificationCode(event.target.value)
+                    setVerificationCode(normalizeVerificationCodeInput(event.target.value))
                     if (errors.length) {
                       setErrors([])
                     }
                   }}
                   placeholder="Enter the 6-digit code"
                   inputMode="numeric"
+                  maxLength={6}
+                  pattern="[0-9]{6}"
                   autoComplete="one-time-code"
                 />
                 <p className="field-note">

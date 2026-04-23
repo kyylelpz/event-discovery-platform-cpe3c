@@ -11,6 +11,8 @@ const PASSWORD_UPPERCASE_PATTERN = /[A-Z]/
 const PASSWORD_LOWERCASE_PATTERN = /[a-z]/
 const PASSWORD_NUMBER_PATTERN = /\d/
 const PASSWORD_SPECIAL_PATTERN = /[^A-Za-z0-9]/
+const VERIFICATION_CODE_LENGTH = 6
+const LOCAL_VERIFICATION_CODE_TTL_MS = 15 * 60 * 1000
 const textEncoder = new TextEncoder()
 
 const normalizeEmail = (value) => String(value || '').trim().toLowerCase()
@@ -184,6 +186,86 @@ const isRecoverableRemoteAuthError = (error) =>
   error?.status === 504
 
 const hasOwn = (object, key) => Object.prototype.hasOwnProperty.call(object, key)
+
+const getAuthDataRecord = (data) =>
+  data?.data && typeof data.data === 'object' && !Array.isArray(data.data) ? data.data : {}
+
+const getAuthResponseMessage = (data, fallback = '') => {
+  const resolvedMessage = String(
+    data?.message || getAuthDataRecord(data)?.message || fallback || '',
+  ).trim()
+
+  return resolvedMessage || fallback
+}
+
+const getAuthResponseEmail = (data, fallbackEmail = '') =>
+  normalizeEmail(
+    data?.email ||
+      data?.user?.email ||
+      getAuthDataRecord(data)?.email ||
+      getAuthDataRecord(data)?.user?.email ||
+      fallbackEmail,
+  )
+
+const getAuthVerificationRequired = (data) => {
+  const authData = getAuthDataRecord(data)
+  const verificationFlags = [
+    data?.verificationRequired,
+    data?.requiresVerification,
+    authData?.verificationRequired,
+    authData?.requiresVerification,
+  ]
+
+  return verificationFlags.find((value) => typeof value === 'boolean') === true
+}
+
+const buildVerificationRequiredResponse = (
+  data,
+  fallbackEmail = '',
+  fallbackMessage = 'Verify your email to continue.',
+) => {
+  if (!getAuthVerificationRequired(data)) {
+    return null
+  }
+
+  return {
+    verificationRequired: true,
+    email: getAuthResponseEmail(data, fallbackEmail),
+    message: getAuthResponseMessage(data, fallbackMessage),
+  }
+}
+
+const normalizeVerificationCode = (value) =>
+  String(value || '')
+    .replace(/\D+/g, '')
+    .slice(0, VERIFICATION_CODE_LENGTH)
+
+const createVerificationCode = () =>
+  String(Math.floor(Math.random() * 10 ** VERIFICATION_CODE_LENGTH)).padStart(
+    VERIFICATION_CODE_LENGTH,
+    '0',
+  )
+
+const getVerificationCodeExpiry = (issuedAt = Date.now()) =>
+  new Date(issuedAt + LOCAL_VERIFICATION_CODE_TTL_MS).toISOString()
+
+const isLocalVerificationCodeExpired = (user = {}) => {
+  const expiryTimestamp = Date.parse(String(user.verificationCodeExpiresAt || '').trim())
+
+  return Number.isNaN(expiryTimestamp) || expiryTimestamp < Date.now()
+}
+
+const buildLocalVerificationMessage = (code, action = 'verify your email') =>
+  `Local mode: use verification code ${code} to ${action}.`
+
+const buildLocalVerificationRequiredError = (email, message) => {
+  const error = new Error(message || 'Verify your email to continue.')
+  error.data = {
+    verificationRequired: true,
+    email: normalizeEmail(email),
+  }
+  return error
+}
 
 const ensureUniqueLocalUsername = (username, currentEmail = '') => {
   if (!username) {
@@ -378,7 +460,7 @@ const requestRemoteAuth = async (path, payload) => {
   const data = await readResponseData(response)
 
   if (!response.ok || data?.success === false) {
-    const error = new Error(data.message || 'Authentication failed.')
+    const error = new Error(getAuthResponseMessage(data, 'Authentication failed.'))
     error.status = response.status
     error.data = data
     throw error
@@ -468,23 +550,27 @@ const verifyStoredPassword = async (user, password) => {
   return typeof user?.password === 'string' && user.password === password
 }
 
-const upsertLocalUser = async ({
-  id = '',
-  email,
-  password,
-  name,
-  username,
-  interests = [],
-  authProvider = 'local',
-  location = '',
-  phone = '',
-  bio = '',
-  profilePic = '',
-  createdAt = '',
-  needsInterestsSelection = false,
-  hasCompletedOnboarding,
-  shouldShowInterestsPrompt = false,
-}) => {
+const upsertLocalUser = async (userInput = {}) => {
+  const {
+    id = '',
+    email,
+    password,
+    name,
+    username,
+    interests = [],
+    authProvider = 'local',
+    location = '',
+    phone = '',
+    bio = '',
+    profilePic = '',
+    createdAt = '',
+    needsInterestsSelection = false,
+    hasCompletedOnboarding,
+    shouldShowInterestsPrompt = false,
+    emailVerified,
+    verificationCode,
+    verificationCodeExpiresAt,
+  } = userInput
   const normalizedEmail = normalizeEmail(email)
   const users = getUsers()
   const existingUser = users[normalizedEmail] || {}
@@ -513,6 +599,18 @@ const upsertLocalUser = async ({
         ? hasCompletedOnboarding
         : !needsInterestsSelection,
     shouldShowInterestsPrompt: Boolean(shouldShowInterestsPrompt),
+    emailVerified:
+      typeof emailVerified === 'boolean'
+        ? emailVerified
+        : typeof existingUser.emailVerified === 'boolean'
+          ? existingUser.emailVerified
+          : true,
+    verificationCode: hasOwn(userInput, 'verificationCode')
+      ? String(verificationCode || '').trim()
+      : String(existingUser.verificationCode || '').trim(),
+    verificationCodeExpiresAt: hasOwn(userInput, 'verificationCodeExpiresAt')
+      ? String(verificationCodeExpiresAt || '').trim()
+      : String(existingUser.verificationCodeExpiresAt || '').trim(),
     ...passwordRecord,
   }
 
@@ -520,10 +618,36 @@ const upsertLocalUser = async ({
     delete nextUser.password
   }
 
+  if (nextUser.emailVerified) {
+    nextUser.verificationCode = ''
+    nextUser.verificationCodeExpiresAt = ''
+  }
+
   users[normalizedEmail] = nextUser
   saveUsers(users)
 
   return nextUser
+}
+
+const issueLocalVerificationCode = async (userInput, messageBuilder) => {
+  const verificationCode = createVerificationCode()
+  const verificationCodeExpiresAt = getVerificationCodeExpiry()
+  const user = await upsertLocalUser({
+    ...userInput,
+    emailVerified: false,
+    verificationCode,
+    verificationCodeExpiresAt,
+  })
+  const message =
+    typeof messageBuilder === 'function'
+      ? messageBuilder(verificationCode)
+      : String(messageBuilder || '').trim()
+
+  return {
+    verificationRequired: true,
+    email: user.email,
+    message: message || buildLocalVerificationMessage(verificationCode),
+  }
 }
 
 export const syncStoredUser = async (user) => {
@@ -902,12 +1026,14 @@ export const signUp = async ({ email, password, name }) => {
       name: fallbackName,
     })
 
-    if (data?.verificationRequired) {
-      return {
-        verificationRequired: true,
-        email: data.email || normalizedEmail,
-        message: data.message || 'A verification email was sent.',
-      }
+    const verificationResponse = buildVerificationRequiredResponse(
+      data,
+      normalizedEmail,
+      'A verification email was sent.',
+    )
+
+    if (verificationResponse) {
+      return verificationResponse
     }
 
     const session = buildSession({
@@ -936,6 +1062,21 @@ export const signUp = async ({ email, password, name }) => {
     })
     return session
   } catch (error) {
+    const verificationError = buildVerificationRequiredResponse(
+      error?.data,
+      normalizedEmail,
+      'Verify your email to finish creating your account.',
+    )
+
+    if (verificationError) {
+      error.message = verificationError.message
+      error.data = {
+        ...(error?.data && typeof error.data === 'object' ? error.data : {}),
+        ...verificationError,
+      }
+      throw error
+    }
+
     if (!isRecoverableRemoteAuthError(error) || !canUseLocalAuthFallback()) {
       throw error
     }
@@ -943,65 +1084,191 @@ export const signUp = async ({ email, password, name }) => {
     const users = getUsers()
 
     if (users[normalizedEmail]) {
+      if (users[normalizedEmail].emailVerified === false) {
+        return issueLocalVerificationCode(
+          {
+            ...users[normalizedEmail],
+            email: normalizedEmail,
+            password,
+            name: users[normalizedEmail].name || fallbackName,
+            interests: users[normalizedEmail].interests || [],
+            authProvider: users[normalizedEmail].authProvider || 'local',
+            location: users[normalizedEmail].location || '',
+            phone: users[normalizedEmail].phone || '',
+            bio: users[normalizedEmail].bio || '',
+            profilePic: users[normalizedEmail].profilePic || '',
+            createdAt: users[normalizedEmail].createdAt || '',
+            needsInterestsSelection:
+              typeof users[normalizedEmail].needsInterestsSelection === 'boolean'
+                ? users[normalizedEmail].needsInterestsSelection
+                : true,
+            hasCompletedOnboarding:
+              typeof users[normalizedEmail].hasCompletedOnboarding === 'boolean'
+                ? users[normalizedEmail].hasCompletedOnboarding
+                : false,
+            shouldShowInterestsPrompt:
+              typeof users[normalizedEmail].shouldShowInterestsPrompt === 'boolean'
+                ? users[normalizedEmail].shouldShowInterestsPrompt
+                : true,
+          },
+          (verificationCode) =>
+            `That account is still pending verification. ${buildLocalVerificationMessage(
+              verificationCode,
+              'verify your new account',
+            )}`,
+        )
+      }
+
       throw new Error('An account with this email already exists.')
     }
 
-    const user = await upsertLocalUser({
-      email: normalizedEmail,
-      password,
-      name: fallbackName,
-      interests: [],
-      authProvider: 'local',
-      needsInterestsSelection: true,
-      hasCompletedOnboarding: false,
-      shouldShowInterestsPrompt: true,
-    })
-    const session = buildSession(user)
-    setSession(session)
-    return session
+    return issueLocalVerificationCode(
+      {
+        email: normalizedEmail,
+        password,
+        name: fallbackName,
+        interests: [],
+        authProvider: 'local',
+        needsInterestsSelection: true,
+        hasCompletedOnboarding: false,
+        shouldShowInterestsPrompt: true,
+      },
+      (verificationCode) =>
+        buildLocalVerificationMessage(verificationCode, 'verify your new account'),
+    )
   }
 }
 
 export const verifyEmailCode = async ({ email, code }) => {
   const normalizedEmail = normalizeEmail(email)
-  const data = await requestRemoteAuth('/api/auth/verify-email', {
-    email: normalizedEmail,
-    code: String(code || '').trim(),
-  })
-  const session = buildSession({
-    ...createSessionFromAuthPayload(data, normalizedEmail, getDefaultName(normalizedEmail), 'remote'),
-    shouldShowInterestsPrompt: Boolean(data?.user?.needsInterestsSelection),
-  })
-  setSession(session)
-  await syncLocalAuthMirror({
-    id: session.id,
-    email: session.email,
-    name: session.name,
-    username: session.username,
-    interests: session.interests,
-    authProvider: session.authProvider,
-    location: session.location,
-    phone: session.phone,
-    bio: session.bio,
-    profilePic: session.profilePic,
-    createdAt: session.createdAt,
-    needsInterestsSelection: session.needsInterestsSelection,
-    hasCompletedOnboarding: session.hasCompletedOnboarding,
-    shouldShowInterestsPrompt: session.shouldShowInterestsPrompt,
-  })
-  return session
+  const normalizedCode = normalizeVerificationCode(code)
+
+  if (normalizedCode.length !== VERIFICATION_CODE_LENGTH) {
+    throw new Error('Enter the 6-digit verification code.')
+  }
+
+  try {
+    const data = await requestRemoteAuth('/api/auth/verify-email', {
+      email: normalizedEmail,
+      code: normalizedCode,
+    })
+    const session = buildSession({
+      ...createSessionFromAuthPayload(
+        data,
+        normalizedEmail,
+        getDefaultName(normalizedEmail),
+        'remote',
+      ),
+      shouldShowInterestsPrompt: Boolean(data?.user?.needsInterestsSelection),
+    })
+    setSession(session)
+    await syncLocalAuthMirror({
+      id: session.id,
+      email: session.email,
+      name: session.name,
+      username: session.username,
+      interests: session.interests,
+      authProvider: session.authProvider,
+      location: session.location,
+      phone: session.phone,
+      bio: session.bio,
+      profilePic: session.profilePic,
+      createdAt: session.createdAt,
+      needsInterestsSelection: session.needsInterestsSelection,
+      hasCompletedOnboarding: session.hasCompletedOnboarding,
+      shouldShowInterestsPrompt: session.shouldShowInterestsPrompt,
+    })
+    return session
+  } catch (error) {
+    if (!isRecoverableRemoteAuthError(error) || !canUseLocalAuthFallback()) {
+      throw error
+    }
+
+    const users = getUsers()
+    const user = users[normalizedEmail]
+
+    if (!user) {
+      throw new Error('No pending account was found for this email.')
+    }
+
+    if (user.emailVerified !== false) {
+      throw new Error('That email is already verified. Sign in to continue.')
+    }
+
+    if (!String(user.verificationCode || '').trim()) {
+      throw new Error('Request a new verification code and try again.')
+    }
+
+    if (isLocalVerificationCodeExpired(user)) {
+      throw new Error('That verification code has expired. Request a new code and try again.')
+    }
+
+    if (normalizedCode !== normalizeVerificationCode(user.verificationCode)) {
+      throw new Error('That verification code is incorrect.')
+    }
+
+    const verifiedUser = await upsertLocalUser({
+      ...user,
+      email: normalizedEmail,
+      emailVerified: true,
+      verificationCode: '',
+      verificationCodeExpiresAt: '',
+    })
+    const session = buildSession({
+      ...verifiedUser,
+      shouldShowInterestsPrompt: Boolean(verifiedUser.needsInterestsSelection),
+    })
+    setSession(session)
+    return session
+  }
 }
 
 export const resendEmailVerificationCode = async (email) => {
   const normalizedEmail = normalizeEmail(email)
-  const data = await requestRemoteAuth('/api/auth/verify-email/resend', {
-    email: normalizedEmail,
-  })
+  try {
+    const data = await requestRemoteAuth('/api/auth/verify-email/resend', {
+      email: normalizedEmail,
+    })
+    const verificationResponse = buildVerificationRequiredResponse(
+      data,
+      normalizedEmail,
+      'A new verification code is ready.',
+    )
 
-  return {
-    verificationRequired: true,
-    email: data.email || normalizedEmail,
-    message: data.message || 'A new verification code is ready.',
+    return (
+      verificationResponse || {
+        verificationRequired: true,
+        email: getAuthResponseEmail(data, normalizedEmail),
+        message: getAuthResponseMessage(data, 'A new verification code is ready.'),
+      }
+    )
+  } catch (error) {
+    if (!isRecoverableRemoteAuthError(error) || !canUseLocalAuthFallback()) {
+      throw error
+    }
+
+    const users = getUsers()
+    const user = users[normalizedEmail]
+
+    if (!user) {
+      throw new Error('No pending account was found for this email.')
+    }
+
+    if (user.emailVerified !== false) {
+      throw new Error('That email is already verified. Sign in to continue.')
+    }
+
+    return issueLocalVerificationCode(
+      {
+        ...user,
+        email: normalizedEmail,
+      },
+      (verificationCode) =>
+        `A new verification code is ready. ${buildLocalVerificationMessage(
+          verificationCode,
+          'verify your email',
+        )}`,
+    )
   }
 }
 
@@ -1022,6 +1289,16 @@ export const signIn = async ({ email, password }) => {
       email: normalizedEmail,
       password,
     })
+
+    const verificationResponse = buildVerificationRequiredResponse(
+      data,
+      normalizedEmail,
+      'Verify your email to finish signing in.',
+    )
+
+    if (verificationResponse) {
+      return verificationResponse
+    }
 
     const session = buildSession({
       ...createSessionFromAuthPayload(
@@ -1052,6 +1329,21 @@ export const signIn = async ({ email, password }) => {
     })
     return session
   } catch (error) {
+    const verificationError = buildVerificationRequiredResponse(
+      error?.data,
+      normalizedEmail,
+      'Verify your email to finish signing in.',
+    )
+
+    if (verificationError) {
+      error.message = verificationError.message
+      error.data = {
+        ...(error?.data && typeof error.data === 'object' ? error.data : {}),
+        ...verificationError,
+      }
+      throw error
+    }
+
     if (!isRecoverableRemoteAuthError(error) || !canUseLocalAuthFallback()) {
       throw error
     }
@@ -1067,6 +1359,34 @@ export const signIn = async ({ email, password }) => {
 
     if (!passwordMatches) {
       throw new Error('Incorrect password.')
+    }
+
+    if (user.emailVerified === false) {
+      const localVerification =
+        !String(user.verificationCode || '').trim() || isLocalVerificationCodeExpired(user)
+          ? await issueLocalVerificationCode(
+              {
+                ...user,
+                email: normalizedEmail,
+                password,
+              },
+              (verificationCode) =>
+                `Verify your email to finish signing in. ${buildLocalVerificationMessage(
+                  verificationCode,
+                )}`,
+            )
+          : {
+              verificationRequired: true,
+              email: normalizedEmail,
+              message: `Verify your email to finish signing in. ${buildLocalVerificationMessage(
+                user.verificationCode,
+              )}`,
+            }
+
+      throw buildLocalVerificationRequiredError(
+        localVerification.email,
+        localVerification.message,
+      )
     }
 
     const nextUser = await migrateLegacyPasswordIfNeeded(normalizedEmail, user, password)
