@@ -13,6 +13,7 @@ const PASSWORD_NUMBER_PATTERN = /\d/
 const PASSWORD_SPECIAL_PATTERN = /[^A-Za-z0-9]/
 const VERIFICATION_CODE_LENGTH = 6
 const LOCAL_VERIFICATION_CODE_TTL_MS = 15 * 60 * 1000
+const LOCAL_PASSWORD_RESET_CODE_TTL_MS = 15 * 60 * 1000
 const textEncoder = new TextEncoder()
 
 const normalizeEmail = (value) => String(value || '').trim().toLowerCase()
@@ -280,14 +281,26 @@ const createVerificationCode = () =>
 const getVerificationCodeExpiry = (issuedAt = Date.now()) =>
   new Date(issuedAt + LOCAL_VERIFICATION_CODE_TTL_MS).toISOString()
 
+const getPasswordResetCodeExpiry = (issuedAt = Date.now()) =>
+  new Date(issuedAt + LOCAL_PASSWORD_RESET_CODE_TTL_MS).toISOString()
+
 const isLocalVerificationCodeExpired = (user = {}) => {
   const expiryTimestamp = Date.parse(String(user.verificationCodeExpiresAt || '').trim())
 
   return Number.isNaN(expiryTimestamp) || expiryTimestamp < Date.now()
 }
 
+const isLocalPasswordResetCodeExpired = (user = {}) => {
+  const expiryTimestamp = Date.parse(String(user.passwordResetCodeExpiresAt || '').trim())
+
+  return Number.isNaN(expiryTimestamp) || expiryTimestamp < Date.now()
+}
+
 const buildLocalVerificationMessage = (code, action = 'verify your email') =>
   `Local mode: use verification code ${code} to ${action}.`
+
+const buildLocalPasswordResetMessage = (code) =>
+  `Local mode: use reset code ${code} to create a new password.`
 
 const buildLocalVerificationRequiredError = (email, message) => {
   const error = new Error(message || 'Verify your email to continue.')
@@ -601,6 +614,8 @@ const upsertLocalUser = async (userInput = {}) => {
     emailVerified,
     verificationCode,
     verificationCodeExpiresAt,
+    passwordResetCode,
+    passwordResetCodeExpiresAt,
   } = userInput
   const normalizedEmail = normalizeEmail(email)
   const users = getUsers()
@@ -642,11 +657,22 @@ const upsertLocalUser = async (userInput = {}) => {
     verificationCodeExpiresAt: hasOwn(userInput, 'verificationCodeExpiresAt')
       ? String(verificationCodeExpiresAt || '').trim()
       : String(existingUser.verificationCodeExpiresAt || '').trim(),
+    passwordResetCode: hasOwn(userInput, 'passwordResetCode')
+      ? String(passwordResetCode || '').trim()
+      : String(existingUser.passwordResetCode || '').trim(),
+    passwordResetCodeExpiresAt: hasOwn(userInput, 'passwordResetCodeExpiresAt')
+      ? String(passwordResetCodeExpiresAt || '').trim()
+      : String(existingUser.passwordResetCodeExpiresAt || '').trim(),
     ...passwordRecord,
   }
 
   if (passwordRecord.passwordHash) {
     delete nextUser.password
+  }
+
+  if (passwordRecord.passwordHash || passwordRecord.password) {
+    nextUser.passwordResetCode = ''
+    nextUser.passwordResetCodeExpiresAt = ''
   }
 
   if (nextUser.emailVerified) {
@@ -678,6 +704,25 @@ const issueLocalVerificationCode = async (userInput, messageBuilder, preferredCo
     verificationRequired: true,
     email: user.email,
     message: message || buildLocalVerificationMessage(verificationCode),
+  }
+}
+
+const issueLocalPasswordResetCode = async (userInput, messageBuilder, preferredCode = '') => {
+  const passwordResetCode = normalizeVerificationCode(preferredCode) || createVerificationCode()
+  const passwordResetCodeExpiresAt = getPasswordResetCodeExpiry()
+  const user = await upsertLocalUser({
+    ...userInput,
+    passwordResetCode,
+    passwordResetCodeExpiresAt,
+  })
+  const message =
+    typeof messageBuilder === 'function'
+      ? messageBuilder(passwordResetCode)
+      : String(messageBuilder || '').trim()
+
+  return {
+    email: user.email,
+    message: message || buildLocalPasswordResetMessage(passwordResetCode),
   }
 }
 
@@ -713,6 +758,39 @@ const buildLocalSignInSession = async (
   })
   setSession(session)
   return session
+}
+
+const completeLocalPasswordReset = async (email, user = {}, password) => {
+  await upsertLocalUser({
+    ...user,
+    email,
+    password,
+    passwordResetCode: '',
+    passwordResetCodeExpiresAt: '',
+  })
+
+  return {
+    email: normalizeEmail(email),
+    message: 'Password updated. Sign in with your new password.',
+  }
+}
+
+const getLocalPasswordResetAccountError = (user = {}) => {
+  const authProvider = String(user?.authProvider || '').trim().toLowerCase()
+
+  if (!user?.passwordHash && !user?.password) {
+    if (authProvider === 'google') {
+      return 'This account uses Google sign-in. Continue with Google instead of resetting a password.'
+    }
+
+    return 'This account does not have a password you can reset here. Use the original sign-in method instead.'
+  }
+
+  if (user?.emailVerified === false) {
+    return 'Verify your email first before resetting your password.'
+  }
+
+  return ''
 }
 
 export const syncStoredUser = async (user) => {
@@ -1336,6 +1414,130 @@ export const resendEmailVerificationCode = async (email) => {
           'verify your email',
         )}`,
     )
+  }
+}
+
+export const requestPasswordReset = async (email) => {
+  const normalizedEmail = normalizeEmail(email)
+  const emailError = getEmailValidationError(normalizedEmail)
+
+  if (emailError) {
+    throw new Error(emailError)
+  }
+
+  try {
+    const data = await requestRemoteAuth('/api/auth/forgot-password', {
+      email: normalizedEmail,
+    })
+
+    return {
+      email: getAuthResponseEmail(data, normalizedEmail),
+      message: getAuthResponseMessage(
+        data,
+        'If that email is registered, a password reset code was sent.',
+      ),
+    }
+  } catch (error) {
+    if (isEmailDeliveryConfigurationError(error)) {
+      throw error
+    }
+
+    if (!isRecoverableRemoteAuthError(error) || !canUseLocalAuthFallback()) {
+      throw error
+    }
+
+    const users = getUsers()
+    const user = users[normalizedEmail]
+
+    if (!user) {
+      throw new Error('No account found with this email.')
+    }
+
+    const localPasswordResetError = getLocalPasswordResetAccountError(user)
+
+    if (localPasswordResetError) {
+      throw new Error(localPasswordResetError)
+    }
+
+    return issueLocalPasswordResetCode(
+      {
+        ...user,
+        email: normalizedEmail,
+      },
+      (passwordResetCode) =>
+        `A password reset code is ready. ${buildLocalPasswordResetMessage(passwordResetCode)}`,
+    )
+  }
+}
+
+export const resetPassword = async ({ email, code, password }) => {
+  const normalizedEmail = normalizeEmail(email)
+  const normalizedCode = normalizeVerificationCode(code)
+  const emailError = getEmailValidationError(normalizedEmail)
+
+  if (emailError) {
+    throw new Error(emailError)
+  }
+
+  if (normalizedCode.length !== VERIFICATION_CODE_LENGTH) {
+    throw new Error('Enter the 6-digit reset code.')
+  }
+
+  const passwordError = getPasswordValidationError(password)
+
+  if (passwordError) {
+    throw new Error(passwordError)
+  }
+
+  try {
+    const data = await requestRemoteAuth('/api/auth/reset-password', {
+      email: normalizedEmail,
+      code: normalizedCode,
+      resetCode: normalizedCode,
+      token: normalizedCode,
+      password,
+      newPassword: password,
+    })
+
+    return {
+      email: getAuthResponseEmail(data, normalizedEmail),
+      message: getAuthResponseMessage(data, 'Password updated. Sign in with your new password.'),
+    }
+  } catch (error) {
+    if (isEmailDeliveryConfigurationError(error)) {
+      throw error
+    }
+
+    if (!isRecoverableRemoteAuthError(error) || !canUseLocalAuthFallback()) {
+      throw error
+    }
+
+    const users = getUsers()
+    const user = users[normalizedEmail]
+
+    if (!user) {
+      throw new Error('No account found with this email.')
+    }
+
+    const localPasswordResetError = getLocalPasswordResetAccountError(user)
+
+    if (localPasswordResetError) {
+      throw new Error(localPasswordResetError)
+    }
+
+    if (!String(user.passwordResetCode || '').trim()) {
+      throw new Error('Request a password reset code and try again.')
+    }
+
+    if (isLocalPasswordResetCodeExpired(user)) {
+      throw new Error('That reset code has expired. Request a new code and try again.')
+    }
+
+    if (normalizedCode !== normalizeVerificationCode(user.passwordResetCode)) {
+      throw new Error('That reset code is incorrect.')
+    }
+
+    return completeLocalPasswordReset(normalizedEmail, user, password)
   }
 }
 
