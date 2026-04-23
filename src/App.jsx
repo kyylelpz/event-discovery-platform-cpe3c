@@ -533,32 +533,48 @@ function App() {
 
     let isActive = true
     hostedSessionRestoreAttemptedRef.current = true
+    const waitForRetry = (delayMs) =>
+      new Promise((resolve) => {
+        window.setTimeout(resolve, delayMs)
+      })
 
     const restoreHostedSession = async () => {
-      try {
-        const profile = await fetchCurrentUserProfile({ authProvider: 'remote' })
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+          const profile = await fetchCurrentUserProfile({ authProvider: 'remote' })
 
-        if (!isActive || !profile?.email) {
+          if (!isActive || !profile?.email) {
+            return
+          }
+
+          const nextSession = {
+            ...profile,
+            authProvider: profile.authProvider || 'remote',
+            shouldShowInterestsPrompt: Boolean(profile.needsInterestsSelection),
+          }
+
+          recentAuthSuccessAtRef.current = Date.now()
+          setCurrentUser(nextSession)
+          setSession(nextSession)
+          setShowInterests(Boolean(nextSession.shouldShowInterestsPrompt))
+          void syncStoredUser(nextSession)
           return
-        }
+        } catch (error) {
+          const isRetryableAuthMiss = [401, 403, 404].includes(error?.status)
 
-        const nextSession = {
-          ...profile,
-          authProvider: profile.authProvider || 'remote',
-          shouldShowInterestsPrompt: Boolean(profile.needsInterestsSelection),
-        }
+          if (!isActive) {
+            return
+          }
 
-        recentAuthSuccessAtRef.current = Date.now()
-        setCurrentUser(nextSession)
-        setSession(nextSession)
-        setShowInterests(Boolean(nextSession.shouldShowInterestsPrompt))
-        void syncStoredUser(nextSession)
-      } catch (error) {
-        if (!isActive || [401, 403, 404].includes(error?.status)) {
-          return
-        }
+          if (!isRetryableAuthMiss || attempt === 2) {
+            if (!isRetryableAuthMiss) {
+              console.warn('Unable to restore the hosted session:', error)
+            }
+            return
+          }
 
-        console.warn('Unable to restore the hosted session:', error)
+          await waitForRetry(450)
+        }
       }
     }
 

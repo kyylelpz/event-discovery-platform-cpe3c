@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import EventList from '../../components/events/EventList.jsx'
 import { PrimaryButton, SecondaryButton } from '../../components/ui/Button.jsx'
 import UserAvatar from '../../components/ui/UserAvatar.jsx'
@@ -38,7 +38,9 @@ function ProfilePage({
   const [connectSearch, setConnectSearch] = useState('')
   const [draftPhone, setDraftPhone] = useState(user.phone || user.contact || '')
   const [draftBio, setDraftBio] = useState(user.bio || '')
+  const [draftProfilePic, setDraftProfilePic] = useState(user.profilePic || user.avatar || '')
   const [error, setError] = useState('')
+  const [avatarError, setAvatarError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const tabs = isCurrentUser
     ? [
@@ -92,19 +94,64 @@ function ProfilePage({
     : activeTabConfig?.label === 'Attending'
       ? 'This community member has not marked any public attending events yet.'
       : 'This community member has not shared anything here yet.'
+  const displayedProfilePic =
+    isEditing && isCurrentUser
+      ? draftProfilePic || user.profilePic || user.avatar
+      : user.profilePic || user.avatar
+
+  useEffect(() => {
+    setDraftPhone(user.phone || user.contact || '')
+    setDraftBio(user.bio || '')
+    setDraftProfilePic(user.profilePic || user.avatar || '')
+  }, [user.bio, user.contact, user.phone, user.profilePic, user.avatar])
 
   const handleStartEdit = () => {
     setDraftPhone(user.phone || user.contact || '')
     setDraftBio(user.bio || '')
+    setDraftProfilePic(user.profilePic || user.avatar || '')
     setError('')
+    setAvatarError('')
     setIsEditing(true)
   }
 
   const handleCancelEdit = () => {
     setDraftPhone(user.phone || user.contact || '')
     setDraftBio(user.bio || '')
+    setDraftProfilePic(user.profilePic || user.avatar || '')
     setError('')
+    setAvatarError('')
     setIsEditing(false)
+  }
+
+  const handleProfileImageChange = (event) => {
+    const selectedFile = event.target.files?.[0]
+
+    if (!selectedFile) {
+      return
+    }
+
+    if (!selectedFile.type.startsWith('image/')) {
+      setAvatarError('Choose an image file for your profile picture.')
+      event.target.value = ''
+      return
+    }
+
+    if (selectedFile.size > 2.5 * 1024 * 1024) {
+      setAvatarError('Profile photos must be 2.5 MB or smaller.')
+      event.target.value = ''
+      return
+    }
+
+    const fileReader = new FileReader()
+    fileReader.onload = () => {
+      setDraftProfilePic(String(fileReader.result || ''))
+      setAvatarError('')
+    }
+    fileReader.onerror = () => {
+      setAvatarError('Unable to read that image right now. Please try another one.')
+    }
+    fileReader.readAsDataURL(selectedFile)
+    event.target.value = ''
   }
 
   const handleSaveProfile = async (event) => {
@@ -121,6 +168,7 @@ function ProfilePage({
       await onSaveProfile({
         phone: draftPhone,
         bio: draftBio,
+        profilePic: draftProfilePic,
       })
       setIsEditing(false)
     } catch (saveError) {
@@ -134,11 +182,20 @@ function ProfilePage({
     <div className="profile-page">
       <section className="profile-card">
         <div className="profile-card__header">
-          <UserAvatar
-            name={displayName}
-            imageUrl={user.profilePic || user.avatar}
-            size="lg"
-          />
+          <div className="profile-card__avatar-block">
+            <UserAvatar
+              name={displayName}
+              imageUrl={displayedProfilePic}
+              size="lg"
+            />
+            {isCurrentUser && isEditing ? (
+              <label className="profile-card__avatar-upload">
+                <span>Upload photo</span>
+                <input type="file" accept="image/*" onChange={handleProfileImageChange} />
+              </label>
+            ) : null}
+            {avatarError ? <p className="field-error">{avatarError}</p> : null}
+          </div>
 
           <div className="profile-card__intro">
             <div className="profile-card__identity">
@@ -240,7 +297,10 @@ function ProfilePage({
                 onClick={() => setActiveConnectTab('followers')}
               >
                 <UsersIcon />
-                <span>{user.followersCount || 0} followers</span>
+                <span className="profile-page__connect-button-copy">
+                  <strong>{user.followersCount || 0}</strong>
+                  <span>followers</span>
+                </span>
               </button>
               <button
                 type="button"
@@ -250,7 +310,10 @@ function ProfilePage({
                 onClick={() => setActiveConnectTab('following')}
               >
                 <UsersIcon />
-                <span>{user.followingCount || 0} following</span>
+                <span className="profile-page__connect-button-copy">
+                  <strong>{user.followingCount || 0}</strong>
+                  <span>following</span>
+                </span>
               </button>
             </div>
             <label className="profile-page__connect-search">

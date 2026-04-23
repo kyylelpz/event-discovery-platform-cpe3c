@@ -719,10 +719,16 @@
 
 .featured-event {
   position: relative;
+  display: grid;
   overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
+}
+
+.featured-event__progress-shell {
+  padding: 28px 48px 0;
+  border-bottom: 0;
 }
 
 .featured-event__progress {
@@ -787,7 +793,7 @@
   padding: 48px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 28px;
 }
 
@@ -1866,6 +1872,35 @@
   flex: 1;
 }
 
+.profile-card__avatar-block {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+}
+
+.profile-card__avatar-upload {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: rgba(45, 59, 21, 0.06);
+  color: var(--color-text);
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.profile-card__avatar-upload:hover {
+  background: rgba(45, 59, 21, 0.1);
+}
+
+.profile-card__avatar-upload input {
+  display: none;
+}
+
 .profile-card__intro > div p {
   margin: 4px 0 0;
   color: var(--color-muted);
@@ -1933,9 +1968,10 @@
 }
 
 .profile-page__connects {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+  width: 100%;
 }
 
 .profile-page__connect-summary {
@@ -1949,12 +1985,31 @@
   justify-content: center;
   gap: 10px;
   min-height: 42px;
-  padding: 0 14px;
+  width: 100%;
+  padding: 0 18px;
   border: 1px solid var(--color-border);
   border-radius: 999px;
   background: var(--color-surface);
   color: var(--color-text);
   white-space: nowrap;
+}
+
+.profile-page__connect-button-copy {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.profile-page__connect-button-copy strong,
+.profile-page__connect-button-copy span {
+  display: block;
+  white-space: nowrap;
+}
+
+.profile-page__connect-button-copy strong {
+  font-size: 1.05rem;
 }
 
 .profile-page__connect-button--active {
@@ -2039,6 +2094,15 @@
 :root[data-theme='dark'] .profile-page__connect-button {
   background: rgba(23, 28, 25, 0.92);
   border-color: var(--color-border);
+}
+
+:root[data-theme='dark'] .profile-card__avatar-upload {
+  background: rgba(217, 178, 123, 0.1);
+  border-color: var(--color-border);
+}
+
+:root[data-theme='dark'] .profile-card__avatar-upload:hover {
+  background: rgba(217, 178, 123, 0.16);
 }
 
 :root[data-theme='dark'] .profile-page__connect-button--active {
@@ -2759,7 +2823,15 @@
     max-width: 320px;
   }
 
+  .featured-event__progress-shell {
+    padding: 20px 24px 0;
+  }
+
   .profile-menu__info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-page__connects {
     grid-template-columns: 1fr;
   }
 }
