@@ -2251,7 +2251,7 @@ function App() {
             title: resolvedEventDetail.title,
             description: resolvedEventDetail.description,
             date: resolvedEventDetail.startDate,
-            time: resolvedEventDetail.timeLabel,
+            time: resolvedEventDetail.timeValue || resolvedEventDetail.timeLabel,
             venue: resolvedEventDetail.venue,
             address: resolvedEventDetail.address,
             googleMapsUrl: resolvedEventDetail.venueGoogleMapsUrl,

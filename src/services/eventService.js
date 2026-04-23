@@ -1,7 +1,7 @@
 import { API_BASE_URL } from './apiBase.js'
 import { getAuthRequestHeaders } from './authService.js'
 import eventPlaceholderImage from '../assets/eventcinity-event-placeholder.png'
-import { buildGoogleMapsSearchUrl } from '../utils/formatters.js'
+import { buildGoogleMapsSearchUrl, formatTimeLabel, normalizeTimeInputValue } from '../utils/formatters.js'
 
 const getFallbackLocationLabel = (fallbackLocation) =>
   fallbackLocation === 'All Philippines'
@@ -368,6 +368,16 @@ export const normalizeEventRecord = (event, fallbackLocation) => {
     event.rawPayload?.event_link,
     event.rawPayload?.url,
   )
+  const sourceTimeLabel = pickText(
+    event.time,
+    event.timeLabel,
+    event.start_time,
+    event.rawPayload?.date?.when,
+    event.when?.text,
+    event.schedule?.text,
+    event.schedule,
+  )
+  const normalizedTimeValue = normalizeTimeInputValue(sourceTimeLabel)
 
   return {
     id:
@@ -386,15 +396,9 @@ export const normalizeEventRecord = (event, fallbackLocation) => {
     endDate,
     rawDate,
     timeLabel:
-      pickText(
-        event.timeLabel,
-        event.time,
-        event.start_time,
-        event.rawPayload?.date?.when,
-        event.when?.text,
-        event.schedule?.text,
-        event.schedule,
-      ) || 'Time to be announced',
+      (normalizedTimeValue ? formatTimeLabel(normalizedTimeValue) : sourceTimeLabel) ||
+      'Time to be announced',
+    timeValue: normalizedTimeValue,
     location: locationLabel,
     province:
       pickText(event.province) ||

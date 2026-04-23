@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { PrimaryButton, SecondaryButton } from '../../components/ui/Button.jsx'
 import { UploadIcon } from '../../components/ui/Icons.jsx'
+import { normalizeTimeInputValue } from '../../utils/formatters.js'
 
 const emptyForm = {
   title: '',
@@ -27,7 +28,9 @@ const buildFormValues = (initialValues = {}) => {
     title: String(safeInitialValues.title || '').trim(),
     description: String(safeInitialValues.description || ''),
     date: String(safeInitialValues.date || safeInitialValues.startDate || '').trim(),
-    time: String(safeInitialValues.time || safeInitialValues.timeLabel || '').trim(),
+    time: normalizeTimeInputValue(
+      safeInitialValues.timeValue || safeInitialValues.time || safeInitialValues.timeLabel || '',
+    ),
     venue: String(safeInitialValues.venue || '').trim(),
     address: String(safeInitialValues.address || '').trim(),
     googleMapsUrl: String(
