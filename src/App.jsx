@@ -448,6 +448,18 @@ const getNotificationUserKey = (user) =>
     .trim()
     .toLowerCase()
 
+const getDashboardScrollTop = (targetElement) => {
+  if (!targetElement || typeof window === 'undefined') {
+    return 0
+  }
+
+  const topbarHeight =
+    window.document.querySelector('.topbar')?.getBoundingClientRect().height || 0
+  const targetTop = targetElement.getBoundingClientRect().top + window.scrollY
+
+  return Math.max(0, targetTop - topbarHeight - 12)
+}
+
 const readStoredNotificationMap = (storageKey) => {
   if (typeof window === 'undefined') {
     return {}
@@ -637,7 +649,11 @@ function App() {
       return
     }
 
-    scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    window.scrollTo({
+      top: getDashboardScrollTop(scrollTarget),
+      left: 0,
+      behavior: 'smooth',
+    })
     setPendingDashboardSection('')
   }, [pendingDashboardSection, route.key, pathname])
 
