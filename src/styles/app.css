@@ -192,46 +192,21 @@
 }
 
 .topbar__account {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
-  min-height: 44px;
-  padding: 6px 12px 6px 8px;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 4px;
   border: 1px solid var(--color-border);
-  border-radius: 16px;
+  border-radius: 999px;
   background: rgba(45, 59, 21, 0.05);
   font: inherit;
-  text-align: left;
   cursor: pointer;
 }
 
 .topbar__account:hover {
   background: rgba(45, 59, 21, 0.08);
-}
-
-.topbar__account-copy {
-  display: grid;
-  gap: 2px;
-}
-
-.topbar__account-copy strong,
-.topbar__account-copy span {
-  display: block;
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.topbar__account-copy strong {
-  font-size: 0.92rem;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.topbar__account-copy span {
-  font-size: 0.78rem;
-  color: var(--color-muted);
 }
 
 .profile-menu__trigger {
@@ -2714,7 +2689,7 @@
   }
 
   .profile-menu--mobile .topbar__account {
-    width: 100%;
+    width: 44px;
   }
 
   .profile-menu--mobile .profile-menu__panel {

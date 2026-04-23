@@ -2,7 +2,7 @@ export const routes = {
   events: '/events',
   eventsByDate: (dateKey) => `/events/date/${dateKey}`,
   createEvent: '/events/create',
-  eventDetail: (eventId) => `/events/${eventId}`,
+  eventDetail: (eventId) => `/events/${encodeURIComponent(String(eventId || '').trim())}`,
   people: '/people',
   profile: (username) => `/profile/${username}`,
   signin: '/signin',
@@ -39,6 +39,14 @@ export const slugify = (value) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
 
+const decodeRouteParam = (value) => {
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
+}
+
 export const resolveRoute = (pathname) => {
   const cleanPath = normalizeRoutePath(pathname === '/' ? '/events' : pathname || '/events')
   const parts = cleanPath.split('/').filter(Boolean)
@@ -56,7 +64,7 @@ export const resolveRoute = (pathname) => {
   }
 
   if (parts[0] === 'events' && parts[1]) {
-    return { key: 'event-detail', params: { eventId: parts[1] } }
+    return { key: 'event-detail', params: { eventId: decodeRouteParam(parts.slice(1).join('/')) } }
   }
 
   if (parts[0] === 'profile' && parts[1]) {
