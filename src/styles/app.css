@@ -787,8 +787,23 @@
 .featured-event__copy {
   display: grid;
   gap: 14px;
-  min-height: 190px;
+  min-height: 204px;
   align-content: start;
+}
+
+.featured-event__field-shell {
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.featured-event__field-shell--title {
+  min-height: 4.2rem;
+}
+
+.featured-event__field-shell--description {
+  min-height: 2rem;
 }
 
 .featured-event__eyebrow,
@@ -827,8 +842,12 @@
 }
 
 .featured-event h1 {
-  font-size: clamp(2rem, 3.2vw, 3.5rem);
-  line-height: 1.06;
+  font-size: clamp(2.1rem, 2.9vw, 3rem);
+  line-height: 1.08;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .featured-event p {
@@ -838,10 +857,10 @@
 }
 
 .featured-event__copy p {
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
+  width: 100%;
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .featured-event__meta {
@@ -887,6 +906,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.featured-event__meta-item-shell {
+  min-height: 2rem;
 }
 
 .event-meta-item > svg {
