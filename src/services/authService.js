@@ -2,6 +2,8 @@ import { API_BASE_URL, isLocalHostname } from './apiBase.js'
 
 const USERS_KEY = 'eventcinity_users'
 const SESSION_KEY = 'eventcinity_session'
+const AUTH_REDIRECT_TOKEN_KEY = 'authToken'
+const AUTH_REDIRECT_USER_KEY = 'authUser'
 const PASSWORD_ITERATIONS = 120000
 const SIGNUP_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.com$/i
 const USERNAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -347,10 +349,24 @@ const requestRemoteAuth = async (path, payload) => {
   if (!response.ok || data?.success === false) {
     const error = new Error(data.message || 'Authentication failed.')
     error.status = response.status
+    error.data = data
     throw error
   }
 
   return data
+}
+
+const decodeRedirectPayload = (value) => {
+  try {
+    const normalizedValue = String(value || '').replace(/-/g, '+').replace(/_/g, '/')
+    const paddedValue = normalizedValue.padEnd(
+      normalizedValue.length + ((4 - (normalizedValue.length % 4 || 4)) % 4),
+      '=',
+    )
+    return JSON.parse(atob(paddedValue))
+  } catch {
+    return null
+  }
 }
 
 const toBase64 = (bytes) => btoa(String.fromCharCode(...bytes))
@@ -703,6 +719,52 @@ export const saveCurrentUserProfile = async (
   return nextSession
 }
 
+export const consumeHostedAuthRedirect = () => {
+  if (!isBrowser) {
+    return null
+  }
+
+  const url = new URL(window.location.href)
+  const authToken = url.searchParams.get(AUTH_REDIRECT_TOKEN_KEY)
+  const authUser = decodeRedirectPayload(url.searchParams.get(AUTH_REDIRECT_USER_KEY))
+
+  if (!authToken || !authUser) {
+    return null
+  }
+
+  url.searchParams.delete(AUTH_REDIRECT_TOKEN_KEY)
+  url.searchParams.delete(AUTH_REDIRECT_USER_KEY)
+  url.searchParams.delete('authProvider')
+  window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`)
+
+  const session = buildSession({
+    ...authUser,
+    token: authToken,
+    authProvider: authUser.authProvider || authUser.provider || 'remote',
+    shouldShowInterestsPrompt: Boolean(authUser.needsInterestsSelection),
+  })
+
+  setSession(session)
+  void syncLocalAuthMirror({
+    id: session.id,
+    email: session.email,
+    name: session.name,
+    username: session.username,
+    interests: session.interests,
+    authProvider: session.authProvider,
+    location: session.location,
+    phone: session.phone,
+    bio: session.bio,
+    profilePic: session.profilePic,
+    createdAt: session.createdAt,
+    needsInterestsSelection: session.needsInterestsSelection,
+    hasCompletedOnboarding: session.hasCompletedOnboarding,
+    shouldShowInterestsPrompt: session.shouldShowInterestsPrompt,
+  })
+
+  return session
+}
+
 export const getEmailValidationError = (email) => {
   const normalizedEmail = normalizeEmail(email)
 
@@ -809,6 +871,14 @@ export const signUp = async ({ email, password, name }) => {
       name: fallbackName,
     })
 
+    if (data?.verificationRequired) {
+      return {
+        verificationRequired: true,
+        email: data.email || normalizedEmail,
+        verificationPreviewCode: String(data.verificationPreviewCode || '').trim(),
+      }
+    }
+
     const session = buildSession({
       ...createSessionFromAuthPayload(data, normalizedEmail, fallbackName, 'remote'),
       needsInterestsSelection: true,
@@ -858,6 +928,50 @@ export const signUp = async ({ email, password, name }) => {
     const session = buildSession(user)
     setSession(session)
     return session
+  }
+}
+
+export const verifyEmailCode = async ({ email, code }) => {
+  const normalizedEmail = normalizeEmail(email)
+  const data = await requestRemoteAuth('/api/auth/verify-email', {
+    email: normalizedEmail,
+    code: String(code || '').trim(),
+  })
+  const session = buildSession({
+    ...createSessionFromAuthPayload(data, normalizedEmail, getDefaultName(normalizedEmail), 'remote'),
+    shouldShowInterestsPrompt: Boolean(data?.user?.needsInterestsSelection),
+  })
+  setSession(session)
+  await syncLocalAuthMirror({
+    id: session.id,
+    email: session.email,
+    name: session.name,
+    username: session.username,
+    interests: session.interests,
+    authProvider: session.authProvider,
+    location: session.location,
+    phone: session.phone,
+    bio: session.bio,
+    profilePic: session.profilePic,
+    createdAt: session.createdAt,
+    needsInterestsSelection: session.needsInterestsSelection,
+    hasCompletedOnboarding: session.hasCompletedOnboarding,
+    shouldShowInterestsPrompt: session.shouldShowInterestsPrompt,
+  })
+  return session
+}
+
+export const resendEmailVerificationCode = async (email) => {
+  const normalizedEmail = normalizeEmail(email)
+  const data = await requestRemoteAuth('/api/auth/verify-email/resend', {
+    email: normalizedEmail,
+  })
+
+  return {
+    verificationRequired: true,
+    email: data.email || normalizedEmail,
+    verificationPreviewCode: String(data.verificationPreviewCode || '').trim(),
+    message: data.message || 'A new verification code is ready.',
   }
 }
 

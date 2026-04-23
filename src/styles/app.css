@@ -1968,10 +1968,9 @@
 }
 
 .profile-page__connects {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
-  width: 100%;
 }
 
 .profile-page__connect-summary {
@@ -1985,8 +1984,7 @@
   justify-content: center;
   gap: 10px;
   min-height: 42px;
-  width: 100%;
-  padding: 0 18px;
+  padding: 0 14px;
   border: 1px solid var(--color-border);
   border-radius: 999px;
   background: var(--color-surface);
@@ -1994,27 +1992,14 @@
   white-space: nowrap;
 }
 
-.profile-page__connect-button-copy {
-  display: inline-flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 6px;
-  min-width: 0;
-}
-
-.profile-page__connect-button-copy strong,
-.profile-page__connect-button-copy span {
-  display: block;
-  white-space: nowrap;
-}
-
-.profile-page__connect-button-copy strong {
-  font-size: 1.05rem;
-}
-
 .profile-page__connect-button--active {
   border-color: var(--color-accent);
   background: rgba(45, 59, 21, 0.08);
+}
+
+.profile-page__connect-list-label {
+  color: var(--color-muted);
+  font-size: 0.88rem;
 }
 
 .profile-page__connect-search {
@@ -2055,7 +2040,7 @@
   align-items: center;
   gap: 12px;
   width: 100%;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border: 1px solid var(--color-border);
   border-radius: 16px;
   background: rgba(252, 252, 252, 0.72);
@@ -2086,8 +2071,12 @@
 
 .profile-page__connect-person-meta {
   margin-left: auto;
-  color: var(--color-muted);
-  font-size: 0.82rem;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(45, 59, 21, 0.08);
+  color: var(--color-accent);
+  font-size: 0.76rem;
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -2108,6 +2097,11 @@
 :root[data-theme='dark'] .profile-page__connect-button--active {
   background: rgba(217, 178, 123, 0.14);
   border-color: rgba(217, 178, 123, 0.38);
+}
+
+:root[data-theme='dark'] .profile-page__connect-person-meta {
+  background: rgba(217, 178, 123, 0.12);
+  color: #f0d6ac;
 }
 
 :root[data-theme='dark'] .profile-page__connect-search input {
@@ -2831,7 +2825,4 @@
     grid-template-columns: 1fr;
   }
 
-  .profile-page__connects {
-    grid-template-columns: 1fr;
-  }
 }

@@ -27,6 +27,7 @@ import {
 } from './services/eventService.js'
 import {
   clearSession,
+  consumeHostedAuthRedirect,
   getAuthRequestHeaders,
   getSession,
   isHostedAuthEnvironment,
@@ -443,6 +444,7 @@ const scoreUserForInterests = (user, interests = []) => {
 }
 
 function App() {
+  const hostedRedirectSession = typeof window !== 'undefined' ? consumeHostedAuthRedirect() : null
   const [theme, setTheme] = useState(() => {
     if (typeof window === 'undefined') {
       return 'light'
@@ -457,9 +459,9 @@ function App() {
     return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
   })
   const [pathname, setPathname] = useState(() => normalizeRoutePath(window.location.pathname))
-  const [currentUser, setCurrentUser] = useState(() => getSession())
+  const [currentUser, setCurrentUser] = useState(() => hostedRedirectSession || getSession())
   const [showInterests, setShowInterests] = useState(
-    () => Boolean(getSession()?.shouldShowInterestsPrompt),
+    () => Boolean((hostedRedirectSession || getSession())?.shouldShowInterestsPrompt),
   )
 
   const [selectedLocation, setSelectedLocation] = useState('All Philippines')
@@ -491,6 +493,17 @@ function App() {
     likedEvents: likedInteractionEvents,
     attendingEvents: attendingInteractionEvents,
   } = interactionState
+
+  useEffect(() => {
+    if (!hostedRedirectSession?.email) {
+      return
+    }
+
+    recentAuthSuccessAtRef.current = Date.now()
+    setCurrentUser(hostedRedirectSession)
+    setShowInterests(Boolean(hostedRedirectSession.shouldShowInterestsPrompt))
+    void syncStoredUser(hostedRedirectSession)
+  }, [hostedRedirectSession])
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme

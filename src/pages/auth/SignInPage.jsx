@@ -2,11 +2,13 @@ import { useState } from 'react'
 import { PrimaryButton } from '../../components/ui/Button.jsx'
 import { API_BASE_URL } from '../../services/apiBase.js'
 import {
+  resendEmailVerificationCode,
   getEmailValidationError,
   getPasswordValidationChecks,
   getPasswordValidationErrors,
   signIn,
   signUp,
+  verifyEmailCode,
 } from '../../services/authService.js'
 import { CheckIcon, CloseIcon } from '../../components/ui/Icons.jsx'
 import { routes } from '../../utils/routing.js'
@@ -102,6 +104,16 @@ const styles = `
     padding-left: 1.1rem;
     display: grid;
     gap: 0.35rem;
+  }
+
+  .signin-success {
+    background: rgba(45, 59, 21, 0.08);
+    border: 1px solid rgba(45, 59, 21, 0.16);
+    color: var(--color-text);
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+    font-size: 0.875rem;
+    line-height: 1.55;
   }
 
   .field-group {
@@ -324,6 +336,9 @@ function SignInPage({ onAuthSuccess }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [verificationCode, setVerificationCode] = useState('')
+  const [verificationHint, setVerificationHint] = useState('')
+  const [statusMessage, setStatusMessage] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -331,6 +346,7 @@ function SignInPage({ onAuthSuccess }) {
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false)
 
   const isSignUp = mode === 'signup'
+  const isVerify = mode === 'verify'
   const passwordChecks = getPasswordValidationChecks(password)
   const confirmPasswordMatches = password.length > 0 && password === confirmPassword
   const shouldShowChecklistState =
@@ -370,6 +386,39 @@ function SignInPage({ onAuthSuccess }) {
     e.preventDefault()
     setHasAttemptedSubmit(true)
     setErrors([])
+    setStatusMessage('')
+
+    if (isVerify) {
+      if (!email.trim() || !verificationCode.trim()) {
+        setErrors(['Enter your email and verification code to continue.'])
+        return
+      }
+
+      setIsLoading(true)
+      try {
+        const session = await verifyEmailCode({
+          email,
+          code: verificationCode,
+        })
+
+        if (onAuthSuccess) {
+          await onAuthSuccess(session, 'new')
+        }
+      } catch (err) {
+        const fallbackErrors = [err.message || 'Unable to verify your email right now.']
+        const nextPreviewCode = String(err?.data?.verificationPreviewCode || '').trim()
+
+        if (nextPreviewCode) {
+          setVerificationHint(`Verification code: ${nextPreviewCode}`)
+        }
+
+        setErrors(fallbackErrors)
+      } finally {
+        setIsLoading(false)
+      }
+
+      return
+    }
 
     const normalizedEmail = email.trim().toLowerCase()
     const trimmedPassword = password.trim()
@@ -404,12 +453,36 @@ function SignInPage({ onAuthSuccess }) {
         name: normalizedEmail.split('@')[0],
       })
 
+      if (session?.verificationRequired) {
+        setMode('verify')
+        setVerificationCode('')
+        setVerificationHint(
+          session.verificationPreviewCode
+            ? `Verification code: ${session.verificationPreviewCode}`
+            : 'Check your verification code and enter it below.',
+        )
+        setStatusMessage('Your account was created. Verify your email to finish signing in.')
+        return
+      }
+
       const userType = isSignUp ? 'new' : 'returning'
 
       if (onAuthSuccess) {
         await onAuthSuccess(session, userType)
       }
     } catch (err) {
+      if (err?.data?.verificationRequired) {
+        setMode('verify')
+        setVerificationCode('')
+        setVerificationHint(
+          err.data.verificationPreviewCode
+            ? `Verification code: ${err.data.verificationPreviewCode}`
+            : 'Check your verification code and enter it below.',
+        )
+        setStatusMessage('Verify your email to finish signing in.')
+        return
+      }
+
       setErrors([err.message || 'Something went wrong. Try again.'])
     } finally {
       setIsLoading(false)
@@ -419,9 +492,37 @@ function SignInPage({ onAuthSuccess }) {
   const switchMode = (next) => {
     setMode(next)
     setErrors([])
+    setStatusMessage('')
+    setVerificationHint('')
     setHasAttemptedSubmit(false)
     setPassword('')
     setConfirmPassword('')
+    setVerificationCode('')
+  }
+
+  const handleResendVerification = async () => {
+    setErrors([])
+    setStatusMessage('')
+
+    if (!email.trim()) {
+      setErrors(['Enter your email first so we know where to resend the verification code.'])
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const result = await resendEmailVerificationCode(email)
+      setVerificationHint(
+        result.verificationPreviewCode
+          ? `Verification code: ${result.verificationPreviewCode}`
+          : 'A new verification code is ready.',
+      )
+      setStatusMessage(result.message || 'A new verification code is ready.')
+    } catch (error) {
+      setErrors([error.message || 'Unable to resend the verification code right now.'])
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleGoogleSignIn = () => {
@@ -440,9 +541,17 @@ function SignInPage({ onAuthSuccess }) {
       <div className="signin-wrapper">
         <div className="signin-box">
           <header className="signin-header">
-            <h1>{isSignUp ? 'Create account' : 'Welcome back'}</h1>
+            <h1>
+              {isVerify
+                ? 'Verify email'
+                : isSignUp
+                  ? 'Create account'
+                  : 'Welcome back'}
+            </h1>
             <p>
-              {isSignUp
+              {isVerify
+                ? 'Enter the verification code for your new account to finish signing in.'
+                : isSignUp
                 ? 'Join to discover and save events near you.'
                 : 'Pick up where you left off. Your saved events are waiting.'}
             </p>
@@ -455,9 +564,18 @@ function SignInPage({ onAuthSuccess }) {
             <button className={`auth-tab ${mode === 'signup' ? 'active' : ''}`} onClick={() => switchMode('signup')} type="button">
               Sign up
             </button>
+            {isVerify ? (
+              <button className="auth-tab active" type="button">
+                Verify
+              </button>
+            ) : null}
           </div>
 
           <form className="signin-form" onSubmit={handleSubmit} noValidate>
+            {statusMessage ? (
+              <div className="signin-success">{statusMessage}</div>
+            ) : null}
+
             {errors.length ? (
               <div className="signin-error" role="alert">
                 <ul>
@@ -489,124 +607,174 @@ function SignInPage({ onAuthSuccess }) {
               />
             </div>
 
-            <div className="field-group">
-              <div className="field-label-row">
-                <label htmlFor="password">Password</label>
-                {!isSignUp && (
-                  <button type="button" className="forgot-link" onClick={() => alert('Forgot password flow here')}>
-                    Forgot password?
+            {!isVerify ? (
+              <>
+                <div className="field-group">
+                  <div className="field-label-row">
+                    <label htmlFor="password">Password</label>
+                    {!isSignUp && (
+                      <button type="button" className="forgot-link" onClick={() => alert('Forgot password flow here')}>
+                        Forgot password?
+                      </button>
+                    )}
+                  </div>
+                  <div className="input-wrapper">
+                    <input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value)
+                        if (errors.length) {
+                          setErrors([])
+                        }
+                      }}
+                      placeholder="........"
+                      autoComplete={isSignUp ? 'new-password' : 'current-password'}
+                      className="has-toggle"
+                    />
+                    <button type="button" className="show-password-btn" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                      <EyeIcon open={showPassword} />
+                    </button>
+                  </div>
+                  {isSignUp ? (
+                    <ul className="password-checklist" aria-label="Password requirements">
+                      {passwordChecks.map((check) => (
+                        <li
+                          key={check.id}
+                          className={`password-checklist__item ${
+                            check.isValid
+                              ? 'password-checklist__item--valid'
+                              : shouldShowChecklistState
+                                ? 'password-checklist__item--invalid'
+                                : 'password-checklist__item--pending'
+                          }`}
+                        >
+                          {check.isValid ? (
+                            <CheckIcon />
+                          ) : shouldShowChecklistState ? (
+                            <CloseIcon />
+                          ) : (
+                            <span className="password-checklist__bullet" aria-hidden="true" />
+                          )}
+                          <span>{check.label}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+
+                {isSignUp ? (
+                  <div className="field-group">
+                    <label htmlFor="confirmPassword">Confirm Password</label>
+                    <div className="input-wrapper">
+                      <input
+                        id="confirmPassword"
+                        type={showConfirm ? 'text' : 'password'}
+                        value={confirmPassword}
+                        onChange={(e) => {
+                          setConfirmPassword(e.target.value)
+                          if (errors.length) {
+                            setErrors([])
+                          }
+                        }}
+                        placeholder="........"
+                        autoComplete="new-password"
+                        className="has-toggle"
+                      />
+                      <button type="button" className="show-password-btn" onClick={() => setShowConfirm((value) => !value)} aria-label={showConfirm ? 'Hide password' : 'Show password'}>
+                        <EyeIcon open={showConfirm} />
+                      </button>
+                    </div>
+                    <div
+                      className={`password-checklist__item ${
+                        confirmPassword.length === 0 && !hasAttemptedSubmit
+                          ? 'password-checklist__item--pending'
+                          : confirmPasswordMatches
+                            ? 'password-checklist__item--valid'
+                            : 'password-checklist__item--invalid'
+                      }`}
+                    >
+                      {confirmPasswordMatches ? (
+                        <CheckIcon />
+                      ) : confirmPassword.length === 0 && !hasAttemptedSubmit ? (
+                        <span className="password-checklist__bullet" aria-hidden="true" />
+                      ) : (
+                        <CloseIcon />
+                      )}
+                      <span>Passwords match</span>
+                    </div>
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <div className="field-group">
+                <div className="field-label-row">
+                  <label htmlFor="verificationCode">Verification code</label>
+                  <button type="button" className="forgot-link" onClick={handleResendVerification}>
+                    Resend code
                   </button>
-                )}
-              </div>
-              <div className="input-wrapper">
+                </div>
                 <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value)
+                  id="verificationCode"
+                  value={verificationCode}
+                  onChange={(event) => {
+                    setVerificationCode(event.target.value)
                     if (errors.length) {
                       setErrors([])
                     }
                   }}
-                  placeholder="........"
-                  autoComplete={isSignUp ? 'new-password' : 'current-password'}
-                  className="has-toggle"
+                  placeholder="Enter the 6-digit code"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
                 />
-                <button type="button" className="show-password-btn" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
-                  <EyeIcon open={showPassword} />
-                </button>
-              </div>
-              {isSignUp ? (
-                <ul className="password-checklist" aria-label="Password requirements">
-                  {passwordChecks.map((check) => (
-                    <li
-                      key={check.id}
-                      className={`password-checklist__item ${
-                        check.isValid
-                          ? 'password-checklist__item--valid'
-                          : shouldShowChecklistState
-                            ? 'password-checklist__item--invalid'
-                            : 'password-checklist__item--pending'
-                      }`}
-                    >
-                      {check.isValid ? (
-                        <CheckIcon />
-                      ) : shouldShowChecklistState ? (
-                        <CloseIcon />
-                      ) : (
-                        <span className="password-checklist__bullet" aria-hidden="true" />
-                      )}
-                      <span>{check.label}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </div>
-
-            {isSignUp && (
-              <div className="field-group">
-                <label htmlFor="confirmPassword">Confirm Password</label>
-                <div className="input-wrapper">
-                  <input
-                    id="confirmPassword"
-                    type={showConfirm ? 'text' : 'password'}
-                    value={confirmPassword}
-                    onChange={(e) => {
-                      setConfirmPassword(e.target.value)
-                      if (errors.length) {
-                        setErrors([])
-                      }
-                    }}
-                    placeholder="........"
-                    autoComplete="new-password"
-                    className="has-toggle"
-                  />
-                  <button type="button" className="show-password-btn" onClick={() => setShowConfirm((value) => !value)} aria-label={showConfirm ? 'Hide password' : 'Show password'}>
-                    <EyeIcon open={showConfirm} />
-                  </button>
-                </div>
-                <div
-                  className={`password-checklist__item ${
-                    confirmPassword.length === 0 && !hasAttemptedSubmit
-                      ? 'password-checklist__item--pending'
-                      : confirmPasswordMatches
-                        ? 'password-checklist__item--valid'
-                        : 'password-checklist__item--invalid'
-                  }`}
-                >
-                  {confirmPasswordMatches ? (
-                    <CheckIcon />
-                  ) : confirmPassword.length === 0 && !hasAttemptedSubmit ? (
-                    <span className="password-checklist__bullet" aria-hidden="true" />
-                  ) : (
-                    <CloseIcon />
-                  )}
-                  <span>Passwords match</span>
-                </div>
+                {verificationHint ? (
+                  <p className="field-note">{verificationHint}</p>
+                ) : (
+                  <p className="field-note">
+                    Check the verification message for your new account, then enter the code here.
+                  </p>
+                )}
               </div>
             )}
 
             <PrimaryButton type="submit" disabled={isLoading}>
               {isLoading
-                ? (isSignUp ? 'Creating account...' : 'Signing in...')
-                : (isSignUp ? 'Create account' : 'Continue')}
+                ? isVerify
+                  ? 'Verifying...'
+                  : (isSignUp ? 'Creating account...' : 'Signing in...')
+                : isVerify
+                  ? 'Verify email'
+                  : (isSignUp ? 'Create account' : 'Continue')}
             </PrimaryButton>
 
-            <div className="divider">or</div>
+            {!isVerify ? (
+              <>
+                <div className="divider">or</div>
 
-            <button type="button" className="google-btn" onClick={handleGoogleSignIn}>
-              <GoogleIcon />
-              Continue with Google
-            </button>
+                <button type="button" className="google-btn" onClick={handleGoogleSignIn}>
+                  <GoogleIcon />
+                  Continue with Google
+                </button>
+              </>
+            ) : null}
           </form>
 
-          <div className="auth-footer">
-            {isSignUp ? 'Already have an account?' : "Don't have an account?"}
-            <button type="button" onClick={() => switchMode(isSignUp ? 'signin' : 'signup')}>
-              {isSignUp ? 'Sign in' : 'Sign up'}
-            </button>
-          </div>
+          {!isVerify ? (
+            <div className="auth-footer">
+              {isSignUp ? 'Already have an account?' : "Don't have an account?"}
+              <button type="button" onClick={() => switchMode(isSignUp ? 'signin' : 'signup')}>
+                {isSignUp ? 'Sign in' : 'Sign up'}
+              </button>
+            </div>
+          ) : (
+            <div className="auth-footer">
+              Need to change the email address?
+              <button type="button" onClick={() => switchMode('signup')}>
+                Back to sign up
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </>
