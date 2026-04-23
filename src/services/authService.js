@@ -444,11 +444,9 @@ const buildProfileSession = (
     name:
       remoteUser?.name ||
       (hasOwn(normalizedUpdates, 'name') ? normalizedUpdates.name : session.name),
-    username:
-      remoteUser?.username ||
-      (hasOwn(normalizedUpdates, 'username')
-        ? normalizedUpdates.username
-        : session.username),
+    username: hasOwn(normalizedUpdates, 'username')
+      ? normalizedUpdates.username
+      : remoteUser?.username || session.username,
     interests: resolvedInterests,
     location:
       remoteUser?.location ||

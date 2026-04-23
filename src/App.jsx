@@ -1025,12 +1025,22 @@ function App() {
   }
 
   const handleProfileUpdate = async (updates) => {
+    const previousUsername = String(currentUser?.username || '').trim()
     const nextSession = await saveCurrentUserProfile(updates, {
       fallbackEmail: currentUser?.email,
     })
 
     setCurrentUser(nextSession)
     setCommunityUsers((prevUsers) => mergeCommunityUsers(prevUsers, [nextSession]))
+
+    if (
+      route.key === 'profile' &&
+      isViewingCurrentUserProfile &&
+      nextSession.username &&
+      nextSession.username !== previousUsername
+    ) {
+      navigate(routes.profile(nextSession.username))
+    }
 
     return nextSession
   }
