@@ -18,13 +18,14 @@ const styles = `
     display: grid;
     gap: 1rem;
     align-content: start;
+    justify-items: center;
   }
 
   .contact-form {
     display: flex;
     flex-direction: column;
     gap: 1.1rem;
-    max-width: 560px;
+    max-width: 720px;
     width: 100%;
   }
 
@@ -95,7 +96,7 @@ const styles = `
     border-radius: 8px;
     padding: 1rem 1.25rem;
     font-size: 0.9rem;
-    max-width: 560px;
+    max-width: 720px;
     width: 100%;
   }
 
@@ -106,7 +107,7 @@ const styles = `
     border-radius: 8px;
     padding: 1rem 1.25rem;
     font-size: 0.9rem;
-    max-width: 560px;
+    max-width: 720px;
     width: 100%;
   }
 
@@ -131,6 +132,13 @@ const styles = `
     padding-bottom: 28px;
   }
 
+  .contact-side-card--sticky {
+    position: sticky;
+    top: 96px;
+    align-self: start;
+    box-shadow: 0 18px 36px rgba(2, 2, 2, 0.06);
+  }
+
   .contact-side-card .info-card__header {
     display: flex;
     align-items: center;
@@ -150,6 +158,11 @@ const styles = `
   @media (max-width: 1200px) {
     .contact-support__main {
       grid-column: auto;
+    }
+
+    .contact-side-card--sticky {
+      position: static;
+      top: auto;
     }
   }
 `
@@ -268,7 +281,7 @@ function ContactSupportPage() {
           )}
         </div>
 
-        <article className="info-card contact-side-card">
+        <article className="info-card contact-side-card contact-side-card--sticky">
           <div className="info-card__header">
             <div className="info-card__icon">
               <MailIcon />
