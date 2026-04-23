@@ -202,6 +202,17 @@ function FeaturedEvent({
                   </div>
 
                   <div className="featured-event__actions">
+                    <p
+                      className={`status-note featured-event__status-note ${
+                        slide.matchedInterest ? '' : 'featured-event__status-note--empty'
+                      }`}
+                      aria-hidden={slide.matchedInterest ? undefined : 'true'}
+                    >
+                      {slide.matchedInterest
+                        ? `Matched to your interest in ${slide.matchedInterest}.`
+                        : 'Matched interest placeholder.'}
+                    </p>
+
                     <div className="featured-event__primary-actions">
                       <PrimaryButton onClick={() => onViewDetails(slideEvent.id)}>
                         <span>View Event Details</span>
@@ -247,12 +258,6 @@ function FeaturedEvent({
                         </button>
                       </div>
                     </div>
-
-                    {slide.matchedInterest ? (
-                      <p className="status-note">
-                        Matched to your interest in {slide.matchedInterest}.
-                      </p>
-                    ) : null}
                   </div>
                 </div>
 
