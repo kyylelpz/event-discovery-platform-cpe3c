@@ -338,11 +338,10 @@ export const fetchCommunityUsers = async () => {
         ? payload.data
         : []
 
-    return appendGeneratedCommunityUsers(
-      users
-        .map((user) => normalizePublicUser(user))
-        .filter((user) => user.username),
-    )
+    communityUsersApiMode = 'available'
+    return users
+      .map((user) => normalizePublicUser(user))
+      .filter((user) => user.username)
   } catch (error) {
     if (!isRecoverableUserError(error)) {
       throw error
