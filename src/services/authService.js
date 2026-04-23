@@ -1,4 +1,5 @@
 import { API_BASE_URL, isLocalHostname } from './apiBase.js'
+import { normalizeProfilePrivacy } from '../utils/privacy.js'
 
 const USERS_KEY = 'eventcinity_users'
 const SESSION_KEY = 'eventcinity_session'
@@ -109,6 +110,7 @@ const buildSession = ({
   followingCount = 0,
   followerUsernames = [],
   followingUsernames = [],
+  privacy = {},
   needsInterestsSelection = false,
   hasCompletedOnboarding,
   shouldShowInterestsPrompt = false,
@@ -133,6 +135,7 @@ const buildSession = ({
   followingUsernames: Array.isArray(followingUsernames)
     ? followingUsernames.map((value) => String(value || '').trim().toLowerCase()).filter(Boolean).filter((value, index, values) => values.indexOf(value) === index)
     : [],
+  privacy: normalizeProfilePrivacy(privacy),
   needsInterestsSelection: Boolean(needsInterestsSelection),
   hasCompletedOnboarding:
     typeof hasCompletedOnboarding === 'boolean'
@@ -159,6 +162,7 @@ const sanitizeStoredUser = (user = {}) =>
     followingCount: user.followingCount,
     followerUsernames: user.followerUsernames,
     followingUsernames: user.followingUsernames,
+    privacy: user.privacy,
     needsInterestsSelection: user.needsInterestsSelection,
     hasCompletedOnboarding: user.hasCompletedOnboarding,
     shouldShowInterestsPrompt: user.shouldShowInterestsPrompt,
@@ -372,6 +376,10 @@ const normalizeProfileUpdates = (updates = {}) => {
     normalizedUpdates.profilePicFile = updates.profilePicFile
   }
 
+  if (hasOwn(updates, 'privacy')) {
+    normalizedUpdates.privacy = normalizeProfilePrivacy(updates.privacy)
+  }
+
   return normalizedUpdates
 }
 
@@ -430,6 +438,11 @@ const buildProfileSession = (
       (hasOwn(normalizedUpdates, 'profilePic')
         ? normalizedUpdates.profilePic
         : session.profilePic),
+    privacy: hasOwn(remoteUser, 'privacy')
+      ? normalizeProfilePrivacy(remoteUser.privacy)
+      : hasOwn(normalizedUpdates, 'privacy')
+        ? normalizeProfilePrivacy(normalizedUpdates.privacy)
+        : normalizeProfilePrivacy(session.privacy),
     createdAt: remoteUser?.createdAt || session.createdAt,
     authProvider:
       remoteUser?.authProvider ||
@@ -467,6 +480,11 @@ const updateRemoteProfile = async (updates) => {
 
           if (Array.isArray(value)) {
             value.forEach((entry) => formData.append(key, String(entry)))
+            return
+          }
+
+          if (value && typeof value === 'object') {
+            formData.append(key, JSON.stringify(value))
             return
           }
 
@@ -608,6 +626,7 @@ const upsertLocalUser = async (userInput = {}) => {
     bio = '',
     profilePic = '',
     createdAt = '',
+    privacy = {},
     needsInterestsSelection = false,
     hasCompletedOnboarding,
     shouldShowInterestsPrompt = false,
@@ -639,6 +658,9 @@ const upsertLocalUser = async (userInput = {}) => {
     phone: String(phone ?? existingUser.phone ?? '').trim(),
     bio: String(bio ?? existingUser.bio ?? '').trim(),
     profilePic: String(profilePic ?? existingUser.profilePic ?? '').trim(),
+    privacy: normalizeProfilePrivacy(
+      hasOwn(userInput, 'privacy') ? privacy : existingUser.privacy,
+    ),
     needsInterestsSelection: Boolean(needsInterestsSelection),
     hasCompletedOnboarding:
       typeof hasCompletedOnboarding === 'boolean'
@@ -798,7 +820,7 @@ export const syncStoredUser = async (user) => {
     return null
   }
 
-  return upsertLocalUser({
+  const localUserPayload = {
     id: user.id,
     email: user.email,
     name: user.name,
@@ -817,7 +839,13 @@ export const syncStoredUser = async (user) => {
     needsInterestsSelection: user.needsInterestsSelection,
     hasCompletedOnboarding: user.hasCompletedOnboarding,
     shouldShowInterestsPrompt: user.shouldShowInterestsPrompt,
-  })
+  }
+
+  if (user.privacy !== undefined) {
+    localUserPayload.privacy = user.privacy
+  }
+
+  return upsertLocalUser(localUserPayload)
 }
 
 export const getKnownUsers = () =>
@@ -855,6 +883,7 @@ const migrateLegacyPasswordIfNeeded = async (email, user, password) => {
     bio: user.bio,
     profilePic: user.profilePic,
     createdAt: user.createdAt,
+    privacy: user.privacy,
     needsInterestsSelection: user.needsInterestsSelection,
     hasCompletedOnboarding: user.hasCompletedOnboarding,
     shouldShowInterestsPrompt: user.shouldShowInterestsPrompt,
@@ -903,6 +932,7 @@ const createSessionFromAuthPayload = (data, email, fallbackName, authProvider) =
       user.imageUrl ||
       localMirror.profilePic ||
       '',
+    privacy: hasOwn(user, 'privacy') ? user.privacy : localMirror.privacy,
     createdAt: user.createdAt || localMirror.createdAt || '',
     needsInterestsSelection,
     hasCompletedOnboarding,
@@ -923,6 +953,7 @@ const syncLocalAuthMirror = async ({
   bio,
   profilePic,
   createdAt,
+  privacy,
   needsInterestsSelection,
   hasCompletedOnboarding,
   shouldShowInterestsPrompt,
@@ -932,7 +963,7 @@ const syncLocalAuthMirror = async ({
   }
 
   try {
-    await upsertLocalUser({
+    const localUserPayload = {
       id,
       email,
       password,
@@ -948,7 +979,13 @@ const syncLocalAuthMirror = async ({
       needsInterestsSelection,
       hasCompletedOnboarding,
       shouldShowInterestsPrompt,
-    })
+    }
+
+    if (privacy !== undefined) {
+      localUserPayload.privacy = privacy
+    }
+
+    await upsertLocalUser(localUserPayload)
   } catch (error) {
     console.warn('Unable to cache the signed-in user locally:', error)
   }
@@ -1009,6 +1046,7 @@ export const saveCurrentUserProfile = async (
     bio: nextSession.bio,
     profilePic: nextSession.profilePic,
     createdAt: nextSession.createdAt,
+    privacy: nextSession.privacy,
     needsInterestsSelection: nextSession.needsInterestsSelection,
     hasCompletedOnboarding: nextSession.hasCompletedOnboarding,
     shouldShowInterestsPrompt: nextSession.shouldShowInterestsPrompt,
@@ -1055,6 +1093,7 @@ export const consumeHostedAuthRedirect = () => {
     bio: session.bio,
     profilePic: session.profilePic,
     createdAt: session.createdAt,
+    privacy: session.privacy,
     needsInterestsSelection: session.needsInterestsSelection,
     hasCompletedOnboarding: session.hasCompletedOnboarding,
     shouldShowInterestsPrompt: session.shouldShowInterestsPrompt,
