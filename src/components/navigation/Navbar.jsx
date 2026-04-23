@@ -47,9 +47,12 @@ function Navbar({
   onCalendarDateChange,
   onCalendarDateClear,
   currentUser,
+  notifications = [],
+  hasUnreadNotifications = false,
   theme,
   onToggleTheme,
   onOpenProfile,
+  onOpenEvent,
   onSignOut,
 }) {
   const isActive = (target) =>
@@ -119,9 +122,13 @@ function Navbar({
           {currentUser ? (
             <ProfileMenu
               currentUser={currentUser}
+              notifications={notifications}
+              hasUnreadNotifications={hasUnreadNotifications}
               theme={theme}
               onToggleTheme={onToggleTheme}
+              onNavigate={onNavigate}
               onOpenProfile={onOpenProfile}
+              onOpenEvent={onOpenEvent}
               onSignOut={onSignOut}
             />
           ) : (
@@ -158,9 +165,12 @@ function Navbar({
         onCalendarDateChange={onCalendarDateChange}
         onCalendarDateClear={onCalendarDateClear}
         currentUser={currentUser}
+        notifications={notifications}
+        hasUnreadNotifications={hasUnreadNotifications}
         theme={theme}
         onToggleTheme={onToggleTheme}
         onOpenProfile={onOpenProfile}
+        onOpenEvent={onOpenEvent}
         onSignOut={onSignOut}
       />
     </header>
@@ -186,9 +196,12 @@ function MobileNavbar({
   onCalendarDateChange,
   onCalendarDateClear,
   currentUser,
+  notifications = [],
+  hasUnreadNotifications = false,
   theme,
   onToggleTheme,
   onOpenProfile,
+  onOpenEvent,
   onSignOut,
 }) {
   const isActive = (target) =>
@@ -258,9 +271,13 @@ function MobileNavbar({
             <div className="topbar__mobile-account-row">
               <ProfileMenu
                 currentUser={currentUser}
+                notifications={notifications}
+                hasUnreadNotifications={hasUnreadNotifications}
                 theme={theme}
                 onToggleTheme={onToggleTheme}
+                onNavigate={onNavigate}
                 onOpenProfile={onOpenProfile}
+                onOpenEvent={onOpenEvent}
                 onSignOut={onSignOut}
                 mobile
               />
@@ -313,9 +330,13 @@ function ThemeIconButton({ theme, onToggleTheme }) {
 
 function ProfileMenu({
   currentUser,
+  notifications = [],
+  hasUnreadNotifications = false,
   theme,
   onToggleTheme,
+  onNavigate,
   onOpenProfile,
+  onOpenEvent,
   onSignOut,
   mobile = false,
 }) {
@@ -367,11 +388,23 @@ function ProfileMenu({
       <button
         type="button"
         className="profile-menu__trigger"
-        aria-label="Open profile menu"
+        aria-label={
+          hasUnreadNotifications
+            ? `Open profile menu with ${notifications.length} notification${
+                notifications.length === 1 ? '' : 's'
+              }`
+            : 'Open profile menu'
+        }
         aria-expanded={isOpen}
         onClick={() => setIsOpen((currentValue) => !currentValue)}
       >
         <MoreVerticalIcon />
+        {hasUnreadNotifications ? (
+          <span
+            className="profile-menu__notification-badge"
+            aria-hidden="true"
+          />
+        ) : null}
       </button>
 
       <ThemeIconButton theme={theme} onToggleTheme={onToggleTheme} />
@@ -418,6 +451,48 @@ function ProfileMenu({
               <div className="profile-menu__empty">
                 Nothing here yet. Explore more events!
               </div>
+            )}
+          </div>
+
+          <div className="profile-menu__section">
+            <div className="profile-menu__section-heading">
+              <h4>Notifications</h4>
+              {hasUnreadNotifications ? (
+                <span className="profile-menu__section-alert">New</span>
+              ) : null}
+            </div>
+            {notifications.length ? (
+              <div className="profile-menu__notifications">
+                {notifications.slice(0, 4).map((notification) => (
+                  <button
+                    key={notification.id}
+                    type="button"
+                    className="profile-menu__notification"
+                    onClick={() => {
+                      setIsOpen(false)
+
+                      if (notification.eventId) {
+                        onOpenEvent?.(notification.eventId)
+                        return
+                      }
+
+                      if (notification.username) {
+                        onNavigate?.(routes.profile(notification.username))
+                      }
+                    }}
+                  >
+                    <span className="profile-menu__notification-icon">
+                      {notification.kind === 'follower' ? <UserPlusIcon /> : <MessageCircleIcon />}
+                    </span>
+                    <span className="profile-menu__notification-copy">
+                      <strong>{notification.title}</strong>
+                      <span>{notification.body}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="profile-menu__empty">No new notifications right now.</div>
             )}
           </div>
 

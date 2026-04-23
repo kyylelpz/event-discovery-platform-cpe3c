@@ -235,6 +235,7 @@
 }
 
 .profile-menu__trigger {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -248,6 +249,18 @@
 
 .profile-menu__trigger:hover {
   background: rgba(45, 59, 21, 0.08);
+}
+
+.profile-menu__notification-badge {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--color-surface);
+  border-radius: 999px;
+  background: #d53c33;
+  box-shadow: 0 0 0 2px rgba(213, 60, 51, 0.14);
 }
 
 .mode-toggle-button {
@@ -370,8 +383,29 @@
   gap: 10px;
 }
 
+.profile-menu__section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .profile-menu__section h4 {
   font-size: 1.05rem;
+}
+
+.profile-menu__section-alert {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(213, 60, 51, 0.1);
+  color: #b32e26;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .profile-menu__chips {
@@ -398,6 +432,54 @@
   border: 1px dashed var(--color-border);
   border-radius: 18px;
   background: rgba(252, 252, 252, 0.65);
+}
+
+.profile-menu__notifications {
+  display: grid;
+  gap: 10px;
+}
+
+.profile-menu__notification {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: rgba(252, 252, 252, 0.72);
+  color: var(--color-text);
+  text-align: left;
+}
+
+.profile-menu__notification:hover {
+  background: rgba(45, 59, 21, 0.05);
+}
+
+.profile-menu__notification-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: rgba(45, 59, 21, 0.08);
+  color: var(--color-accent);
+}
+
+.profile-menu__notification-copy {
+  display: grid;
+  gap: 3px;
+}
+
+.profile-menu__notification-copy strong,
+.profile-menu__notification-copy span {
+  line-height: 1.4;
+}
+
+.profile-menu__notification-copy span {
+  color: var(--color-muted);
 }
 
 .profile-menu__actions {
@@ -1521,6 +1603,11 @@
   border-color: var(--color-border);
 }
 
+:root[data-theme='dark'] .profile-menu__notification-badge {
+  border-color: rgba(23, 28, 25, 0.96);
+  box-shadow: 0 0 0 2px rgba(213, 60, 51, 0.22);
+}
+
 :root[data-theme='dark'] .brandmark,
 :root[data-theme='dark'] .footer-link,
 :root[data-theme='dark'] .searchbar__result,
@@ -1547,8 +1634,27 @@
 :root[data-theme='dark'] .info-card__icon,
 :root[data-theme='dark'] .programmer-card__role,
 :root[data-theme='dark'] .people-hero__badge,
-:root[data-theme='dark'] .profile-menu__chip {
+:root[data-theme='dark'] .profile-menu__chip,
+:root[data-theme='dark'] .profile-menu__notification-icon {
   background: rgba(217, 178, 123, 0.12);
+}
+
+:root[data-theme='dark'] .profile-menu__notification,
+:root[data-theme='dark'] .profile-page__connect-person,
+:root[data-theme='dark'] .profile-page__notification {
+  background: rgba(23, 28, 25, 0.92);
+  border-color: var(--color-border);
+}
+
+:root[data-theme='dark'] .profile-menu__notification:hover,
+:root[data-theme='dark'] .profile-page__connect-person:hover,
+:root[data-theme='dark'] .profile-page__notification:hover {
+  background: rgba(217, 178, 123, 0.12);
+}
+
+:root[data-theme='dark'] .profile-menu__section-alert {
+  background: rgba(213, 60, 51, 0.16);
+  color: #ff8f86;
 }
 
 :root[data-theme='dark'] .category-tag {
@@ -1840,6 +1946,7 @@
 .profile-page__connect-button {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   min-height: 42px;
   padding: 0 14px;
@@ -1847,6 +1954,7 @@
   border-radius: 999px;
   background: var(--color-surface);
   color: var(--color-text);
+  white-space: nowrap;
 }
 
 .profile-page__connect-button--active {
@@ -1926,6 +2034,21 @@
   color: var(--color-muted);
   font-size: 0.82rem;
   white-space: nowrap;
+}
+
+:root[data-theme='dark'] .profile-page__connect-button {
+  background: rgba(23, 28, 25, 0.92);
+  border-color: var(--color-border);
+}
+
+:root[data-theme='dark'] .profile-page__connect-button--active {
+  background: rgba(217, 178, 123, 0.14);
+  border-color: rgba(217, 178, 123, 0.38);
+}
+
+:root[data-theme='dark'] .profile-page__connect-search input {
+  background: rgba(23, 28, 25, 0.92);
+  border-color: var(--color-border);
 }
 
 .profile-page__connect-empty {
