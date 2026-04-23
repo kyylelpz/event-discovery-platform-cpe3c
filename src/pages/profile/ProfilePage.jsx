@@ -57,6 +57,7 @@ function ProfilePage({
   const [isEditing, setIsEditing] = useState(false)
   const [activeConnectTab, setActiveConnectTab] = useState('followers')
   const [connectSearch, setConnectSearch] = useState('')
+  const [draftUsername, setDraftUsername] = useState(user.username || '')
   const [draftPhone, setDraftPhone] = useState(user.phone || user.contact || '')
   const [draftBio, setDraftBio] = useState(user.bio || '')
   const [draftProfilePic, setDraftProfilePic] = useState(user.profilePic || user.avatar || '')
@@ -132,14 +133,16 @@ function ProfilePage({
       : user.profilePic || user.avatar
 
   useEffect(() => {
+    setDraftUsername(user.username || '')
     setDraftPhone(user.phone || user.contact || '')
     setDraftBio(user.bio || '')
     setDraftProfilePic(user.profilePic || user.avatar || '')
     setDraftProfilePicFile(null)
     setDraftPrivacy(normalizeProfilePrivacy(user.privacy))
-  }, [user.bio, user.contact, user.phone, user.profilePic, user.avatar, user.privacy])
+  }, [user.bio, user.contact, user.phone, user.profilePic, user.avatar, user.privacy, user.username])
 
   const handleStartEdit = () => {
+    setDraftUsername(user.username || '')
     setDraftPhone(user.phone || user.contact || '')
     setDraftBio(user.bio || '')
     setDraftProfilePic(user.profilePic || user.avatar || '')
@@ -151,6 +154,7 @@ function ProfilePage({
   }
 
   const handleCancelEdit = () => {
+    setDraftUsername(user.username || '')
     setDraftPhone(user.phone || user.contact || '')
     setDraftBio(user.bio || '')
     setDraftProfilePic(user.profilePic || user.avatar || '')
@@ -212,6 +216,7 @@ function ProfilePage({
 
     try {
       await onSaveProfile({
+        username: draftUsername,
         phone: draftPhone,
         bio: draftBio,
         profilePic: draftProfilePic,
@@ -283,6 +288,18 @@ function ProfilePage({
 
         {isCurrentUser && isEditing ? (
           <form className="event-form profile-edit-form" onSubmit={handleSaveProfile}>
+            <label>
+              <span>Username</span>
+              <input
+                value={draftUsername}
+                onChange={(nextEvent) => setDraftUsername(nextEvent.target.value)}
+                placeholder="your-username"
+              />
+              <small className="field-hint">
+                Usernames use lowercase letters, numbers, and single hyphens.
+              </small>
+            </label>
+
             <label>
               <span>Contact</span>
               <input
