@@ -1,7 +1,7 @@
 import { PrimaryButton, SecondaryButton } from '../../components/ui/Button.jsx'
 import { UserPlusIcon, UsersIcon } from '../../components/ui/Icons.jsx'
 import UserAvatar from '../../components/ui/UserAvatar.jsx'
-import { normalizeProfilePrivacy } from '../../utils/privacy.js'
+import { resolveProfilePrivacy } from '../../utils/privacy.js'
 
 function PeoplePage({
   people,
@@ -77,7 +77,7 @@ function PeoplePage({
       <section className="people-grid">
         {hasPeople ? (
           people.map((person) => {
-            const privacy = normalizeProfilePrivacy(person.privacy)
+            const privacy = resolveProfilePrivacy(person)
             const followersLabel = privacy.hideFollowers
               ? 'Followers hidden'
               : `${person.followersCount || 0} followers`
