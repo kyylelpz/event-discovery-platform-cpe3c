@@ -300,6 +300,24 @@ const compareCommunityUsers = (leftUser, rightUser) => {
   return String(leftUser.name || '').localeCompare(String(rightUser.name || ''))
 }
 
+const eventHasStartedAlready = (event) => {
+  const eventDate = parseEventDate(event?.startDate)
+
+  if (!eventDate) {
+    return false
+  }
+
+  const today = new Date()
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const normalizedEventDate = new Date(
+    eventDate.getFullYear(),
+    eventDate.getMonth(),
+    eventDate.getDate(),
+  )
+
+  return normalizedEventDate.getTime() < startOfToday.getTime()
+}
+
 const scoreUserForInterests = (user, interests = []) => {
   if (!interests.length || !user) {
     return 0
@@ -862,7 +880,7 @@ function App() {
     createdEvents,
     profileCreatedEvents,
     profileAttendingEvents,
-  )
+  ).filter((event) => !eventHasStartedAlready(event))
   const normalizedSearch = deferredSearchTerm.trim().toLowerCase()
   const isCalendarDateMode = Boolean(selectedCalendarDate)
   const availableDateCounts = useMemo(() => {
@@ -988,7 +1006,14 @@ function App() {
         .slice(0, 6)
 
   const showSearchResults = isSearchFocused && normalizedSearch.length > 0
-  const currentEvent = allEvents.find((event) => event.id === route.params?.eventId)
+  const currentEvent = allEvents.find((event) => {
+    const routeEventId = String(route.params?.eventId || '').trim()
+
+    return (
+      String(event?.id || '').trim() === routeEventId ||
+      String(event?.eventId || '').trim() === routeEventId
+    )
+  })
   const isViewingCurrentUserProfile =
     route.key === 'profile' &&
     currentUser &&
@@ -1078,6 +1103,7 @@ function App() {
         }
 
         setProfileCreatedEvents(events)
+        setCreatedEvents((currentEvents) => mergeEvents(currentEvents, events))
       } catch (error) {
         if (!isActive) {
           return
@@ -1486,6 +1512,8 @@ function App() {
           isFollowing={currentFollowingUsernames.has(
             String(activeProfile?.username || '').trim().toLowerCase(),
           )}
+          communityUsers={communityDirectory}
+          onOpenProfile={(username) => navigate(routes.profile(username))}
           activeTab={activeProfileTab}
           onTabChange={setActiveProfileTab}
           {...sharedPageProps}

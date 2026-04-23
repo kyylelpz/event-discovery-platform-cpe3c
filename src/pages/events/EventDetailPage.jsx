@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import EventList from '../../components/events/EventList.jsx'
 import { PrimaryButton } from '../../components/ui/Button.jsx'
 import CategoryTag from '../../components/ui/CategoryTag.jsx'
@@ -7,8 +8,8 @@ import {
   BookmarkIcon,
   CalendarIcon,
   HeartIcon,
+  LinkIcon,
   MapPinIcon,
-  ShareIcon,
   StarIcon,
 } from '../../components/ui/Icons.jsx'
 import {
@@ -26,6 +27,7 @@ function EventDetailPage({
   onToggleAttend,
   onOpenEvent,
 }) {
+  const [shareStatus, setShareStatus] = useState('')
   const eventId = String(event?.id || '').trim()
   const isSaved = interactions.saved.includes(eventId)
   const isAttending = interactions.attending.includes(eventId)
@@ -36,6 +38,11 @@ function EventDetailPage({
   const mapQuery = event.mapLabel || event.location
   const mapEmbedUrl = buildGoogleMapsEmbedUrl(mapQuery)
   const venueLabel = event.venue || event.location
+  const detailRouteId = String(event?.eventId || event?.id || '').trim()
+  const shareUrl =
+    typeof window !== 'undefined' && detailRouteId
+      ? new URL(`/events/${detailRouteId}`, window.location.origin).toString()
+      : ''
   const handleImageError = (eventObject) => {
     if (!event.fallbackImage || eventObject.currentTarget.dataset.fallbackApplied === 'true') {
       return
@@ -44,6 +51,31 @@ function EventDetailPage({
     eventObject.currentTarget.dataset.fallbackApplied = 'true'
     eventObject.currentTarget.src = event.fallbackImage
     eventObject.currentTarget.srcset = ''
+  }
+
+  const handleCopyLink = async () => {
+    if (!shareUrl) {
+      setShareStatus('Unable to build this event link.')
+      return
+    }
+
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl)
+      } else {
+        const tempInput = document.createElement('input')
+        tempInput.value = shareUrl
+        document.body.appendChild(tempInput)
+        tempInput.select()
+        document.execCommand('copy')
+        document.body.removeChild(tempInput)
+      }
+
+      setShareStatus('Event link copied to clipboard.')
+      window.setTimeout(() => setShareStatus(''), 2200)
+    } catch {
+      setShareStatus('Unable to copy the event link right now.')
+    }
   }
 
   return (
@@ -227,10 +259,19 @@ function EventDetailPage({
                       className={isSaved ? 'icon-accent icon-filled' : ''}
                     />
                   </button>
-                  <button type="button" className="icon-box">
-                    <ShareIcon />
+                  <button
+                    type="button"
+                    className="icon-box"
+                    onClick={handleCopyLink}
+                    aria-label="Copy event link"
+                    title={shareUrl || 'Event link unavailable'}
+                  >
+                    <LinkIcon />
                   </button>
                 </div>
+                {shareStatus ? (
+                  <p className="detail-panel__share-status">{shareStatus}</p>
+                ) : null}
               </div>
             </div>
           </aside>

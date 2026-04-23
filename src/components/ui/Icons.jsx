@@ -230,6 +230,18 @@ export function ShareIcon({ className = '' }) {
   )
 }
 
+export function LinkIcon({ className = '' }) {
+  return createIcon(
+    <>
+      <path d="M10.5 13.5 13.5 10.5" />
+      <path d="M7.8 16.2 5.7 18.3a3 3 0 1 1-4.2-4.2l2.1-2.1a3 3 0 0 1 4.2 0" />
+      <path d="m16.2 7.8 2.1-2.1a3 3 0 1 1 4.2 4.2l-2.1 2.1a3 3 0 0 1-4.2 0" />
+      <path d="M8.9 15.1a3 3 0 0 1 0-4.2l2-2a3 3 0 0 1 4.2 0" />
+    </>,
+    className,
+  )
+}
+
 export function UploadIcon({ className = '' }) {
   return createIcon(
     <>
