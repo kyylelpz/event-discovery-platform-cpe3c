@@ -297,10 +297,7 @@ function ProfilePage({
                 onClick={() => setActiveConnectTab('followers')}
               >
                 <UsersIcon />
-                <span className="profile-page__connect-button-copy">
-                  <strong>{user.followersCount || 0}</strong>
-                  <span>followers</span>
-                </span>
+                <span>{user.followersCount || 0} followers</span>
               </button>
               <button
                 type="button"
@@ -310,12 +307,14 @@ function ProfilePage({
                 onClick={() => setActiveConnectTab('following')}
               >
                 <UsersIcon />
-                <span className="profile-page__connect-button-copy">
-                  <strong>{user.followingCount || 0}</strong>
-                  <span>following</span>
-                </span>
+                <span>{user.followingCount || 0} following</span>
               </button>
             </div>
+            <p className="profile-page__connect-list-label">
+              {activeConnectTab === 'followers'
+                ? `${activeConnectUsers.length} follower${activeConnectUsers.length === 1 ? '' : 's'} visible`
+                : `${activeConnectUsers.length} following account${activeConnectUsers.length === 1 ? '' : 's'} visible`}
+            </p>
             <label className="profile-page__connect-search">
               <SearchIcon />
               <input
@@ -343,7 +342,7 @@ function ProfilePage({
                       <span>@{person.username}</span>
                     </span>
                     <span className="profile-page__connect-person-meta">
-                      {person.followersCount || 0} followers
+                      {activeConnectTab === 'followers' ? 'Follows you' : 'Following'}
                     </span>
                   </button>
                 ))
