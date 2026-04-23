@@ -1984,7 +1984,7 @@ function App() {
           ...likedByUser.map((event) => event.id || event.eventId),
           ...attendingByUser.map((event) => event.id || event.eventId),
         ],
-        4,
+        3,
       )
     : []
   const currentResolvedEventOwnerId = String(resolvedEventDetail?.ownerId || '').trim()
