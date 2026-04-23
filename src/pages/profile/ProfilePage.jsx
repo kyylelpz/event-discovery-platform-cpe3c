@@ -8,7 +8,6 @@ import {
   HeartIcon,
   MessageCircleIcon,
   MapPinIcon,
-  PlusSquareIcon,
   SearchIcon,
   UserPlusIcon,
   UsersIcon,
@@ -45,13 +44,13 @@ function ProfilePage({
   const [isSaving, setIsSaving] = useState(false)
   const tabs = isCurrentUser
     ? [
-        { label: 'Created Events', events: createdEvents, icon: <PlusSquareIcon /> },
+        { label: 'Created Events', events: createdEvents },
         { label: 'Bookmarks', events: savedEvents, icon: <BookmarkIcon /> },
         { label: 'Favorites', events: likedEvents, icon: <HeartIcon /> },
         { label: 'Attending', events: attendingEvents, icon: <CalendarIcon /> },
       ]
     : [
-        { label: 'Created Events', events: createdEvents, icon: <PlusSquareIcon /> },
+        { label: 'Created Events', events: createdEvents },
         { label: 'Attending', events: attendingEvents, icon: <CalendarIcon /> },
       ]
   const activeTabConfig = tabs.find((tab) => tab.label === activeTab) || tabs[0]
@@ -436,7 +435,7 @@ function ProfilePage({
               className={`profile-tab ${activeTab === tab.label ? 'profile-tab--active' : ''}`}
               onClick={() => onTabChange(tab.label)}
             >
-              {tab.icon}
+              {tab.icon ? tab.icon : null}
               <span className="profile-tab__label">
                 <span>{tab.label}</span>
                 <span>({tab.events.length})</span>
