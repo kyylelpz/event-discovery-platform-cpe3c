@@ -524,10 +524,12 @@ function App() {
   )
   const [eventDetailRecord, setEventDetailRecord] = useState(null)
   const [isEventDetailLoading, setIsEventDetailLoading] = useState(false)
+  const [pendingDashboardSection, setPendingDashboardSection] = useState('')
   const deferredSearchTerm = useDeferredValue(searchTerm)
   const currentUserRef = useRef(currentUser)
   const recentAuthSuccessAtRef = useRef(0)
   const hostedSessionRestoreAttemptedRef = useRef(false)
+  const route = resolveRoute(pathname)
   const {
     interactions,
     savedEvents: savedInteractionEvents,
@@ -575,6 +577,21 @@ function App() {
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
   }, [pathname])
+
+  useEffect(() => {
+    if (!pendingDashboardSection || route.key !== 'events') {
+      return
+    }
+
+    const scrollTarget = window.document.getElementById(pendingDashboardSection)
+
+    if (!scrollTarget) {
+      return
+    }
+
+    scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    setPendingDashboardSection('')
+  }, [pendingDashboardSection, route.key, pathname])
 
   useEffect(() => {
     setSearchTerm('')
@@ -815,6 +832,12 @@ function App() {
     setPathname(normalizedPath)
   }
 
+  const navigateToDashboardSection = (sectionId) => {
+    setCurrentEventsPage(1)
+    setPendingDashboardSection(sectionId)
+    navigate(routes.events)
+  }
+
   const handleSearchChange = (value) => {
     setCurrentEventsPage(1)
     setSearchTerm(value)
@@ -959,7 +982,6 @@ function App() {
     navigate(routes.events)
   }
 
-  const route = resolveRoute(pathname)
   const currentUserEmail = String(currentUser?.email || '').trim().toLowerCase()
   const currentUserProfileSlug = currentUser ? getUserProfileSlug(currentUser) : ''
   const currentFollowingUsernames = useMemo(
@@ -1708,10 +1730,10 @@ function App() {
     currentPath: pathname === '/' ? routes.events : pathname,
     onNavigate: navigate,
     onGoToDashboard: () => {
-      setCurrentEventsPage(1)
       setFeaturedShuffleSeed(`${Date.now()}:${Math.random()}`)
-      navigate(routes.events)
+      navigateToDashboardSection('dashboard-top')
     },
+    onNavigateToDashboardSection: navigateToDashboardSection,
     searchTerm,
     onSearchChange: handleSearchChange,
     searchResults,
