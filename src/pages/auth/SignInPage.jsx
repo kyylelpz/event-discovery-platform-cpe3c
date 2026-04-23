@@ -337,7 +337,6 @@ function SignInPage({ onAuthSuccess }) {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [verificationCode, setVerificationCode] = useState('')
-  const [verificationHint, setVerificationHint] = useState('')
   const [statusMessage, setStatusMessage] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -406,12 +405,6 @@ function SignInPage({ onAuthSuccess }) {
         }
       } catch (err) {
         const fallbackErrors = [err.message || 'Unable to verify your email right now.']
-        const nextPreviewCode = String(err?.data?.verificationPreviewCode || '').trim()
-
-        if (nextPreviewCode) {
-          setVerificationHint(`Verification code: ${nextPreviewCode}`)
-        }
-
         setErrors(fallbackErrors)
       } finally {
         setIsLoading(false)
@@ -456,12 +449,9 @@ function SignInPage({ onAuthSuccess }) {
       if (session?.verificationRequired) {
         setMode('verify')
         setVerificationCode('')
-        setVerificationHint(
-          session.verificationPreviewCode
-            ? `Verification code: ${session.verificationPreviewCode}`
-            : 'Check your verification code and enter it below.',
+        setStatusMessage(
+          session.message || 'Your account was created. Check your email for the verification code.',
         )
-        setStatusMessage('Your account was created. Verify your email to finish signing in.')
         return
       }
 
@@ -474,12 +464,7 @@ function SignInPage({ onAuthSuccess }) {
       if (err?.data?.verificationRequired) {
         setMode('verify')
         setVerificationCode('')
-        setVerificationHint(
-          err.data.verificationPreviewCode
-            ? `Verification code: ${err.data.verificationPreviewCode}`
-            : 'Check your verification code and enter it below.',
-        )
-        setStatusMessage('Verify your email to finish signing in.')
+        setStatusMessage(err.message || 'Verify your email to finish signing in.')
         return
       }
 
@@ -493,7 +478,6 @@ function SignInPage({ onAuthSuccess }) {
     setMode(next)
     setErrors([])
     setStatusMessage('')
-    setVerificationHint('')
     setHasAttemptedSubmit(false)
     setPassword('')
     setConfirmPassword('')
@@ -512,12 +496,7 @@ function SignInPage({ onAuthSuccess }) {
     setIsLoading(true)
     try {
       const result = await resendEmailVerificationCode(email)
-      setVerificationHint(
-        result.verificationPreviewCode
-          ? `Verification code: ${result.verificationPreviewCode}`
-          : 'A new verification code is ready.',
-      )
-      setStatusMessage(result.message || 'A new verification code is ready.')
+      setStatusMessage(result.message || 'A new verification email was sent.')
     } catch (error) {
       setErrors([error.message || 'Unable to resend the verification code right now.'])
     } finally {
@@ -728,13 +707,9 @@ function SignInPage({ onAuthSuccess }) {
                   inputMode="numeric"
                   autoComplete="one-time-code"
                 />
-                {verificationHint ? (
-                  <p className="field-note">{verificationHint}</p>
-                ) : (
-                  <p className="field-note">
-                    Check the verification message for your new account, then enter the code here.
-                  </p>
-                )}
+                <p className="field-note">
+                  Check the verification message for your new account, then enter the code here.
+                </p>
               </div>
             )}
 

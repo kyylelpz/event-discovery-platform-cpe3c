@@ -227,6 +227,7 @@ function FeaturedEvent({
                         className="icon-box"
                         onClick={() => onToggleHeart(slideEvent)}
                         aria-label="Like featured event"
+                        title={isHearted ? 'Remove favorite' : 'Add to favorites'}
                       >
                         <HeartIcon
                           className={isHearted ? 'icon-accent icon-filled' : ''}
@@ -238,6 +239,7 @@ function FeaturedEvent({
                         className="icon-box"
                         onClick={() => onToggleSave(slideEvent)}
                         aria-label="Save featured event"
+                        title={isSaved ? 'Remove bookmark' : 'Bookmark event'}
                       >
                         <BookmarkIcon
                           className={isSaved ? 'icon-accent icon-filled' : ''}

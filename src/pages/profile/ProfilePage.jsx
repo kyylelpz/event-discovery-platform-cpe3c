@@ -39,6 +39,7 @@ function ProfilePage({
   const [draftPhone, setDraftPhone] = useState(user.phone || user.contact || '')
   const [draftBio, setDraftBio] = useState(user.bio || '')
   const [draftProfilePic, setDraftProfilePic] = useState(user.profilePic || user.avatar || '')
+  const [draftProfilePicFile, setDraftProfilePicFile] = useState(null)
   const [error, setError] = useState('')
   const [avatarError, setAvatarError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
@@ -103,12 +104,14 @@ function ProfilePage({
     setDraftPhone(user.phone || user.contact || '')
     setDraftBio(user.bio || '')
     setDraftProfilePic(user.profilePic || user.avatar || '')
+    setDraftProfilePicFile(null)
   }, [user.bio, user.contact, user.phone, user.profilePic, user.avatar])
 
   const handleStartEdit = () => {
     setDraftPhone(user.phone || user.contact || '')
     setDraftBio(user.bio || '')
     setDraftProfilePic(user.profilePic || user.avatar || '')
+    setDraftProfilePicFile(null)
     setError('')
     setAvatarError('')
     setIsEditing(true)
@@ -118,6 +121,7 @@ function ProfilePage({
     setDraftPhone(user.phone || user.contact || '')
     setDraftBio(user.bio || '')
     setDraftProfilePic(user.profilePic || user.avatar || '')
+    setDraftProfilePicFile(null)
     setError('')
     setAvatarError('')
     setIsEditing(false)
@@ -145,6 +149,7 @@ function ProfilePage({
     const fileReader = new FileReader()
     fileReader.onload = () => {
       setDraftProfilePic(String(fileReader.result || ''))
+      setDraftProfilePicFile(selectedFile)
       setAvatarError('')
     }
     fileReader.onerror = () => {
@@ -169,6 +174,7 @@ function ProfilePage({
         phone: draftPhone,
         bio: draftBio,
         profilePic: draftProfilePic,
+        profilePicFile: draftProfilePicFile,
       })
       setIsEditing(false)
     } catch (saveError) {
