@@ -1908,11 +1908,12 @@ function App() {
     return [...remoteNotifications, ...followerNotifications, ...upcomingNotifications]
       .filter((notification) => !dismissedNotificationIdSet.has(notification.id))
       .sort((leftNotification, rightNotification) => {
-        const unreadDifference =
-          Number(leftNotification.isRead) - Number(rightNotification.isRead)
+        const rightDate = Number(rightNotification.dateSortKey) || 0
+        const leftDate = Number(leftNotification.dateSortKey) || 0
+        const dateDifference = rightDate - leftDate
 
-        if (unreadDifference !== 0) {
-          return unreadDifference
+        if (dateDifference !== 0) {
+          return dateDifference
         }
 
         const priorityDifference =
@@ -1923,14 +1924,9 @@ function App() {
           return priorityDifference
         }
 
-        if (
-          leftNotification.sortDirection === 'asc' &&
-          rightNotification.sortDirection === 'asc'
-        ) {
-          return leftNotification.dateSortKey - rightNotification.dateSortKey
-        }
-
-        return rightNotification.dateSortKey - leftNotification.dateSortKey
+        return String(leftNotification.title || '').localeCompare(
+          String(rightNotification.title || ''),
+        )
       })
   }, [
     attendingInteractionEvents,

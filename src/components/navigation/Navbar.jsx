@@ -366,7 +366,9 @@ function NotificationMenu({
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef(null)
-  const unreadCount = notifications.filter((notification) => !notification.isRead).length
+  const unreadNotifications = notifications.filter((notification) => !notification.isRead)
+  const readNotifications = notifications.filter((notification) => notification.isRead)
+  const unreadCount = unreadNotifications.length
 
   useEffect(() => {
     if (!isOpen) {
@@ -419,52 +421,112 @@ function NotificationMenu({
 
           {notifications.length ? (
             <div className="notification-menu__list">
-              {notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className={`profile-menu__notification ${
-                    notification.isRead ? 'profile-menu__notification--read' : ''
-                  }`}
-                >
-                  <button
-                    type="button"
-                    className="profile-menu__notification-main"
-                    onClick={() => {
-                      onReadNotification?.(notification)
-                      setIsOpen(false)
+              {unreadNotifications.length ? (
+                <div className="notification-menu__section">
+                  <div className="notification-menu__section-header">
+                    <h4>Unread</h4>
+                    <span>{unreadNotifications.length}</span>
+                  </div>
+                  <div className="notification-menu__section-items">
+                    {unreadNotifications.map((notification) => (
+                      <div key={notification.id} className="profile-menu__notification">
+                        <button
+                          type="button"
+                          className="profile-menu__notification-main"
+                          onClick={() => {
+                            onReadNotification?.(notification)
+                            setIsOpen(false)
 
-                      if (notification.eventId) {
-                        onOpenEvent?.(notification.eventId)
-                        return
-                      }
+                            if (notification.eventId) {
+                              onOpenEvent?.(notification.eventId)
+                              return
+                            }
 
-                      if (notification.username) {
-                        onNavigate?.(routes.profile(notification.username))
-                      }
-                    }}
-                  >
-                    <span className="profile-menu__notification-icon">
-                      {notification.kind === 'follower' ? <UserPlusIcon /> : <MessageCircleIcon />}
-                    </span>
-                    <span className="profile-menu__notification-copy">
-                      <strong>{notification.title}</strong>
-                      <span>{notification.body}</span>
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    className="profile-menu__notification-remove"
-                    aria-label={`Remove notification ${notification.title}`}
-                    title="Remove notification"
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      onRemoveNotification?.(notification)
-                    }}
-                  >
-                    <CloseIcon />
-                  </button>
+                            if (notification.username) {
+                              onNavigate?.(routes.profile(notification.username))
+                            }
+                          }}
+                        >
+                          <span className="profile-menu__notification-icon">
+                            {notification.kind === 'follower' ? <UserPlusIcon /> : <MessageCircleIcon />}
+                          </span>
+                          <span className="profile-menu__notification-copy">
+                            <strong>{notification.title}</strong>
+                            <span>{notification.body}</span>
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          className="profile-menu__notification-remove"
+                          aria-label={`Remove notification ${notification.title}`}
+                          title="Remove notification"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            onRemoveNotification?.(notification)
+                          }}
+                        >
+                          <CloseIcon />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
+              ) : null}
+
+              {readNotifications.length ? (
+                <div className="notification-menu__section">
+                  <div className="notification-menu__section-header">
+                    <h4>Read</h4>
+                    <span>{readNotifications.length}</span>
+                  </div>
+                  <div className="notification-menu__section-items">
+                    {readNotifications.map((notification) => (
+                      <div
+                        key={notification.id}
+                        className="profile-menu__notification profile-menu__notification--read"
+                      >
+                        <button
+                          type="button"
+                          className="profile-menu__notification-main"
+                          onClick={() => {
+                            onReadNotification?.(notification)
+                            setIsOpen(false)
+
+                            if (notification.eventId) {
+                              onOpenEvent?.(notification.eventId)
+                              return
+                            }
+
+                            if (notification.username) {
+                              onNavigate?.(routes.profile(notification.username))
+                            }
+                          }}
+                        >
+                          <span className="profile-menu__notification-icon">
+                            {notification.kind === 'follower' ? <UserPlusIcon /> : <MessageCircleIcon />}
+                          </span>
+                          <span className="profile-menu__notification-copy">
+                            <strong>{notification.title}</strong>
+                            <span>{notification.body}</span>
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          className="profile-menu__notification-remove"
+                          aria-label={`Remove notification ${notification.title}`}
+                          title="Remove notification"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            onRemoveNotification?.(notification)
+                          }}
+                        >
+                          <CloseIcon />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
           ) : (
             <div className="profile-menu__empty">No notifications yet.</div>

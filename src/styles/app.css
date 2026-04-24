@@ -326,6 +326,43 @@
   overscroll-behavior: contain;
 }
 
+.notification-menu__section {
+  display: grid;
+  gap: 10px;
+}
+
+.notification-menu__section + .notification-menu__section {
+  padding-top: 6px;
+  border-top: 1px solid var(--color-border);
+}
+
+.notification-menu__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.notification-menu__section-header h4 {
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+}
+
+.notification-menu__section-header span {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.notification-menu__section-items {
+  display: grid;
+  gap: 10px;
+}
+
 .profile-menu__header {
   display: flex;
   align-items: center;
