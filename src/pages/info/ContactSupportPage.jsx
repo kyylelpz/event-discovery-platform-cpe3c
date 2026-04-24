@@ -289,7 +289,7 @@ function ContactSupportPage() {
             <h2>Other ways to reach us</h2>
           </div>
           <div className="contact-channels">
-            <span>Email: <a href="mailto:support@eventcinity.com">support@eventcinity.com</a></span>
+            <span>Email: <a href="mailto:lopez.kyle922@gmail.com">lopez.kyle922@gmail.com</a></span>
             <span>Response time: within 1-2 business days</span>
             <span>Based in the Philippines</span>
           </div>
