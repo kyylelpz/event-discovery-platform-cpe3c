@@ -43,6 +43,11 @@ const styles = `
     color: var(--color-text);
   }
 
+  .contact-field__required {
+    color: #b2402c;
+    margin-left: 0.2rem;
+  }
+
   .contact-field input,
   .contact-field select,
   .contact-field textarea {
@@ -250,7 +255,10 @@ function ContactSupportPage() {
           ) : (
             <form className="contact-form" onSubmit={handleSubmit}>
               <div className="contact-field">
-                <label htmlFor="c-name">Your name</label>
+                <label htmlFor="c-name">
+                  Your name
+                  <span className="contact-field__required" aria-hidden="true">*</span>
+                </label>
                 <input
                   id="c-name"
                   type="text"
@@ -261,7 +269,10 @@ function ContactSupportPage() {
                 />
               </div>
               <div className="contact-field">
-                <label htmlFor="c-email">Email address</label>
+                <label htmlFor="c-email">
+                  Email address
+                  <span className="contact-field__required" aria-hidden="true">*</span>
+                </label>
                 <input
                   id="c-email"
                   type="email"
@@ -272,7 +283,10 @@ function ContactSupportPage() {
                 />
               </div>
               <div className="contact-field">
-                <label htmlFor="c-topic">Topic</label>
+                <label htmlFor="c-topic">
+                  Topic
+                  <span className="contact-field__required" aria-hidden="true">*</span>
+                </label>
                 <select id="c-topic" value={form.topic} onChange={set('topic')} required>
                   <option value="">Select a topic...</option>
                   <option value="event-issue">Event issue</option>
@@ -283,7 +297,10 @@ function ContactSupportPage() {
                 </select>
               </div>
               <div className="contact-field">
-                <label htmlFor="c-message">Message</label>
+                <label htmlFor="c-message">
+                  Message
+                  <span className="contact-field__required" aria-hidden="true">*</span>
+                </label>
                 <textarea
                   id="c-message"
                   placeholder="Describe your issue or question..."
