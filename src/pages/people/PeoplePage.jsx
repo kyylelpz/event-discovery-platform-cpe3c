@@ -1,5 +1,6 @@
 import { PrimaryButton, SecondaryButton } from '../../components/ui/Button.jsx'
 import { UserPlusIcon, UsersIcon } from '../../components/ui/Icons.jsx'
+import Pagination from '../../components/ui/Pagination.jsx'
 import UserAvatar from '../../components/ui/UserAvatar.jsx'
 
 function PeoplePage({
@@ -31,46 +32,13 @@ function PeoplePage({
       </section>
 
       {totalPages > 1 ? (
-        <nav className="pagination" aria-label="People pagination">
-          <p className="pagination__summary">
-            Showing {rangeStart}-{rangeEnd} of {totalPeople} people
-          </p>
-          <div className="pagination__controls">
-            <button
-              type="button"
-              className="pagination__button"
-              onClick={() => onPageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-            >
-              Previous
-            </button>
-
-            <div className="pagination__pages">
-              {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
-                <button
-                  key={pageNumber}
-                  type="button"
-                  className={`pagination__button ${
-                    pageNumber === currentPage ? 'pagination__button--active' : ''
-                  }`}
-                  onClick={() => onPageChange(pageNumber)}
-                  aria-current={pageNumber === currentPage ? 'page' : undefined}
-                >
-                  {pageNumber}
-                </button>
-              ))}
-            </div>
-
-            <button
-              type="button"
-              className="pagination__button"
-              onClick={() => onPageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-            >
-              Next
-            </button>
-          </div>
-        </nav>
+        <Pagination
+          ariaLabel="People pagination"
+          summary={`Showing ${rangeStart}-${rangeEnd} of ${totalPeople} people`}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={onPageChange}
+        />
       ) : null}
 
       <section className="people-grid">

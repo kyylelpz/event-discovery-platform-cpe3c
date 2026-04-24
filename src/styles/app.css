@@ -1508,6 +1508,15 @@
   color: var(--color-surface);
 }
 
+.pagination__ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  color: var(--color-muted);
+  letter-spacing: 0.12em;
+}
+
 .page-stack--detail {
   gap: 40px;
 }
