@@ -178,18 +178,37 @@ function ContactSupportPage() {
   const [submittedTicket, setSubmittedTicket] = useState(null)
   const [submitError, setSubmitError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const hasRequiredFields =
+    Boolean(form.name.trim()) &&
+    Boolean(form.email.trim()) &&
+    Boolean(form.topic.trim()) &&
+    Boolean(form.message.trim())
 
   const set = (field) => (event) => setForm((prev) => ({ ...prev, [field]: event.target.value }))
 
   const handleSubmit = async (event) => {
     event.preventDefault()
-    if (!form.name || !form.email || !form.message || isSubmitting) return
+    const normalizedForm = {
+      ...form,
+      name: form.name.trim(),
+      email: form.email.trim().toLowerCase(),
+      topic: form.topic.trim(),
+      message: form.message.trim(),
+    }
+
+    if (!normalizedForm.name || !normalizedForm.email || !normalizedForm.topic || !normalizedForm.message) {
+      setSubmitError('Please complete all required fields before sending your message.')
+      return
+    }
+
+    if (isSubmitting) return
 
     setIsSubmitting(true)
     setSubmitError('')
 
     try {
-      const submission = await submitSupportRequest(form)
+      const submission = await submitSupportRequest(normalizedForm)
+      setForm(normalizedForm)
       setSubmittedTicket(submission)
     } catch (error) {
       setSubmitError(
@@ -229,7 +248,7 @@ function ContactSupportPage() {
                 : ' It was stored locally on this device because no support endpoint responded.'}
             </div>
           ) : (
-            <form className="contact-form" onSubmit={handleSubmit} noValidate>
+            <form className="contact-form" onSubmit={handleSubmit}>
               <div className="contact-field">
                 <label htmlFor="c-name">Your name</label>
                 <input
@@ -238,6 +257,7 @@ function ContactSupportPage() {
                   placeholder="Juan dela Cruz"
                   value={form.name}
                   onChange={set('name')}
+                  required
                 />
               </div>
               <div className="contact-field">
@@ -248,11 +268,12 @@ function ContactSupportPage() {
                   placeholder="you@example.com"
                   value={form.email}
                   onChange={set('email')}
+                  required
                 />
               </div>
               <div className="contact-field">
                 <label htmlFor="c-topic">Topic</label>
-                <select id="c-topic" value={form.topic} onChange={set('topic')}>
+                <select id="c-topic" value={form.topic} onChange={set('topic')} required>
                   <option value="">Select a topic...</option>
                   <option value="event-issue">Event issue</option>
                   <option value="account">Account help</option>
@@ -268,12 +289,13 @@ function ContactSupportPage() {
                   placeholder="Describe your issue or question..."
                   value={form.message}
                   onChange={set('message')}
+                  required
                 />
               </div>
               <button
                 type="submit"
                 className="contact-submit"
-                disabled={!form.name || !form.email || !form.message || isSubmitting}
+                disabled={!hasRequiredFields || isSubmitting}
               >
                 {isSubmitting ? 'Saving...' : 'Send message'}
               </button>
